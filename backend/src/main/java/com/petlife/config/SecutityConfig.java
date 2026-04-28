@@ -13,6 +13,7 @@ public class SecutityConfig {
 			.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
 					.requestMatchers("/api/member/**").permitAll() //會員API開放
+					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
 					.requestMatchers("/oauth2/**").permitAll()	//預留OAuth2
 					.anyRequest().authenticated()
 					);

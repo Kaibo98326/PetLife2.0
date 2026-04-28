@@ -9,6 +9,11 @@ const routes = [
     component: LoginEmp 
 
   },
+  {
+    path: '/admin/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/Dashboard.vue')
+  }
   
 ]
 

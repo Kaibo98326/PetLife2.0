@@ -8,7 +8,7 @@
     font-family: "Poppins",sans-serif;
 }
 
-body{
+.login-page{
     display: flex;
     justify-content: center;
     align-items: center;

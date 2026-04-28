@@ -476,13 +476,24 @@ body {
     background-color: #777;
 }
 .has-submenu .submenu {
-  display: none;              /* 預設隱藏 */
-  padding-left: 20px;         /* 子選單縮排 */
+  max-height: 0;             /* 預設收起 */
+  overflow: hidden;          /* 隱藏超出內容 */
+  opacity: 0;                /* 預設透明 */
+  transition: max-height 0.4s ease, opacity 0.4s ease, padding 0.4s ease;
+  padding-left: 20px;
   margin-top: 5px;
 }
 
 .has-submenu.open .submenu {
-  display: block;             /* 展開時顯示 */
+  max-height: 500px;         /* 展開高度，足夠容納子選單 */
+  opacity: 1;                /* 顯示 */
+  padding-top: 0.5rem;       /* 展開時加點間距 */
+}
+
+.arrow {
+  margin-left: auto;
+  font-size: 14px;
+  transition: transform 0.3s ease;
 }
 
 .menu-link {
