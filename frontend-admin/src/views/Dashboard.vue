@@ -1,133 +1,84 @@
+<template>
+  <div class="dashboard-content">
+    <el-card class="welcome-card">
+      <div class="welcome-text">
+        <h3>你好，{{ employeeStore.empName }}！ </h3>
+        <p>歡迎回到 PetLife 管理系統。今天想處理什麼事務呢？</p>
+      </div>
+    </el-card>
+
+    <el-row :gutter="20" class="stat-row">
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <template #header>今日商城訂單</template>
+          <div class="stat-number">12</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <template #header>美容預約</template>
+          <div class="stat-number">5</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <template #header>旅館空房</template>
+          <div class="stat-number">8</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <template #header>商品庫存警告</template>
+          <div class="stat-number text-danger">3</div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
 <script setup>
 import { ref } from 'vue';
 import { useEmployeeStore } from '@/stores/employee';
 import { useRouter } from 'vue-router';
 
+
 const employeeStore = useEmployeeStore();
 const router = useRouter();
-
 const openMenu = ref(null);
-
 const toggleSubmenu = (menuName) => {
     openMenu.value = openMenu.value === menuName ? null : menuName;
 };
-
 const logout = () => {
     employeeStore.logout();
     router.push('/');
 };
 </script>
-<template>
-    <div class="dashboard">
-        <!-- 頂部欄 -->
-        <div class="header">
-            <div class="header-left">
-                <div class="admin-title">PetLife 後臺管理系統</div>
-            </div>
-            <div class="header-right">
-                <div class="user-info">
-                    <div class="user-avatar">👤</div>
-                    <div class="user-details">
-                        <div class="user-name">{{ employeeStore.empName }}</div>
-                        <div class="user-role">{{ employeeStore.role }}</div>
-                    </div>
-                </div>
-                <button class="logout-btn" @click="logout">登出</button>
-            </div>
-        </div>
-
-        <!-- 主容器 -->
-        <div class="main-container">
-            <!-- 側邊欄 -->
-            <aside class="sidebar">
-                <div class="sidebar-header">功能選單</div>
-                <ul class="menu-list">
-                    <!-- 單層選單 -->
-                    <li class="menu-item">
-                        <router-link to="/admin/member" class="menu-link">
-                            <img width="24" height="24"
-                                src="https://img.icons8.com/material-rounded/24/user-female-circle.png" />
-                            會員管理
-                        </router-link>
-                    </li>
-
-                    <!-- 商品管理 -->
-                    <li class="menu-item has-submenu" :class="{ open: openMenu === 'product' }">
-                        <a href="javascript:void(0);" class="menu-link" @click="toggleSubmenu('product')">
-                            <img width="24" height="24" src="https://img.icons8.com/ios-glyphs/30/open-box.png" />
-                            <span>商品管理</span>
-                            <span class="arrow">{{ openMenu === 'product' ? '▼' : '▶' }}</span>
-                        </a>
-                        <ul class="submenu">
-                            <li><router-link to="/admin/category" class="menu-link">&emsp;商品類別管理</router-link></li>
-                            <li><router-link to="/admin/product" class="menu-link">&emsp;商品管理</router-link></li>
-                        </ul>
-                    </li>
-
-                    <!-- 美容管理 -->
-                    <li class="menu-item has-submenu" :class="{ open: openMenu === 'grooming' }">
-                        <a href="javascript:void(0);" class="menu-link" @click="toggleSubmenu('grooming')">
-                            <img width="24" height="24" src="https://img.icons8.com/ios-filled/50/scissors.png" />
-                            <span>美容管理</span>
-                            <span class="arrow">{{ openMenu === 'grooming' ? '▼' : '▶' }}</span>
-                        </a>
-                        <ul class="submenu">
-                            <li><router-link to="/admin/groomingItem" class="menu-link">&emsp;美容項目管理</router-link></li>
-                            <li><router-link to="/admin/groomingRecord" class="menu-link">&emsp;美容預約管理</router-link>
-                            </li>
-                        </ul>
-                    </li>
-
-                    <!-- 寵物旅館管理 -->
-                    <li class="menu-item has-submenu" :class="{ open: openMenu === 'hotel' }">
-                        <a href="javascript:void(0);" class="menu-link" @click="toggleSubmenu('hotel')">
-                            <img width="24" height="24" src="https://img.icons8.com/ios-glyphs/30/bed.png" />
-                            <span>寵物旅館管理</span>
-                            <span class="arrow">{{ openMenu === 'hotel' ? '▼' : '▶' }}</span>
-                        </a>
-                        <ul class="submenu">
-                            <li><router-link to="/admin/hotel_rooms" class="menu-link">&emsp;旅館房間管理</router-link></li>
-                            <li><router-link to="/admin/hotel_types" class="menu-link">&emsp;旅館房型管理</router-link></li>
-                            <li><router-link to="/admin/hotel_orders" class="menu-link">&emsp;旅館訂單管理</router-link></li>
-                        </ul>
-                    </li>
-
-                    <!-- 單層選單 -->
-                    <li class="menu-item">
-                        <router-link to="/admin/order" class="menu-link">
-                            <img width="24" height="24"
-                                src="https://img.icons8.com/material-rounded/24/shopping-cart.png" />
-                            訂單管理
-                        </router-link>
-                    </li>
-                    <li class="menu-item">
-                        <router-link to="/admin/promotion" class="menu-link">
-                            <img width="24" height="24" src="https://img.icons8.com/ios-glyphs/30/discount--v1.png" />
-                            優惠活動管理
-                        </router-link>
-                    </li>
-                </ul>
-            </aside>
-
-            <!-- 內容區域 -->
-            <div class="content-area">
-                <div class="content-header">
-                    <div>
-                        <div class="content-title">{{ $route.name }}</div>
-                        <div class="content-breadcrumb">首頁 > <span>{{ $route.name }}</span></div>
-                    </div>
-                </div>
-                <div class="content-body">
-                    <router-view /> <!-- 顯示子頁面 -->
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
 
 <style scoped>
-@import '@/assets/css/Dashboard.css';
+.dashboard-content {
+  padding: 10px;
+}
 
+.welcome-card {
+  margin-bottom: 20px;
+  border-left: 5px solid var(--primary-orange); /* 使用全域定義的橘色 */
+}
 
+.stat-row {
+  margin-top: 20px;
+}
 
+.stat-card {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.text-danger {
+  color: #f56c6c;
+}
 </style>
