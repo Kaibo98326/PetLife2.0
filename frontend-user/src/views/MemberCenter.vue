@@ -2,10 +2,106 @@
 import { useUserStore } from '@/stores/user';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
-import logo from '@/assets/images/logo01.png'
+import logo from '@/assets/images/logo01.png';
+import Cropper from "cropperjs";
+import "cropperjs/dist/cropper.css";
+
+
 
 const userStore = useUserStore()
 const router = useRouter()
+
+const openAvatarModal = () => {
+    Swal.fire({
+        title: '更換大頭貼',
+        html: `
+      <input type="file" id="avatarInput" accept="image/*" />
+      <div id="cropContainer" style="max-width:300px;margin-top:10px;"></div>
+    `,
+        showCancelButton: true,
+        confirmButtonText: '確認更換',
+        didOpen: () => {
+            const input = document.getElementById('avatarInput');
+            let cropper;
+            input.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.maxWidth = '100%';
+                        const container = document.getElementById('cropContainer');
+                        container.innerHTML = '';
+                        container.appendChild(img);
+
+                        cropper = new Cropper(img, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            background: false,
+                            autoCropArea: 1,
+                        });
+                        Swal.getPopup().cropper = cropper;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        },
+        preConfirm: () => {
+            const cropper = Swal.getPopup().cropper;
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas({
+                    width: 200,
+                    height: 200,
+                });
+                const dataUrl = canvas.toDataURL("image/jpg");
+
+                // 顯示圓形預覽
+                const preview = document.createElement("div");
+                preview.className = "avatar-preview";
+                const img = document.createElement("img");
+                img.src = dataUrl;
+                preview.appendChild(img);
+                Swal.getPopup().appendChild(preview);
+
+                return dataUrl;
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            uploadAvatar(result.value);
+        }
+    });
+};
+const uploadAvatar = async (base64Image) => {
+    const blob = await (await fetch(base64Image)).blob();
+    const formData = new FormData();
+    formData.append("file", blob, "avatar.jpg");
+
+    try {
+        const res = await fetch(`/api/member/${userStore.memberId}/avatar`, {
+            method: "POST",
+            body: formData,
+        });
+        const data = await res.json();
+        Swal.fire({
+            icon: "success",
+            title: "大頭貼更新成功",
+            confirmButtonText: "確定"
+        }).then(() => {
+            userStore.userImage = data.userImage ;
+            userStore.login(data.token);
+            
+        });
+    } catch (err) {
+        Swal.fire({
+            icon: "error",
+            title: "更新失敗",
+            text: err.message
+        });
+    }
+};
 
 const handleLogout = () => {
     // SweetAlert 登出確認
@@ -45,11 +141,19 @@ const handleLogout = () => {
             </nav>
         </header>
         <!-- Member Info -->
-        <section class="member-info mb-4">
-            <h2>會員中心</h2>
-            <p>會員編號：{{ userStore.memberId }}</p>
-            <p>會員名稱：{{ userStore.memberName }}</p>
-            <p>目前紅利點數：{{ userStore.currentPoints }}</p>
+        <section class="member-info mb-4 d-flex align-items-center">
+            <!--大頭貼(左方)-->
+            <div class="avatar-wrapper me-4">
+                <img :src="userStore.userImage" alt="大頭貼" class="avatar-img">
+                <button class="edit-btn" @click="openAvatarModal">✏️</button>
+            </div>
+            <!--會員資訊(右方)-->
+            <div class="member-details">
+                <h2>會員中心</h2>
+                <p>會員編號：{{ userStore.memberId }}</p>
+                <p>會員名稱：{{ userStore.memberName }}</p>
+                <p>目前紅利點數：{{ userStore.currentPoints }}</p>
+            </div>
         </section>
 
         <!-- Menu Grid -->
