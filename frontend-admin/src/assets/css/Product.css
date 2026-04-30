@@ -17,44 +17,26 @@
     border: 1px solid rgba(243, 156, 18, 0.05);
 }
 
-/* 3. 標題與裝飾 */
-.title-section h2 {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #8d6e63; /* 咖啡色字體更柔和 */
-    margin-bottom: 2rem;
-    display: flex;
-    align-items: center;
-}
-
-.title-section h2::before {
-    content: "";
-    width: 6px;
-    height: 24px;
-    background: #f39c12; /* 品牌橘 */
-    display: inline-block;
-    margin-right: 12px;
-    border-radius: 10px;
-}
 
 /* 4. 工具列按鈕 - 奶油質感的漸層 */
 .toolbar-group {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .btn-action {
     border-radius: 12px;
-    padding: 10px 22px;
+    padding: 10px 22px ;
     font-weight: 600;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
+    font-size: small;
 }
 
 .btn-add {
-    background: linear-gradient(135deg, #fbd061 0%, #f39c12 100%);
+    background: linear-gradient(135deg, #FFDE95 0%, #FFB347 100%);
     color: #5d4037;
     box-shadow: 0 4px 15px rgba(243, 156, 18, 0.25);
 }
@@ -80,6 +62,7 @@
     width: 250px;       /* 固定的寬度 */
     flex-shrink: 0;    /* ✨ 防止在工具列被擠壓 */
     display: flex;     /* 確保內部的 input-group 正常運作 */
+    font-size: small;
 }
 
 .search-input {
@@ -108,7 +91,7 @@
 /* 6. 表格設計 - 奶油風的關鍵在於簡化 */
 .custom-table {
     width: 100%;
-    margin-top: 10px;
+    table-layout: fixed;    
 }
 
 .custom-table thead th {
@@ -117,18 +100,28 @@
     font-size: 0.9rem;
     padding: 15px;
     border-bottom: 2px solid #fdf2e9;
+    text-align: center;
 }
 
 .custom-table tbody td {
-    padding: 20px 15px;
+    padding: 10px 15px;
     border-bottom: 1px solid #faf5f0;
+    font-size: 0.8rem;
+    text-align: center;
+    vertical-align: middle;
+    /* 防止文字太長破壞排版 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+
 
 /* 7. 商品圖片標籤 */
 .prod-img-wrapper {
     position: relative;
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
 }
 
 .prod-img {
@@ -168,20 +161,41 @@
     color: #e67e22;
     padding: 6px 14px;
     border-radius: 20px;
-    font-size: 0.85rem;
+    font-weight: bold;
+    font-size: 0.7rem;
 }
 
-/* 10. 分頁按鈕 */
+/* 10. 分頁按鈕優化 */
 .page-btn {
     border: 1.5px solid #eee5d8;
     background: white;
-    padding: 8px 18px;
-    border-radius: 12px;
+    padding: 6px 14px;      /* 縮小 padding，讓按鈕變扁一點、更精緻 */
+    border-radius: 10px;    /* 稍微縮小圓角，更有現代感 */
     color: #8d6e63;
-    font-weight: 500;
-    transition: 0.3s;
+    font-weight: 600;
+    font-size: 0.85rem;     /* 字體稍微縮小 */
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
+
 .page-btn:hover:not(:disabled) {
     background: #fdf2e9;
     color: #f39c12;
+    border-color: #f39c12;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(243, 156, 18, 0.1);
+}
+
+.page-btn:active:not(:disabled) {
+    transform: translateY(0px);
+}
+
+/* 停用狀態優化：讓顏色變淡，且滑鼠變成禁止符號 */
+.page-btn:disabled {
+    background-color: #f9f9f9;
+    color: #d2cdc9;
+    border-color: #f0f0f0;
+    cursor: not-allowed;
+    box-shadow: none;
 }

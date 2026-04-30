@@ -17,7 +17,7 @@ const routes = [
     children: [
       {
         path: 'dashboard', // 對應 /admin/dashboard
-        name: '首頁',
+        name: '',
         component: () => import('@/views/Dashboard.vue')
       },
       {

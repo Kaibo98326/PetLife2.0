@@ -118,19 +118,34 @@ body {
   opacity: 0.9;
 }
 
+/* 回商城按鈕：奶油白透明風格 */
+.btn-back-to-mall {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  transition: all 0.3s;
+}
+
+.btn-back-to-mall:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: white !important;
+  transform: translateY(-1px);
+}
+
 /* 登出按鈕 */
 .logout-btn {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
-  color: #ffffff !important;
-  border-radius: 6px;
-  padding: 6px 15px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: 0.3s;
 }
 
 .logout-btn:hover {
-  background: #ffffff !important;
-  color: #ff7a00 !important;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* -----------------------------------------------------------
@@ -165,6 +180,17 @@ body {
   background-color: var(--primary-orange);
   border-radius: 0 4px 4px 0;
 }
+
+/* 加快側邊選單展開/收合的速度 */
+.el-sub-menu .el-menu {
+  transition: height 0.15s ease-in-out, padding-top 0.15s ease-in-out, padding-bottom 0.15s ease-in-out !important;
+}
+
+/* 單箭頭 */
+.el-sub-menu__icon-arrow {
+  transition: transform 0.15s !important;
+}
+
 
 /* -----------------------------------------------------------
    D. UI Components (通用組件樣式)

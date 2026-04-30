@@ -137,14 +137,14 @@ onMounted(() => {
       <table class="custom-table align-middle">
         <thead>
           <tr>
-            <th width="40"><input type="checkbox" class="form-check-input"></th>
-            <th width="100">狀態</th>
-            <th width="120">商品</th>
-            <th>名稱</th>
-            <th>單價</th>
-            <th>庫存</th>
-            <th>分類</th>
-            <th width="100">操作</th>
+            <th style="width: 10px;"><input type="checkbox" class="form-check-input"></th>
+      <th style="width: 80px;">狀態</th>
+      <th style="width: 60px;">商品</th>
+      <th class="th-name">名稱</th> <!-- ✨ 不給寬度，讓它自動佔滿剩餘空間 -->
+      <th style="width: 80px;">單價</th>
+      <th style="width: 80px;">庫存</th>
+      <th style="width: 90px;">分類</th>
+      <th style="width: 50px;">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -169,17 +169,36 @@ onMounted(() => {
             <td><span class="category-tag">{{ p.categoryName || '預設分類' }}</span></td>
             <td>
               <button @click="mode = 'edit'; currentProduct = { ...p }; previewUrl = `http://localhost:8082/${p.productImage}`" 
-                      class="btn btn-sm btn-link text-decoration-none" style="color: #3498db;">修改</button>
+                      class="btn btn-sm btn-link text-decoration-none" style="color: #2c3e50;">修改</button>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
-        <button class="page-btn" :disabled="pagination.currentPage === 1" @click="fetchProducts(pagination.currentPage - 1)">上一頁</button>
-        <span style="font-size: 0.9rem; color: #a1887f;">第 {{ pagination.currentPage }} 頁 / 共 {{ pagination.totalPages }} 頁</span>
-        <button class="page-btn" :disabled="pagination.currentPage === pagination.totalPages" @click="fetchProducts(pagination.currentPage + 1)">下一頁</button>
-      </div>
+     <!-- 分頁區塊修正 -->
+<div class="pagination-container mt-5 ">
+  <div class="pagination-wrapper" style="display: flex; align-items:center;justify-content: center; gap: 1rem;">
+    <button 
+      class="page-btn" 
+      :disabled="pagination.currentPage === 1" 
+      @click="fetchProducts(pagination.currentPage - 1)"
+    >
+      上一頁
+    </button>
+    
+    <div class="page-info">
+      第 {{ pagination.currentPage }} 頁 / 共 {{ pagination.totalPages }} 頁
+    </div>
+    
+    <button 
+      class="page-btn" 
+      :disabled="pagination.currentPage === pagination.totalPages" 
+      @click="fetchProducts(pagination.currentPage + 1)"
+    >
+      下一頁
+    </button>
+  </div>
+</div>
     </div>
   <!-- </div> -->
 </template>
