@@ -1,0 +1,201 @@
+/* Product.css - 暖心奶油專業版 */
+
+/* 1. 容器設定 */
+.admin-container {
+    /* background-color: #fefaf2; 極致輕柔的米色背景 */
+    min-height: 100vh;
+    padding: 2rem;
+    font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+}
+
+/* 2. 主卡片設計 - 增加懸浮感與大圓角 */
+.main-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(211, 160, 80, 0.08); /* 帶有暖色調的陰影 */
+    border: 1px solid rgba(243, 156, 18, 0.05);
+}
+
+
+/* 4. 工具列按鈕 - 奶油質感的漸層 */
+.toolbar-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.btn-action {
+    border-radius: 12px;
+    padding: 10px 22px ;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    font-size: small;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #FFDE95 0%, #FFB347 100%);
+    color: #5d4037;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.25);
+}
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.35);
+}
+
+.btn-outline {
+    background: #fff;
+    border: 1.5px solid #f9e3c2;
+    color: #d35400;
+    margin-left: 8px;
+}
+.btn-outline:hover {
+    background: #fff9f0;
+    border-color: #f39c12;
+}
+
+/* 5. 搜尋框 - 圓潤且溫潤 */
+.search-wrapper {
+    position: relative;
+    width: 250px;       /* 固定的寬度 */
+    flex-shrink: 0;    /* ✨ 防止在工具列被擠壓 */
+    display: flex;     /* 確保內部的 input-group 正常運作 */
+    font-size: small;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 15px 12px 45px;
+    border-radius: 14px;
+    border: 1.5px solid #eee5d8;
+    background-color: #fff;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #f39c12;
+    box-shadow: 0 0 0 4px rgba(243, 156, 18, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #d3a060;
+}
+
+/* 6. 表格設計 - 奶油風的關鍵在於簡化 */
+.custom-table {
+    width: 100%;
+    table-layout: fixed;    
+}
+
+.custom-table thead th {
+    color: #a1887f;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 15px;
+    border-bottom: 2px solid #fdf2e9;
+    text-align: center;
+}
+
+.custom-table tbody td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #faf5f0;
+    font-size: 0.8rem;
+    text-align: center;
+    vertical-align: middle;
+    /* 防止文字太長破壞排版 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+
+/* 7. 商品圖片標籤 */
+.prod-img-wrapper {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.prod-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #f1e4d3;
+}
+
+.prod-id-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #8d6e63;
+    color: white;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 7px;
+    border: 2px solid #fff;
+}
+
+/* 8. 狀態標籤 - 柔和配色 */
+.status-pill {
+    padding: 5px 14px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.status-active { background: #e8f8f5; color: #1abc9c; }
+.status-inactive { background: #fdf2f2; color: #e74c3c; }
+
+/* 9. 分類標籤 */
+.category-tag {
+    background: #fff3e0;
+    color: #e67e22;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.7rem;
+}
+
+/* 10. 分頁按鈕優化 */
+.page-btn {
+    border: 1.5px solid #eee5d8;
+    background: white;
+    padding: 6px 14px;      /* 縮小 padding，讓按鈕變扁一點、更精緻 */
+    border-radius: 10px;    /* 稍微縮小圓角，更有現代感 */
+    color: #8d6e63;
+    font-weight: 600;
+    font-size: 0.85rem;     /* 字體稍微縮小 */
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #fdf2e9;
+    color: #f39c12;
+    border-color: #f39c12;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(243, 156, 18, 0.1);
+}
+
+.page-btn:active:not(:disabled) {
+    transform: translateY(0px);
+}
+
+/* 停用狀態優化：讓顏色變淡，且滑鼠變成禁止符號 */
+.page-btn:disabled {
+    background-color: #f9f9f9;
+    color: #d2cdc9;
+    border-color: #f0f0f0;
+    cursor: not-allowed;
+    box-shadow: none;
+}

@@ -1,521 +1,258 @@
-/*2026.03.17更新樣式*/
+/* ===========================================================
+   PetLife 全域樣式表 - 頂欄橫跨 + 兩端漸層版
+   =========================================================== */
+
 :root {
-    --primary-color: #ff7e2e;
-    --primary-hover: #ea610c;
-    --sidebar-bg: #2c3e50;
-    --header-height: 70px;
-    --border-radius-lg: 1.25rem;
-    --border-radius-md: 0.75rem;
-    --card-shadow: 0 8px 25px rgba(0,0,0,0.05);
-    --warm-bg: #fffaf0;
-}
-/* ===== 全局樣式 ===== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  --admin-bg: #f0f2f5;
+  --sidebar-bg: #2c3e50;
+  --primary-orange: #ff7a00;
+  --text-main: #5a4a42;
+  --white: #ffffff;
+  --orange-gradient: linear-gradient(135deg, #ff7a00 0%, #ff9a44 100%);
 }
 
+/* 基礎設定 */
 body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background-color: var(--warm-bg);
-    color: #333;
+  margin: 0;
+  padding: 0;
+  font-family: 'Noto Sans TC', sans-serif;
+  overflow: hidden;
 }
 
-/* ===== 頂部欄 ===== */
-.header {
-    background: linear-gradient(135deg, #f5771d, #fcc4a6);
-    color: white;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+/* -----------------------------------------------------------
+   A. Layout (大外殼佈局：上下分層)
+   ----------------------------------------------------------- */
+
+/* 最外層：垂直堆疊 */
+.admin-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+/* 下方大容器：水平排列 (Sidebar在左，內容在右) */
+.admin-bottom-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
-
-/* ===== 頂端PetLife字樣 ===== */
-.admin-title {
-    font-family: "Fredoka", sans-serif;
-    font-weight: 600;
-    font-size:30px;
-    
-    /* 讓英文部分稍微明顯一點 */
-    text-shadow: 1px 1px 0px rgba(0,0,0,0.05); 
-    
-    /* 對齊方式 */
-    display: flex;
-    align-items: center;
-    letter-spacing: 1px;
+/* 主內容區：獨立滾動 */
+.admin-main-body {
+  flex: 1;
+  padding: 24px;
+  background-color: var(--admin-bg);
+  overflow-y: auto;
 }
 
+/* ===========================================================
+   B. Header - 終極單一區塊版 (無斷層、無中線)
+   =========================================================== */
 
-/* 新版 logo 額外樣式 */
-/* .logo-paws { */
-/*     font-size: 1.4rem; */
-/* } */
-/* .logo-text { */
-/*     font-size: 1.5rem; */
-/*     font-weight: bold; */
-/*     color: white; */
-/*     letter-spacing: 1px; */
-/*     font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; */
-/* } */
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
+.admin-header {
+  height: 70px;
+  /* 讓漸層色橫跨整條 Header，完全不分區 */
+  background: linear-gradient(90deg, #ff7a00 0%, #ff9a44 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 自動把 Logo 推到左，User 推到右 */
+  padding: 0 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  z-index: 1000;
+  border: none !important; /* 強制拿掉任何可能產生的邊線 */
 }
 
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+/* 左側文字 */
+.header-logo {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 1px;
 }
 
-.user-avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
+/* 右側組合 */
+.header-user-area {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
-.user-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar-circle {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar-circle img {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1);
+}
+
+.user-text-info {
+  display: flex;
+  flex-direction: column;
+  color: #ffffff;
 }
 
 .user-name {
-    font-weight: 600;
-    font-size: 0.95rem;
+  font-size: 15px;
+  font-weight: bold;
 }
 
 .user-role {
-    font-size: 0.8rem;
-    opacity: 0.9;
+  font-size: 11px;
+  opacity: 0.9;
 }
 
+/* 回商城按鈕：奶油白透明風格 */
+.btn-back-to-mall {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  transition: all 0.3s;
+}
+
+.btn-back-to-mall:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: white !important;
+  transform: translateY(-1px);
+}
+
+/* 登出按鈕 */
 .logout-btn {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s;
-    font-family: 'Noto Sans TC', sans-serif;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
 .logout-btn:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-/* ===== 主容器 ===== */
-.main-container {
-    display: flex;
-    height: calc(100vh - 70px);
+/* -----------------------------------------------------------
+   C. Sidebar (側邊欄樣式)
+   ----------------------------------------------------------- */
+
+.sidebar-wrapper {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: var(--sidebar-bg);
 }
 
-/* ===== 側邊欄 ===== */
-.sidebar {
-    width: 250px;
-    background-color: #2c3e50;
-    color: white;
-    overflow-y: auto;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+.sidebar-menu {
+  height: 100% !important; /* 確保高度填滿下方區域 */
+  border-right: none !important;
 }
 
-/* 舊版 sidebar-header 改用變數 */
-.sidebar-header {
-    padding: 1.5rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-weight: bold;
-    font-size: 0.9rem;
-    color: var(--primary-color);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+/* 選中狀態：橘色線條樣式 */
+.el-menu-item.is-active {
+  background-color: rgba(255, 122, 0, 0.1) !important;
+  position: relative;
+  color: var(--primary-orange) !important;
+}
+
+.el-menu-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  height: 50%;
+  width: 4px;
+  background-color: var(--primary-orange);
+  border-radius: 0 4px 4px 0;
+}
+
+/* 加快側邊選單展開/收合的速度 */
+.el-sub-menu .el-menu {
+  transition: height 0.15s ease-in-out, padding-top 0.15s ease-in-out, padding-bottom 0.15s ease-in-out !important;
+}
+
+/* 單箭頭 */
+.el-sub-menu__icon-arrow {
+  transition: transform 0.15s !important;
 }
 
 
+/* -----------------------------------------------------------
+   D. UI Components (通用組件樣式)
+   ----------------------------------------------------------- */
 
-.menu-list {
-    list-style: none;
-    padding: 0.5rem 0;
-}
-
-.menu-item {
-    padding: 0;
-}
-
-.menu-link {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 1.5rem;
-    color: #ecf0f1;
-    text-decoration: none;
-    transition: all 0.3s;
-    cursor: pointer;
-    border-left: 3px solid transparent;
-}
-
-.menu-link:hover {
-    background-color: rgba(249, 115, 22, 0.1);
-    color: #f97316;
-    border-left-color: #f97316;
-}
-
-.menu-link.active {
-    background-color: rgba(249, 115, 22, 0.2);
-    color: #f97316;
-    border-left-color: #f97316;
-    font-weight: 600;
-}
-
-.menu-icon {
-    width: 1.25rem;
-    height: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-}
-
-/* 商品管理父目錄 庫存低於警告數字 */
-.sidebar-badge-num {
-    background-color: #ff4d4f;
-    color: white;
-    font-size: 10px;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-left: auto;
-    padding: 0 4px;
-}
-
-/*  商品管理子目錄 庫存低於警告驚嘆號 */
-.sidebar-badge-warn {
-    background-color: #ff4d4f;
-    color: white;
-    font-size: 10px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-left: 8px;
-}
-
-/* ===== 內容區域 ===== */
-.content-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background-color: transparent;
-}
-
-.content-header {
-    background-color: transparent;
-    padding: 0.5rem 2rem;
-    border-bottom: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.content-title {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #2c3e50;
-    display: none;
-}
-
-.content-breadcrumb {
-    font-size: 0.85rem;
-    color: #888;
-    margin-left: -5px;
-}
-
-.content-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    background-color: #f5f5f5;
-}
-
-.content-placeholder {
-    background-color: white;
-    border-radius: 0.5rem;
-    padding: 2rem;
-    text-align: center;
-    color: #999;
-    min-height: 300px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.loading {
-    text-align: center;
-    padding: 2rem;
-}
-
-.spinner {
-    border: 4px solid #f0f0f0;
-    border-top: 4px solid #f97316;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* ===== 響應式設計 ===== */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-
-    .header-right {
-        gap: 1rem;
-    }
-
-    .user-details {
-        display: none;
-    }
-
-    .content-header {
-        padding: 1rem;
-    }
-
-    .content-body {
-        padding: 1rem;
-    }
-}
-
-@media (max-width: 600px) {
-    .main-container {
-        flex-direction: column;
-    }
-
-    .sidebar {
-        width: 100%;
-        height: auto;
-        max-height: 300px;
-    }
-
-    .content-area {
-        height: auto;
-    }
-
-    .header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-
-    .header-right {
-        width: 100%;
-        justify-content: space-between;
-    }
-}
-
-/* ===== 滾動條樣式 ===== */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-hover);
-}
-
-/* ===== 錯誤提示 ===== */
-.error-message {
-    background-color: #fee;
-    color: #c33;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    border-left: 4px solid #c33;
-}
-
-.success-message {
-    background-color: #efe;
-    color: #3c3;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    border-left: 4px solid #3c3;
-}
-/* ===== 員工表格樣式 ===== */
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-}
-.data-table th, .data-table td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-}
-.data-table th {
-    background-color: #f5f5f5;
-}
-.btn-edit, .btn-delete, .btn-add {
-    padding: 4px 8px;
-    border-radius: 4px;
-    text-decoration: none;
-    margin: 0 4px;
-    display: inline-block;
-}
-.btn-edit { background-color: #4CAF50; color: white; }
-.btn-delete { background-color: #f44336; color: white; }
-.btn-add { background-color: #2196F3; color: white; }
-.no-data-message {
-    color: #999;
-    margin: 1rem 0;
-}
-.form-container {
-    max-width: 600px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.employee-form .form-group {
-    margin-bottom: 1rem;
-}
-
-.employee-form label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-}
-
-.employee-form input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.form-actions {
-    margin-top: 1.5rem;
-    text-align: right;
-}
-
-.btn-add {
-    background-color: #2196F3;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-add:hover {
-    background-color: #1976D2;
-}
-
-.btn-cancel {
-    background-color: #999;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    text-decoration: none;
-    margin-left: 8px;
-}
-
-.btn-cancel:hover {
-    background-color: #777;
-}
-.has-submenu .submenu {
-  max-height: 0;             /* 預設收起 */
-  overflow: hidden;          /* 隱藏超出內容 */
-  opacity: 0;                /* 預設透明 */
-  transition: max-height 0.4s ease, opacity 0.4s ease, padding 0.4s ease;
-  padding-left: 20px;
-  margin-top: 5px;
-}
-
-.has-submenu.open .submenu {
-  max-height: 500px;         /* 展開高度，足夠容納子選單 */
-  opacity: 1;                /* 顯示 */
-  padding-top: 0.5rem;       /* 展開時加點間距 */
-}
-
-.arrow {
-  margin-left: auto;
-  font-size: 14px;
-  transition: transform 0.3s ease;
-}
-
-.menu-link {
-  cursor: pointer;
+.page-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--text-main);
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: background 0.3s;
 }
 
-.menu-link:hover {
-  background-color: #f0f0f0;
+.page-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background: var(--primary-orange);
+  margin-right: 10px;
+  border-radius: 2px;
 }
 
-.table-orange thead {
-    background-color: #ff9800; /* 橘色 */
-    color: #fff;
-}
-.table-orange tbody tr:nth-child(even) {
-    background-color: #fff3e0; /* 淺橘背景 */
+.btn-main {
+  background-color: var(--primary-orange) !important;
+  border-color: var(--primary-orange) !important;
+  color: white !important;
 }
 
+/* --- 麵包屑樣式 --- */
+.content-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
 
+.breadcrumb-container {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.breadcrumb-container .root-path {
+  color: #666;
+}
+
+.breadcrumb-container .current-path {
+  color: var(--primary-orange); /* 使用我們定義的橘色 */
+  font-weight: 500;
+}
+
+.breadcrumb-container .separator {
+  margin: 0 8px;
+  color: #ccc;
+}
+
+/* 標題樣式調整 */
+.page-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--text-main);
+  margin: 0;
+}
 

@@ -15,7 +15,10 @@ public class SecutityConfig {
 					.requestMatchers("/api/member/**").permitAll() //會員API開放
 					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
 					.requestMatchers("/oauth2/**").permitAll()	//預留OAuth2
-					.requestMatchers("/images/**").permitAll()  //靜態圖片放行
+					.requestMatchers("/images/**").permitAll()
+	                .requestMatchers("/api/categories/**").permitAll() 
+	                .requestMatchers("/api/products/**").permitAll()
+
 					.anyRequest().authenticated()
 					);
 		return http.build();

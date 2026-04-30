@@ -13,9 +13,11 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "axios": "^1.15.2",
     "bootstrap": "^5.3.8",
+    "element-plus": "^2.13.7",
     "jwt-decode": "^4.0.0",
     "pinia": "^3.0.4",
     "sweetalert2": "^11.26.24",
