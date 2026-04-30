@@ -18,6 +18,7 @@ public class SecutityConfig {
 					.requestMatchers("/images/**").permitAll()
 	                .requestMatchers("/api/categories/**").permitAll() 
 	                .requestMatchers("/api/products/**").permitAll()
+
 					.anyRequest().authenticated()
 					);
 		return http.build();

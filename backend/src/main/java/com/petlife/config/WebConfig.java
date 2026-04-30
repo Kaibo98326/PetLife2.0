@@ -19,9 +19,9 @@ public class WebConfig implements WebMvcConfigurer{
 	}
 	
 	// 外部資源映射 (讓網址能讀取到 C 槽圖片)
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:///C:/uploads/images/");
-    }
+	@Override
+	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+	    registry.addResourceHandler("/images/**")
+	            .addResourceLocations("file:C:/PetLife2.0/uploads/images/");
+	}
 }

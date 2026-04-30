@@ -10,4 +10,7 @@ public class RegisterRequest {
 	private String memberName;
 	private String phone;
 	private String address;
+	
+	
+	
 }
