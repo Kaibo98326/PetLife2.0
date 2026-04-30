@@ -33,10 +33,11 @@ public class JwtUtils {
                 .compact();
     }
     
-    public String generateToken(Integer memberId,String email,String memberName) {
+    public String generateToken(Integer memberId,String email,String memberName ,String userImage) {
     		Map<String, Object> claims = new HashMap<>();
     		claims.put("memberName", memberName);
     		claims.put("email", email);
+    		claims.put("userImage", "http://localhost:8082"+userImage);
     		
     		return Jwts.builder()
                     .setClaims(claims)

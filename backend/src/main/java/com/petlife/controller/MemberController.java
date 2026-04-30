@@ -1,5 +1,10 @@
 package com.petlife.controller;
 
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +17,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.petlife.model.Member;
 import com.petlife.repository.LoginRequest;
 import com.petlife.repository.MemberUpdateRequest;
 import com.petlife.repository.RegisterRequest;
 import com.petlife.service.IMemberService;
+import com.petlife.service.JwtUtils;
 import com.petlife.service.PasswordUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +37,8 @@ public class MemberController {
 	@Autowired
 	private  IMemberService memberService;
 	
-	
+	@Autowired
+    private JwtUtils JwtUtils;  // ✅ 注入 JwtUtils
 	
 	//會員自己註冊
 	@PostMapping("/register")
@@ -88,5 +96,52 @@ public class MemberController {
 	        .map(m -> ResponseEntity.ok(Map.of("valid", true)))
 	        .orElse(ResponseEntity.ok(Map.of("valid", false)));
 	}
+	
+	//處理大頭貼
+	@PostMapping("/{id}/avatar")
+	public ResponseEntity<?> uploadAvatar(@PathVariable Integer id ,
+										 @RequestParam("file") MultipartFile file){
+		try {
+			// 檔案存放路徑 (專案內 static/images/member)
+			String uploadDir = "C:/PetLife2.0/uploads/images/member/";
+			String fileName = id + "_"+System.currentTimeMillis() +"_"+ file.getOriginalFilename();
+			Path filePath = Paths.get(uploadDir).resolve(fileName);
+
+            // 建立目錄
+            Files.createDirectories(filePath.getParent());
+
+            // 儲存新檔案
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            
+            System.out.println("Saved file to: " + filePath.toAbsolutePath());
+            // 更新資料庫欄位 (呼叫 Service 方法，會自動刪除舊檔案)
+            String dbPath = "/images/member/" + fileName;
+            Member updated = memberService.updateMemberImage(id, dbPath);
+
+            // 重新簽發新的 JWT，帶最新 userImage
+            String newToken = JwtUtils.generateToken(
+                updated.getMemberId(),
+                updated.getEmail(),
+                updated.getMemberName(),
+                updated.getUserImage()
+            );
+
+            System.out.println("UploadDir = " + uploadDir);
+            System.out.println("FileName = " + fileName);
+            System.out.println("File is empty? " + file.isEmpty());
+            return ResponseEntity.ok(Map.of(
+                "message", "頭像更新成功",
+                "userImage", updated.getUserImage(),
+                "token", newToken
+            ));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "大頭貼更新失敗", "details", e.getMessage()));
+		}
+	}
+	
+	
 	
 }

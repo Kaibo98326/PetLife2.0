@@ -27,5 +27,8 @@ public interface IMemberService {
 	    
 	    // 新增：依 ID 查詢會員
 	    Optional<Member> findById(Integer id);
+	    
+	    //更新大頭貼
+	    Member updateMemberImage(Integer memberId, String newImagePath);
 	 
 }

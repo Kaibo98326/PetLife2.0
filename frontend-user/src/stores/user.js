@@ -19,6 +19,7 @@ export const useUserStore = defineStore('user', {
       this.memberId = parseInt(decoded.sub) 
       this.memberName = decoded.memberName
       this.email = decoded.email
+      this.userImage = decoded.userImage;
       
     },
     logout() {

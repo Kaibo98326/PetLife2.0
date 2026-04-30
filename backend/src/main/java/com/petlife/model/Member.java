@@ -43,21 +43,32 @@ public class Member {
 	@JsonIgnore
 	private String passwordHash; //雜湊密碼
 	
-	private String address;
-	private String provider;
+	private String address;		//地址
+	private String provider;		//第三方登入提供者(ex:google)
 
 
-	@Column(name = "provider_user_id")
+	@Column(name = "provider_user_id") 	//第三方登入唯一碼
 	private String providerUserId;
 
-	@Column(name = "account_status")
+	@Column(name = "account_status")		//帳號狀態
 	private String accountStatus;
 	
 	@DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	@Column(name = "register_time")
-	private LocalDateTime registerTime;
+	private LocalDateTime registerTime;	//註冊時間
 	
 	@Column(name = "last_login_at")
-	private LocalDateTime lastLogin;
+	private LocalDateTime lastLogin;		//最後登入時間
+	
+	
+	@Builder.Default
+	@Column(name = "userImage" , nullable = false)
+	private String userImage = "/images/petlife.jpg";   //使用者大頭貼
+	
+	@Builder.Default
+	@Column(name = "bonusPoints" , nullable = false)
+	private Integer bonusPoints = 0 ;
+	
+	
 	
 }

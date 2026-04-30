@@ -1,5 +1,8 @@
 package com.petlife.service;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -45,6 +48,8 @@ public class MemberService implements IMemberService{
 		member.setPhone(request.getPhone());
 		member.setAddress(request.getAddress());
 		member.setAccountStatus("active");
+		member.setUserImage("/images/member/petlife.jpg");
+		member.setBonusPoints(0);
 		
 		return memberRepos.save(member);
 	}
@@ -65,7 +70,7 @@ public class MemberService implements IMemberService{
                 .map(m -> {
                 	 m.setLastLogin(LocalDateTime.now());
                 	 memberRepos.save(m);
-                	return jwtUtils.generateToken(m.getMemberId(),m.getEmail(),m.getMemberName());
+                	return jwtUtils.generateToken(m.getMemberId(),m.getEmail(),m.getMemberName(),m.getUserImage());
                 	}); // 用設定檔的 secret 來簽發
     }
 	
@@ -98,6 +103,11 @@ public class MemberService implements IMemberService{
 			member.setProvider(req.getProvider());
 			member.setProviderUserId(req.getProviderUserId());
 		}
+		// 4/29更新使用者大頭貼功能
+		if(req.getUserImage() != null && !req.getUserImage().isEmpty()) {
+			member.setUserImage(req.getUserImage());
+		}
+		
 		
 		return memberRepos.save(member);
 		
@@ -116,6 +126,27 @@ public class MemberService implements IMemberService{
 	@Override
 	public Optional<Member> findById(Integer id) {
 	    return memberRepos.findById(id);
+	}
+	
+	@Override
+	public Member updateMemberImage(Integer memberId, String newImagePath) {
+	    Member member = memberRepos.findById(memberId)
+	        .orElseThrow(() -> new IllegalArgumentException("會員不存在"));
+
+	    // 刪除舊檔案 (避免刪掉預設頭像)
+	    if (member.getUserImage() != null && !member.getUserImage().equals("/images/member/petlife.jpg")) {
+	        try {
+	            String oldFileName = Paths.get(member.getUserImage()).getFileName().toString();
+	            Path oldPath = Paths.get("C:/PetLife2.0/uploads/images/member/").resolve(oldFileName);
+	            Files.deleteIfExists(oldPath);
+	        } catch (Exception e) {
+	            System.err.println("刪除舊頭像失敗: " + e.getMessage());
+	        }
+	    }
+
+	    // 更新資料庫欄位
+	    member.setUserImage(newImagePath);
+	    return memberRepos.save(member);
 	}
 	
 	
