@@ -1,9 +1,22 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import logo from '@/assets/images/logo01.png'
 import Swal from 'sweetalert2'
 import { useUserStore } from '@/stores/user'
 
+
+
+// Pinia store
+const userStore = useUserStore()
+//初始化使用者資料
+onMounted(async () =>{
+  userStore.initFromLocalStorage()
+
+  if(userStore.token){
+    await userStore.fetchUser()
+  }
+
+})
 
 // 搜尋框 & 購物車
 const keyword = ref('')
@@ -11,11 +24,6 @@ const cartCount = ref(0)
 function searchProducts() {
   console.log('搜尋:', keyword.value)
 }
-
-// Pinia store
-const userStore = useUserStore()
-userStore.initFromLocalStorage()
-
 // 模擬商品資料
 const products = ref([
   { id: 1, name: '貓咪飼料', price: 500, image: '/images/products/catfood.jpg', category: '飼料' },
@@ -39,6 +47,7 @@ const carouselImages = ref([
   { src: ad06, alt: '廣告輪播06' }
 ])
 
+//登出
 const handleLogout = () =>{
   Swal.fire({
     icon: 'warning',
@@ -99,12 +108,12 @@ const handleLogout = () =>{
               </router-link>
 
               <!-- 登入/會員 -->
-              <router-link v-if="!userStore.memberId" to="/login" class="nav-icon-item">
+              <router-link v-if="!userStore.token" to="/login" class="nav-icon-item">
                 <i class="far fa-user-circle"></i>
                 <span>登入/註冊</span>
               </router-link>
               <div v-else class="user-action-zone">
-                <span class="welcome-tag"><i class="fas fa-paw"></i>{{ userStore.memberName }} 你好!</span>
+                <span class="welcome-tag"><i class="fas fa-paw"></i>{{ userStore.user?.memberName }} 你好!</span>
                 <router-link to="/member/center" class="member-link">會員中心</router-link>
                 <button @click="handleLogout" class="btn btn-link text-danger">登出</button>
               </div>

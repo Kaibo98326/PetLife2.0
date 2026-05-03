@@ -32,15 +32,10 @@ public class JwtUtils {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-    
-    public String generateToken(Integer memberId,String email,String memberName ,String userImage) {
-    		Map<String, Object> claims = new HashMap<>();
-    		claims.put("memberName", memberName);
-    		claims.put("email", email);
-    		claims.put("userImage", "http://localhost:8082"+userImage);
+    //重新定位JWT腳色
+    public String generateToken(Integer memberId) {
     		
     		return Jwts.builder()
-                    .setClaims(claims)
                     .setSubject(String.valueOf(memberId)) 
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + expiration))

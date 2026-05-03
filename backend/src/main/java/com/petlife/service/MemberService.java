@@ -70,7 +70,7 @@ public class MemberService implements IMemberService{
                 .map(m -> {
                 	 m.setLastLogin(LocalDateTime.now());
                 	 memberRepos.save(m);
-                	return jwtUtils.generateToken(m.getMemberId(),m.getEmail(),m.getMemberName(),m.getUserImage());
+                	return jwtUtils.generateToken(m.getMemberId());
                 	}); // 用設定檔的 secret 來簽發
     }
 	
