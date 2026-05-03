@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -90,11 +91,29 @@ public class MemberController {
 	
 	//修改密碼前驗證舊密碼
 	@PostMapping("/verifyPassword")
-	public ResponseEntity<?> verifyPassword(@RequestParam Integer memberId, @RequestParam String oldPassword) {
+	public ResponseEntity<?> verifyPassword(@RequestBody Map<String,String> body) {
+		
+		Integer memberId = Integer.valueOf(body.get("memberId"));
+		String oldPassword = body.get("oldPassword");
+		
 	    return memberService.findById(memberId)
-	        .filter(m -> PasswordUtils.checkPassword(oldPassword, m.getPasswordHash()))
-	        .map(m -> ResponseEntity.ok(Map.of("valid", true)))
+	        .map(member -> {
+	        		boolean valid = PasswordUtils.checkPassword(oldPassword, member.getPasswordHash());
+	        		return ResponseEntity.ok(Map.of("valid", valid));
+	        })
 	        .orElse(ResponseEntity.ok(Map.of("valid", false)));
+	}
+	
+	
+	//會員資料api
+	@GetMapping("/me")
+	public ResponseEntity<Member> getMyProfile(@RequestHeader("Authorization") String token){
+		String jwt = token.replace("Bearer ", "");
+		String memberId = JwtUtils.validateToken(jwt);
+		
+		return memberService.findById(Integer.valueOf(memberId))
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.notFound().build());
 	}
 	
 	//處理大頭貼
@@ -120,21 +139,10 @@ public class MemberController {
             String dbPath = "/images/member/" + fileName;
             Member updated = memberService.updateMemberImage(id, dbPath);
 
-            // 重新簽發新的 JWT，帶最新 userImage
-            String newToken = JwtUtils.generateToken(
-                updated.getMemberId(),
-                updated.getEmail(),
-                updated.getMemberName(),
-                updated.getUserImage()
-            );
-
-            System.out.println("UploadDir = " + uploadDir);
-            System.out.println("FileName = " + fileName);
-            System.out.println("File is empty? " + file.isEmpty());
+            
             return ResponseEntity.ok(Map.of(
                 "message", "頭像更新成功",
-                "userImage", updated.getUserImage(),
-                "token", newToken
+                "userImage", updated.getUserImage()
             ));
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

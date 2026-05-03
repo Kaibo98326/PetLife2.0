@@ -2,7 +2,7 @@
 import { useUserStore } from '@/stores/user';
 import { ref, onMounted } from 'vue';
 import Swal from 'sweetalert2';
-import { jwtDecode } from 'jwt-decode';
+
 
 
 
@@ -18,27 +18,36 @@ const memberForm = ref({
     registerTime: '',
     lastLogin: ''
 })
-
+/*=========
+   密碼區
+ ==========*/
 const oldPassword = ref('')
 const newPassword = ref('')
 const showNewPassword = ref(false)
 const verifyResult = ref('')
-const originalEmail = ref('')
-const originalPhone = ref('')
-
-
-// 防呆檢查結果
+/*=========
+   防呆檢查
+ ==========*/
 const emailCheckResult = ref('')
 const phoneCheckResult = ref('')
+
+/* ==============
+    原始值（比對用）
+   ==============*/
+const originalPhone = ref('')
+const originalEmail = ref('')
 
 // 載入初始值
 onMounted(async () => {
     try {
         const res = await fetch(`/api/member/${userStore.memberId}`, {
-            'Authorization': `Bearer ${userStore.token}`
+            headers: {
+                'Authorization': `Bearer ${userStore.token}`
+            }
         })
 
         if (!res.ok) throw new Error('載入會員失敗')
+
         const data = await res.json()
         memberForm.value = {
             memberId: data.memberId,
@@ -60,14 +69,22 @@ onMounted(async () => {
 
 // 檢查 Email
 const checkEmail = async () => {
-    const res = await fetch(`/api/member/checkEmail?email=${memberForm.value.email}`)
+    const res = await fetch(`/api/member/checkEmail?email=${memberForm.value.email}`, {
+        headers: {
+            'Authorization': `Bearer ${userStore.token}`
+        }
+    })
     const data = await res.json()
     emailCheckResult.value = data.available ? '可使用 ✔' : '已被使用 ✘'
 }
 
 // 檢查 Phone
 const checkPhone = async () => {
-    const res = await fetch(`/api/member/checkPhone?phone=${memberForm.value.phone}`)
+    const res = await fetch(`/api/member/checkPhone?phone=${memberForm.value.phone}`, {
+        headers: {
+            'Authorization': `Bearer ${userStore.token}`
+        }
+    })
     const data = await res.json()
     phoneCheckResult.value = data.available ? '可使用 ✔' : '已被使用 ✘'
 }
@@ -75,11 +92,16 @@ const checkPhone = async () => {
 // 舊密碼驗證
 const verifyOldPassword = async () => {
     try {
-        const res = await fetch(`/api/member/verifyPassword?memberId=${userStore.memberId}&oldPassword=${oldPassword.value}`, {
+        const res = await fetch('/api/member/verifyPassword', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${userStore.token}`
-            }
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${userStore.token}`
+            },
+            body: JSON.stringify({
+                memberId: userStore.memberId,
+                oldPassword: oldPassword.value
+            })
         })
         const data = await res.json()
         if (data.valid) {
@@ -98,44 +120,51 @@ const verifyOldPassword = async () => {
 
 // 儲存修改
 const saveProfile = async () => {
-  // 如果 email 有變動 → 必須檢查通過
-  if (memberForm.value.email !== originalEmail.value && emailCheckResult.value !== '可使用 ✔') {
-    Swal.fire({ icon: 'warning', title: '請先驗證', text: '請先檢查電子郵件是否可用' })
-    return
-  }
-
-  // 如果 phone 有變動 → 必須檢查通過
-  if (memberForm.value.phone !== originalPhone.value && phoneCheckResult.value !== '可使用 ✔') {
-    Swal.fire({ icon: 'warning', title: '請先驗證', text: '請先檢查電話是否可用' })
-    return
-  }
-
-  try {
-    const res = await fetch('/api/member/update', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userStore.token}`
-      },
-      body: JSON.stringify({
-        ...memberForm.value,
-        password: showNewPassword.value ? newPassword.value : null
-      })
-    })
-
-    if (!res.ok) {
-      const errMsg = await res.text()
-      Swal.fire({ icon: 'error', title: '失敗', text: errMsg || '會員資料更新失敗' })
-      return
+    // 如果 email 有變動 → 必須檢查通過
+    if (memberForm.value.email !== originalEmail.value && emailCheckResult.value !== '可使用 ✔') {
+        Swal.fire({ icon: 'warning', title: '請先驗證', text: '請先檢查電子郵件是否可用' })
+        return
     }
 
-    const data = await res.json()
-    Swal.fire({ icon: 'success', title: '成功', text: '會員資料已更新' })
-    console.log('更新後會員資料:', data)
+    // 如果 phone 有變動 → 必須檢查通過
+    if (memberForm.value.phone !== originalPhone.value && phoneCheckResult.value !== '可使用 ✔') {
+        Swal.fire({ icon: 'warning', title: '請先驗證', text: '請先檢查電話是否可用' })
+        return
+    }
 
-  } catch (err) {
-    Swal.fire({ icon: 'error', title: '錯誤', text: err.message })
-  }
+    try {
+        const res = await fetch('/api/member/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userStore.token}`
+            },
+            body: JSON.stringify({
+                ...memberForm.value,
+                password: showNewPassword.value ? newPassword.value : null
+            })
+        })
+
+        if (!res.ok) {
+            const errMsg = await res.text()
+            Swal.fire({ icon: 'error', title: '失敗', text: errMsg || '會員資料更新失敗' })
+            return
+        }
+
+        //重新同步 store
+        Swal.fire({ icon: 'success', title: '成功', text: '會員資料已更新' })
+        await userStore.fetchUser()
+
+        // reset password state
+        oldPassword.value = ''
+        newPassword.value = ''
+        showNewPassword.value = false
+        verifyResult.value = ''
+
+
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: '錯誤', text: err.message })
+    }
 }
 
 </script>

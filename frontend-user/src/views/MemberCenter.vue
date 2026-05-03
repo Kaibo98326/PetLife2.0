@@ -89,9 +89,8 @@ const uploadAvatar = async (base64Image) => {
             icon: "success",
             title: "大頭貼更新成功",
             confirmButtonText: "確定"
-        }).then(() => {
-            userStore.userImage = data.userImage ;
-            userStore.login(data.token);
+        }).then(async () => {
+           await userStore.fetchUser()
             
         });
     } catch (err) {
@@ -144,15 +143,15 @@ const handleLogout = () => {
         <section class="member-info mb-4 d-flex align-items-center">
             <!--大頭貼(左方)-->
             <div class="avatar-wrapper me-4">
-                <img :src="userStore.userImage" alt="大頭貼" class="avatar-img">
+                <img :src="userStore.user?.userImage" alt="大頭貼" class="avatar-img">
                 <button class="edit-btn" @click="openAvatarModal">✏️</button>
             </div>
             <!--會員資訊(右方)-->
             <div class="member-details">
                 <h2>會員中心</h2>
-                <p>會員編號：{{ userStore.memberId }}</p>
-                <p>會員名稱：{{ userStore.memberName }}</p>
-                <p>目前紅利點數：{{ userStore.currentPoints }}</p>
+                <p>會員編號：{{ userStore.user?.memberId }}</p>
+                <p>會員名稱：{{ userStore.user?.memberName }}</p>
+                <p>目前紅利點數：{{ userStore.user?.currentPoints }}</p>
             </div>
         </section>
 

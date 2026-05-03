@@ -7,7 +7,7 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     token: null,
     memberId: null,
-    memberName: ''
+    user: null
   }),
   actions: {
     login(token) {
@@ -15,18 +15,34 @@ export const useUserStore = defineStore('user', {
       localStorage.setItem('jwtToken', token)
 
       const decoded = jwtDecode(token)
-      console.log('decoded JWT:', decoded)
       this.memberId = parseInt(decoded.sub) 
-      this.memberName = decoded.memberName
-      this.email = decoded.email
-      this.userImage = decoded.userImage;
-      
+
+      this.fetchUser()
     },
+    async fetchUser(){
+       console.log("🔥 fetchUser triggered")
+      const res = await fetch('/api/member/me',{
+        headers:{
+          Authorization: `Bearer ${this.token}`
+        }
+      })
+
+      if(!res.ok) return
+
+      const data = await res.json()
+      const BASE_URL = 'http://localhost:8082'
+
+      this.user = {
+        ...data,
+        userImage: data.userImage ? `${BASE_URL}${data.userImage}`
+        :null
+      }
+    },
+
     logout() {
       this.token = null
       this.memberId = null
-      this.memberName = ''
-      this.email = ''
+      this.user = null
       localStorage.removeItem('jwtToken')
       
     },
