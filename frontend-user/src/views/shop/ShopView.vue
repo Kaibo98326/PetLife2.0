@@ -7,6 +7,10 @@ import ad03 from '@/assets/images/ad03.jpg'
 import ad04 from '@/assets/images/ad04.jpg'
 import ad05 from '@/assets/images/ad05.jpg'
 import ad06 from '@/assets/images/ad06.jpg'
+// 加入購物車按鈕要用的套件
+import axios from '@/axios' 
+import { useUserStore } from '@/stores/user' 
+import Swal from 'sweetalert2' 
 
 const carouselImages = ref([
   { src: ad01, alt: '廣告輪播01' },
@@ -22,6 +26,42 @@ const products = ref([
   { id: 1, name: '貓咪飼料', price: 500, image: '/images/products/catfood.jpg', category: '飼料' },
   { id: 2, name: '狗狗玩具', price: 300, image: '/images/products/dogtoy.jpg', category: '玩具' }
 ])
+
+// 加入購物車按鈕函式
+const userStore = useUserStore(); 
+
+const addToCart = async (p) => {
+  console.log("👉 點擊的商品物件:", p);
+  console.log("👉 目前 userStore 中的 memberId:", userStore.memberId);
+
+  const memberId = userStore.memberId; 
+
+  if (!memberId) {
+    console.warn("❌ 失敗：沒有 memberId，使用者可能未登入或 Store 尚未初始化");
+    Swal.fire({ icon: 'info', title: '請先登入' });
+    return;
+  }
+
+  try {
+    const cartItem = {
+      productId: p.id,
+      quantity: 1
+    };
+    console.log("🚀 準備發送 POST 到:", `/cart/add/${memberId}`, "資料:", cartItem);
+
+    // 注意：這裡根據你的 axios baseURL 修改路徑
+    const res = await axios.post(`/cart/add/${memberId}`, cartItem);
+    
+    console.log("✅ 後端回傳:", res.data);
+    if (res.data === 'success') {
+      Swal.fire({ icon: 'success', title: '已加入購物車' });
+    }
+  } catch (error) {
+    console.error("🔥 API 請求失敗:", error.response || error);
+    Swal.fire('錯誤', '加入購物車失敗', 'error');
+  }
+}
+
 </script>
 
 <template>
@@ -72,7 +112,10 @@ const products = ref([
             </router-link>
             <div class="product-footer">
               <span class="product-price">$ {{ p.price }}</span>
-              <button type="button" class="btn add-to-cart-btn"><i class="fas fa-shopping-basket"></i></button>
+              <!-- <button type="heart" class=""> 愛心丟這裡 </button> -->
+              <!-- 檢查這裡的 addToCart 拼字是否跟 script 裡一模一樣 -->
+              <button type="button" class="btn add-to-cart-btn" @click="addToCart(p)">
+              <i class="fas fa-shopping-basket"></i></button>
             </div>
           </article>
         </div>

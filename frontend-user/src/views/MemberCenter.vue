@@ -151,7 +151,7 @@ const handleLogout = () => {
                 <h2>會員中心</h2>
                 <p>會員編號：{{ userStore.user?.memberId }}</p>
                 <p>會員名稱：{{ userStore.user?.memberName }}</p>
-                <p>目前紅利點數：{{ userStore.user?.currentPoints }}</p>
+                <p>目前紅利點數：{{ userStore.user?.bonusPoints }}</p>
             </div>
         </section>
 
