@@ -14,7 +14,9 @@ import Vant from 'vant';
 import 'vant/lib/index.css';
 
 import './assets/css/Dashboard.css'
-
+//引入 Bootstrap 的 CSS 與 JS
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
 
 const app = createApp(App)

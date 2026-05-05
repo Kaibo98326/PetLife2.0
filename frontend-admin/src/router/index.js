@@ -4,12 +4,12 @@ import MainLayout from '@/layout/MainLayout.vue' // 引入你的外殼組件
 
 const routes = [
   // 登入頁面 (不需要側邊欄和頂欄)
-  {   
+  {
     path: '/',
     name: 'LoginEmp',
-    component: LoginEmp 
+    component: LoginEmp
   },
-  
+
   // 後台管理區域 (使用 MainLayout 作為外殼)
   {
     path: '/admin',
@@ -29,6 +29,14 @@ const routes = [
         path: 'product', // 對應 /admin/product
         name: '商品管理',
         component: () => import('@/views/Product.vue')
+      },
+      //優惠活動
+      {
+        // 注意：子路由的 path 前面不需要加斜線 '/'
+        // 這樣它會自動跟父路由結合，變成 /admin/discount
+        path: 'discount',
+        name: 'Discount',
+        component: () => import('@/views/DiscountView.vue')
       }
     ]
   }
