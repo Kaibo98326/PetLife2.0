@@ -7,6 +7,7 @@ import CartView from '@/views/CartView.vue'
 import CheckoutView from '@/views/CheckoutView.vue'
 import { useUserStore } from '@/stores/user'
 import CheckoutSuccessView from '@/views/CheckoutSuccessView.vue'
+import OrderHistoryView from '@/views/OrderHistoryView.vue'
 
 const routes = [
   {
@@ -30,18 +31,40 @@ const routes = [
     path: '/cart',
     name: 'cart',
     component: CartView,
+    /*守衛，看會員有沒有登入*/
+    meta: { requiresAuth: true },
   },
   {
     path: '/checkout',
     name: 'checkout',
     component: CheckoutView,
-    /*守衛，看會員有沒有登入*/
-    meta: { requiresAuth: true },
   },
   {
     path: '/checkoutsuccess',
     name: 'checkoutsuccess',
     component: CheckoutSuccessView,
+  },
+  {
+    path: '/orderhistory',
+    component: OrderHistoryView,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'productorders',
+        component: () => import('@/views/ProductOrderView.vue'),
+      },
+      {
+        path: 'prettyorders',
+        name: 'prettyorders',
+        component: () => import('@/views/PrettyOrderView.vue'),
+      },
+      {
+        path: 'stayorders',
+        name: 'stayorders',
+        component: () => import('@/views/StayOrderView.vue'),
+      },
+    ],
   },
 ]
 

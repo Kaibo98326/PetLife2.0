@@ -1,15 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginEmp from '@/views/LoginEmp.vue'
 import MainLayout from '@/layout/MainLayout.vue' // 引入你的外殼組件
+import OrderAdminView from '@/views/OrderAdminView.vue'
 
 const routes = [
   // 登入頁面 (不需要側邊欄和頂欄)
-  {   
+  {
     path: '/',
     name: 'LoginEmp',
-    component: LoginEmp 
+    component: LoginEmp,
   },
-  
+
   // 後台管理區域 (使用 MainLayout 作為外殼)
   {
     path: '/admin',
@@ -18,25 +19,30 @@ const routes = [
       {
         path: 'dashboard', // 對應 /admin/dashboard
         name: '',
-        component: () => import('@/views/Dashboard.vue')
+        component: () => import('@/views/Dashboard.vue'),
       },
       {
         path: 'category', // 對應 /admin/category
         name: '商品類別管理',
-        component: () => import('@/views/Category.vue')
+        component: () => import('@/views/Category.vue'),
       },
       {
         path: 'product', // 對應 /admin/product
         name: '商品管理',
-        component: () => import('@/views/Product.vue')
-      }
-    ]
-  }
+        component: () => import('@/views/Product.vue'),
+      },
+      {
+        path: '/order',
+        name: '訂單管理',
+        component: OrderAdminView,
+      },
+    ],
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
 
 export default router

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted} from 'vue'
 import { useUserStore } from '@/stores/user'
 import axios from '@/axios'
 import Swal from 'sweetalert2'
@@ -57,188 +57,59 @@ onMounted(async () => {
 
 // 確認下單函式
 const submitOrder = async () => {
-  // 1. 彈出確認視窗
   const result = await Swal.fire({
     title: '確認要下單嗎？',
     text: `付款方式：${orderForm.value.orderPayment}`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#f39c12', 
+    confirmButtonColor: '#f39c12',
     cancelButtonColor: '#d33',
     confirmButtonText: '確定下單',
     cancelButtonText: '再檢查一下',
-    reverseButtons: true 
+    reverseButtons: true
   });
 
-  // 點擊取消或關閉視窗就 return 回結帳畫面
-  if (!result.isConfirmed) {
-    return;
-  }
+  if (!result.isConfirmed) return;
 
-  // 2. 確定後執行下單邏輯與金流分流
   try {
-    // Loading 過場
     Swal.fire({
       title: '訂單處理中...',
       text: '正在聯繫金流伺服器，請勿關閉視窗',
       allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+      didOpen: () => { Swal.showLoading(); }
     });
 
-    const payload = {
+    // 呼叫 API
+    // 路徑要確認跟 OrderController 一樣
+    const res = await axios.post(`/orders/checkout?cartId=${userStore.cartId}`, {
       ...orderForm.value,
-      memberId: userStore.memberId,
-    };
+      memberId: userStore.memberId
+    });
 
-    // 先在後端建立基礎訂單資訊
-    const res = await axios.post('order/create', payload);
-    const orderId = res.data.orderId; // 假設後端回傳對象包含 orderId
+    // 拿到後端回傳的資料 (order跟form表單)
+    const { order, form } = res.data;
 
-    // 根據支付方式執行跳轉
-    if (orderForm.value.orderPayment === 'LinePay') {
-      // --- LinePay 處理 ---
-      const lpRes = await axios.post(`payment/linepay/${orderId}`);
-      if (lpRes.data.paymentUrl) {
-        window.location.href = lpRes.data.paymentUrl;
-      } else {
-        throw new Error('無法取得 LinePay 跳轉連結');
-      }
-    } else {
-      // --- 信用卡 / visa金融卡 (綠界 ECPay) 處理 ---
-      const ecRes = await axios.post(`payment/ecpay/${orderId}`);
-      
-      // 綠界回傳 <form> 字串
-      const div = document.createElement('div');
-      div.style.display = 'none';
-      div.innerHTML = ecRes.data; 
-      document.body.appendChild(div);
-      
-      const form = div.querySelector('form');
-      if (form) {
-        form.submit(); // 自動提交表單，瀏覽器會跳轉到綠界頁面
-      } else {
-        throw new Error('無法產出綠界支付表單');
-      }
-    }
+    // 訂單編號暫存，結帳成功頁面可以用
+    sessionStorage.setItem('lastOrderId', order.orderId);
+
+    // 綠界跳轉
+    const div = document.createElement('div');
+    div.innerHTML = form; // 將後端產出的 <form id="ecpayForm"> 塞進去
+    document.body.appendChild(div);
+    
+    // 綠界表單內含自動submit的script，如果沒有跑舊手動觸發
+    document.getElementById("ecpayForm").submit();
 
   } catch (error) {
     console.error("下單失敗:", error);
-    // 發生錯誤時，覆蓋掉前面的 Loading 視窗
     Swal.fire({
       icon: 'error',
       title: '下單失敗',
-      text: error.response?.data?.message || '下單過程中發生問題，請稍後再試',
+      text: '金流連線異常，請稍後再試',
       confirmButtonColor: '#f39c12'
     });
   }
 };
-
-//以下 串金流要用的
-
-// 暫存卡片資訊 (僅用於前端驗證，實際金流由綠界/LinePay處理)
-const cardTemp = ref({
-  cardNumber: '',
-  expiryDate: '',
-  cvv: ''
-})
-// 監聽付款方式切換
-watch(() => orderForm.value.orderPayment, (newVal) => {
-  if (newVal === 'visa金融卡' || newVal === '信用卡') {
-    openCardModal(newVal);
-  }
-});
-
-// 打開卡片資訊彈窗
-const openCardModal = async (type) => {
-  const { value: formValues } = await Swal.fire({
-    title: `<div style="color: #f39c12; font-size: 1.5rem; font-weight: bold;">
-              <i class="fas fa-paw"></i> 填寫${type}資訊
-            </div>`,
-    html: `
-      <div style="padding: 10px; font-family: 'Noto Sans TC', sans-serif;">
-        <!-- 卡號區塊：4碼一格 -->
-        <div style="margin-bottom: 15px;">
-          <label style="display: block; text-align: left; margin-bottom: 5px; color: #666; font-weight: 500;">信用卡號</label>
-          <div style="display: flex; gap: 8px;" id="card-number-group">
-            <input id="card-1" class="swal2-input card-field" placeholder="0000" maxlength="4" style="width: 25%; margin: 0; text-align: center; padding: 10px 0;">
-            <input id="card-2" class="swal2-input card-field" placeholder="0000" maxlength="4" style="width: 25%; margin: 0; text-align: center; padding: 10px 0;">
-            <input id="card-3" class="swal2-input card-field" placeholder="0000" maxlength="4" style="width: 25%; margin: 0; text-align: center; padding: 10px 0;">
-            <input id="card-4" class="swal2-input card-field" placeholder="0000" maxlength="4" style="width: 25%; margin: 0; text-align: center; padding: 10px 0;">
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 15px;">
-          <div style="flex: 1;">
-            <label style="display: block; text-align: left; margin-bottom: 5px; color: #666; font-weight: 500;">有效日期</label>
-            <input id="swal-expiry" class="swal2-input" placeholder="MM/YY" maxlength="5" 
-              style="width: 100%; margin: 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1.1rem;">
-          </div>
-          <div style="flex: 1;">
-            <label style="display: block; text-align: left; margin-bottom: 5px; color: #666; font-weight: 500;">安全碼</label>
-            <input id="swal-cvv" class="swal2-input" placeholder="CVV" maxlength="3" 
-              style="width: 100%; margin: 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1.1rem;">
-          </div>
-        </div>
-      </div>`,
-    didOpen: () => {
-      // 監聽卡號輸入
-      const fields = ['card-1', 'card-2', 'card-3', 'card-4'];
-      fields.forEach((id, index) => {
-        const el = document.getElementById(id);
-        el.addEventListener('input', (e) => {
-          // 只允許數字
-          e.target.value = e.target.value.replace(/\D/g, '');
-          
-          // 打完4碼跳下一格
-          if (e.target.value.length === 4 && index < fields.length - 1) {
-            document.getElementById(fields[index + 1]).focus();
-          }
-        });
-        
-        // Backspace，沒內容可以跳回前一格
-        el.addEventListener('keydown', (e) => {
-          if (e.key === 'Backspace' && e.target.value.length === 0 && index > 0) {
-            document.getElementById(fields[index - 1]).focus();
-          }
-        });
-      });
-    },
-    background: '#fff',
-    borderRadius: '15px',
-    confirmButtonColor: '#f39c12',
-    confirmButtonText: '確認資訊',
-    showCancelButton: true,
-    cancelButtonText: '返回',
-    preConfirm: () => {
-      // 組合卡號
-      const card = [
-        document.getElementById('card-1').value,
-        document.getElementById('card-2').value,
-        document.getElementById('card-3').value,
-        document.getElementById('card-4').value
-      ].join('');
-      
-      const expiry = document.getElementById('swal-expiry').value;
-      const cvv = document.getElementById('swal-cvv').value;
-
-      if (!/^\d{16}$/.test(card)) return Swal.showValidationMessage('請輸入完整的 16 位卡號');
-      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) return Swal.showValidationMessage('效期格式需為 MM/YY');
-      if (!/^\d{3}$/.test(cvv)) return Swal.showValidationMessage('CVV 需為 3 位數字');
-
-      return { number: card, expiry: expiry, cvv: cvv };
-    }
-  });
-
-  if (formValues) {
-    cardTemp.value = formValues; 
-    Swal.fire({ icon: 'success', title: '卡片資訊已讀取', showConfirmButton: false, timer: 1000 });
-  } else {
-    orderForm.value.orderPayment = '';
-  }
-};
-
 </script>
 
 <template>
@@ -329,9 +200,11 @@ const openCardModal = async (type) => {
           </div>
         </div>
         
-        <!-- 結帳按鈕 -->
-        <div class="button-area text-center mt-5">
-          <button type="submit" class="btn btn-orange px-5 py-2 text-white fs-5 shadow-sm">確認下單</button>
+        <div class="button-area d-flex justify-content-end mt-5 me-3 gap-3">
+          <!-- 回首頁按鈕 -->
+          <router-link to="/" class="btn btn-orange px-4 py-2 fs-5 text-white shadow-sm">返回商店</router-link>
+          <!-- 結帳按鈕 -->
+          <button type="submit" class="btn btn-orange px-4 py-2 text-white fs-5 shadow-sm">前往結帳</button>
         </div>
       </form>
     </div>

@@ -5,22 +5,24 @@
       <div class="header-banner">
         <h2><i class="fas fa-paw"></i> 訂單成立！感謝您的支持</h2>
       </div>
-      
+
       <div class="info-section">
         <div class="section-title">📦 配送資訊</div>
         <table class="info-table">
-          <tr>
-            <td class="label">訂單編號</td>
-            <td class="order-id">#{{ orderMain.orderId }}</td>
-            <td class="label">成立時間</td>
-            <td>{{ orderMain.orderDate }}</td>
-          </tr>
-          <tr>
-            <td class="label">收件人</td>
-            <td>{{ orderMain.orderName }}</td>
-            <td class="label">配送地址</td>
-            <td>{{ orderMain.orderAddress }}</td>
-          </tr>
+          <tbody>
+            <tr>
+              <td class="label">訂單編號</td>
+              <td class="order-id">#{{ orderMain.orderId }}</td>
+              <td class="label">成立時間</td>
+              <td>{{ orderMain.orderDate }}</td>
+            </tr>
+            <tr>
+              <td class="label">收件人</td>
+              <td>{{ orderMain.orderName }}</td>
+              <td class="label">配送地址</td>
+              <td>{{ orderMain.orderAddress }}</td>
+            </tr>
+          </tbody>
         </table>
 
         <div class="section-title">🛒 購買清單</div>
@@ -57,18 +59,43 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, onMounted } from 'vue'
+import axios from '@/axios' // 確保路徑正確
 
-// 預設呈現用的真實資料格式
 const orderMain = reactive({
   orderId: '',
   orderDate: '',
   orderName: '',
   orderAddress: '',
-  orderTotal: 0
-});
+  orderTotal: 0,
+})
 
-const orderItems = reactive([]);
+const orderItems = reactive([])
+
+onMounted(async () => {
+  // sessionStorage拿訂單ID
+  const lastOrderId = sessionStorage.getItem('lastOrderId')
+
+  if (lastOrderId) {
+    try {
+      // 向後端請求該筆訂單的詳細資訊
+      const res = await axios.get(`/orders/detail/${lastOrderId}`)
+      const data = res.data
+
+      // 將資料存入reactive
+      orderMain.orderId = data.orderId
+      orderMain.orderDate = data.orderDate
+      orderMain.orderName = data.orderName
+      orderMain.orderAddress = data.orderAddress
+      orderMain.orderTotal = data.orderTotal
+
+      // 清單資料
+      orderItems.push(...data.items)
+    } catch (error) {
+      console.error('抓取訂單失敗:', error)
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -84,7 +111,7 @@ const orderItems = reactive([]);
   margin: 0 auto;
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -161,8 +188,14 @@ const orderItems = reactive([]);
   font-weight: bold;
 }
 
-.text-left { text-align: left !important; padding-left: 20px !important; }
-.text-right { text-align: right !important; padding-right: 20px !important; }
+.text-left {
+  text-align: left !important;
+  padding-left: 20px !important;
+}
+.text-right {
+  text-align: right !important;
+  padding-right: 20px !important;
+}
 
 /* 總額 Box */
 .total-box {
@@ -205,6 +238,6 @@ const orderItems = reactive([]);
 
 .btn-orange:hover {
   background-color: #e67e22;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 </style>

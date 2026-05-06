@@ -36,7 +36,7 @@
       <el-menu-item index="/admin/product">商品管理</el-menu-item>
     </el-sub-menu>
 
-    <el-menu-item index="/admin/order">
+    <el-menu-item index="/order">
       <el-icon><ShoppingCart /></el-icon>
       <span>訂單管理</span>
     </el-menu-item>
