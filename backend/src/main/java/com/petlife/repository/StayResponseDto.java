@@ -15,7 +15,8 @@ public class StayResponseDto {
     private Integer petCount;
     private Double sumPrice;
     private String stayStatus;
-
+    private String stayRemark;
+    
     // 來自 Pet
     private String petName;
 
@@ -28,4 +29,6 @@ public class StayResponseDto {
     // 來自 StayPayment
     private String paymentMethod;
     private String paymentStatus;
+    
+    
 }

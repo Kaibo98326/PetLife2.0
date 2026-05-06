@@ -60,6 +60,8 @@ public class Stay {
 	@Column(name = "pet_count")
 	private Integer petCount;
 	
+	@Column(name = "stay_remark")
+	private String stayRemark;
 	
 	
 	
