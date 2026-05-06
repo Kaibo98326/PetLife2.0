@@ -13,12 +13,13 @@ public class SecutityConfig {
 			.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
 					.requestMatchers("/api/member/**").permitAll() //會員API開放
-					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
-					.requestMatchers("/oauth2/**").permitAll()	//預留OAuth2
+					.requestMatchers("/callback/**").permitAll()
 					.requestMatchers("/images/**").permitAll()
+					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
+					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2
 	                .requestMatchers("/api/categories/**").permitAll() 
 	                .requestMatchers("/api/products/**").permitAll()
-
+	                .requestMatchers("/api/member/me").permitAll()
 					.anyRequest().authenticated()
 					);
 		return http.build();

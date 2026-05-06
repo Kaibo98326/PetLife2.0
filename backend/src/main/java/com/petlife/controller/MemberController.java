@@ -18,16 +18,23 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import com.petlife.model.Member;
+import com.petlife.repository.GoogleUserInfo;
 import com.petlife.repository.LoginRequest;
 import com.petlife.repository.MemberUpdateRequest;
 import com.petlife.repository.RegisterRequest;
+import com.petlife.repository.SetPasswordRequest;
+import com.petlife.service.GoogleAuthService;
 import com.petlife.service.IMemberService;
 import com.petlife.service.JwtUtils;
 import com.petlife.service.PasswordUtils;
 
+import com.petlife.repository.LoginResponse;
+import com.petlife.repository.UserResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -37,6 +44,9 @@ public class MemberController {
 	
 	@Autowired
 	private  IMemberService memberService;
+	
+	@Autowired
+	private GoogleAuthService googleAuthService;
 	
 	@Autowired
     private JwtUtils JwtUtils;  // ✅ 注入 JwtUtils
@@ -56,12 +66,29 @@ public class MemberController {
 	
 	//會員登入
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody LoginRequest request){
-		
-		return memberService.loginAndGenerateToken(request)
-				.map( token -> ResponseEntity.ok(token))
-				.orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("帳號或密碼錯誤"));
+	public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+
+	    return memberService.login(request)
+	            .<ResponseEntity<?>>map(member -> {
+	                String token = JwtUtils.generateToken(member.getMemberId());
+
+	                UserResponse user = new UserResponse(
+	                        member.getMemberId(),
+	                        member.getMemberName(),
+	                        member.getEmail(),
+	                        member.getUserImage()
+	                );
+
+	                return ResponseEntity.ok(new LoginResponse(token, user));
+	            })
+	            .orElseGet(() ->
+	                    ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+	                            .body("帳號或密碼錯誤")
+	            );
 	}
+	
+
+	
 	@GetMapping("/{id}")
 	public ResponseEntity<Member> getMemberById(@PathVariable Integer id) {
 		return  memberService.findById(id)
@@ -148,6 +175,20 @@ public class MemberController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "大頭貼更新失敗", "details", e.getMessage()));
 		}
+	}
+	//google登入的初始設定密碼
+	@PostMapping("/set-password")
+	public ResponseEntity<?> setPassword(@RequestBody Map<String, String> body) {
+
+	    Integer memberId = Integer.valueOf(body.get("memberId"));
+	    String newPassword = body.get("newPassword");
+
+	    Member member = memberService.setPassword(memberId, newPassword);
+
+	    // 🔥 設定完成後重新簽 JWT（mustSetPassword = false）
+	    String token = JwtUtils.generateToken(member.getMemberId(), false);
+
+	    return ResponseEntity.ok(token);
 	}
 	
 	

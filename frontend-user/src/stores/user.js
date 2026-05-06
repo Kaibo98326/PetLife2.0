@@ -17,7 +17,7 @@ export const useUserStore = defineStore('user', {
       const decoded = jwtDecode(token)
       this.memberId = parseInt(decoded.sub) 
 
-      this.fetchUser()
+      
     },
     async fetchUser(){
        console.log("🔥 fetchUser triggered")
@@ -38,7 +38,7 @@ export const useUserStore = defineStore('user', {
         :null
       }
     },
-
+    
     logout() {
       this.token = null
       this.memberId = null

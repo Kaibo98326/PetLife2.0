@@ -25,6 +25,11 @@ const routes = [
       
     ]
   },
+  {
+    path: '/set-password',
+    name: 'SetPassword',
+    component: () => import('@/views/SetPassword.vue'),
+  }
 
 ]
 

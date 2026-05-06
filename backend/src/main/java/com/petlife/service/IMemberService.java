@@ -30,5 +30,7 @@ public interface IMemberService {
 	    
 	    //更新大頭貼
 	    Member updateMemberImage(Integer memberId, String newImagePath);
-	 
+	    
+	    //google帳號登入初次修改密碼
+	    Member setPassword(Integer memberId, String newpassword);
 }

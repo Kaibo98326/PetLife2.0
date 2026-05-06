@@ -3,7 +3,6 @@ package com.petlife.controller;
 import com.petlife.model.Employee;
 import com.petlife.model.Role;
 import com.petlife.model.EmployeeRole;
-import com.petlife.model.EmployeeRoleId;
 import com.petlife.repository.EmployeeRepository;
 import com.petlife.repository.RoleRepository;
 import com.petlife.service.EmployeeRoleService;
@@ -12,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Timestamp;
+
 import java.util.List;
 
 @RestController

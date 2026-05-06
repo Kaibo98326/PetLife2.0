@@ -2,10 +2,10 @@
 import { useUserStore } from '@/stores/user';
 import { ref, onMounted } from 'vue';
 import Swal from 'sweetalert2';
+import { useRouter } from 'vue-router';
+import { jwtDecode } from 'jwt-decode';
 
-
-
-
+const router = useRouter()
 const userStore = useUserStore()
 
 // 表單資料
@@ -30,7 +30,10 @@ const verifyResult = ref('')
  ==========*/
 const emailCheckResult = ref('')
 const phoneCheckResult = ref('')
-
+// =====================
+// Google 強制模式
+// =====================
+const isGoogleForceChange = ref(false);
 /* ==============
     原始值（比對用）
    ==============*/
@@ -40,30 +43,62 @@ const originalEmail = ref('')
 // 載入初始值
 onMounted(async () => {
     try {
-        const res = await fetch(`/api/member/${userStore.memberId}`, {
+        const decoded = jwtDecode(userStore.token)
+        isGoogleForceChange.value = decoded.mustSetPassword === true
+
+        // ✅ Google 登入後已經有 user，先直接塞表單
+        if (userStore.user) {
+            const data = userStore.user
+
+            memberForm.value = {
+                memberId: data.memberId,
+                memberName: data.memberName,
+                email: data.email,
+                phone: data.phone || '',
+                address: data.address || '',
+                registerTime: data.registerTime
+                    ? new Date(data.registerTime).toLocaleString()
+                    : '',
+                lastLogin: data.lastLogin
+                    ? new Date(data.lastLogin).toLocaleString()
+                    : ''
+            }
+
+            originalEmail.value = data.email
+            originalPhone.value = data.phone || ''
+            return
+        }
+
+        // ✅ 沒有 user 才走原本 fetch
+        const res = await fetch('/api/member/me', {
             headers: {
-                'Authorization': `Bearer ${userStore.token}`
+                Authorization: `Bearer ${userStore.token}`
             }
         })
 
         if (!res.ok) throw new Error('載入會員失敗')
 
         const data = await res.json()
+
         memberForm.value = {
             memberId: data.memberId,
             memberName: data.memberName,
             email: data.email,
-            phone: data.phone,
-            address: data.address,
-            registerTime: new Date(data.registerTime).toLocaleString(),
-            lastLogin: new Date(data.lastLogin).toLocaleString()
+            phone: data.phone || '',
+            address: data.address || '',
+            registerTime: data.registerTime
+                ? new Date(data.registerTime).toLocaleString()
+                : '',
+            lastLogin: data.lastLogin
+                ? new Date(data.lastLogin).toLocaleString()
+                : ''
         }
+
         originalEmail.value = data.email
-        originalPhone.value = data.phone
+        originalPhone.value = data.phone || ''
 
     } catch (err) {
         Swal.fire({ icon: 'error', title: '錯誤', text: err.message })
-        console.log('memberId:', userStore.memberId);
     }
 })
 
@@ -120,6 +155,59 @@ const verifyOldPassword = async () => {
 
 // 儲存修改
 const saveProfile = async () => {
+
+    // =========================
+    // 🔥 GOOGLE 強制改密碼模式
+    // =========================
+    if (isGoogleForceChange.value) {
+        if (!newPassword.value) {
+            Swal.fire({ icon: 'warning', title: '請輸入密碼' })
+            return
+        }
+
+        try {
+            const res = await fetch('/api/member/set-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${userStore.token}`
+                },
+                body: JSON.stringify({
+                    memberId: memberForm.value.memberId,
+                    newPassword: newPassword.value
+                })
+            })
+
+            if (!res.ok) {
+                const errMsg = await res.text()
+                throw new Error(errMsg || '設定密碼失敗')
+            }
+
+            const newToken = await res.text()
+
+            userStore.login(newToken)
+
+            Swal.fire({
+                icon: 'success',
+                title: '設定完成',
+                text: '歡迎使用系統'
+            }).then(() => {
+                router.push('/')
+            })
+
+        } catch (err) {
+            console.error(err)
+            Swal.fire({
+                icon: 'error',
+                title: '設定失敗',
+                text: err.message
+            })
+        }
+
+        return
+    }
+
+
     // 如果 email 有變動 → 必須檢查通過
     if (memberForm.value.email !== originalEmail.value && emailCheckResult.value !== '可使用 ✔') {
         Swal.fire({ icon: 'warning', title: '請先驗證', text: '請先檢查電子郵件是否可用' })
@@ -170,78 +258,135 @@ const saveProfile = async () => {
 </script>
 <template>
     <div class="profile-view">
-        <h2>修改會員資料</h2>
+        <h2>{{ isGoogleForceChange ? '設定密碼' : '修改會員資料' }}</h2>
+
+        <div v-if="isGoogleForceChange" style="color:red; font-weight:bold; margin-bottom: 15px;">
+            ⚠️ Google 帳號首次登入，請先設定密碼
+        </div>
+
         <form @submit.prevent="saveProfile" class="form-group">
 
-            <!-- 會員編號 -->
-            <div class="mb-3">
-                <label for="memberId">會員編號</label>
-                <input type="text" id="memberId" v-model="memberForm.memberId" readonly class="form-control" />
-            </div>
+            <!-- Google 強制改密碼模式 -->
+            <div v-if="isGoogleForceChange">
 
-            <!-- 會員名稱 -->
-            <div class="mb-3">
-                <label for="memberName">會員名稱</label>
-                <input type="text" id="memberName" v-model="memberForm.memberName" required class="form-control" />
-            </div>
-
-            <!-- Email -->
-            <div class="mb-3">
-                <label for="email">電子郵件</label>
-                <div class="d-flex gap-2">
-                    <input type="email" id="email" v-model="memberForm.email" required class="form-control" />
-                    <button type="button" class="btn btn-secondary" @click="checkEmail">檢查</button>
+                <div class="mb-3">
+                    <label for="memberId">會員編號</label>
+                    <input type="text" id="memberId" v-model="memberForm.memberId" readonly class="form-control" />
                 </div>
-                <small>{{ emailCheckResult }}</small>
-            </div>
 
-            <!-- 電話 -->
-            <div class="mb-3">
-                <label for="phone">電話</label>
-                <div class="d-flex gap-2">
-                    <input type="text" id="phone" v-model="memberForm.phone" class="form-control" />
-                    <button type="button" class="btn btn-secondary" @click="checkPhone">檢查</button>
+                <div class="mb-3">
+                    <label for="memberName">會員名稱</label>
+                    <input type="text" id="memberName" v-model="memberForm.memberName" readonly class="form-control" />
                 </div>
-                <small>{{ phoneCheckResult }}</small>
+
+                <div class="mb-3">
+                    <label for="email">電子郵件</label>
+                    <input type="email" id="email" v-model="memberForm.email" readonly class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="password">請設定新密碼</label>
+                    <input type="password" id="password" v-model="newPassword" required class="form-control"
+                        placeholder="請輸入新密碼" />
+                </div>
+
             </div>
 
-            <!-- 地址 -->
-            <div class="mb-3">
-                <label for="address">地址</label>
-                <input type="text" id="address" v-model="memberForm.address" class="form-control" />
+            <!-- 一般會員修改模式 -->
+            <div v-else>
+
+                <div class="mb-3">
+                    <label for="memberId">會員編號</label>
+                    <input type="text" id="memberId" v-model="memberForm.memberId" readonly class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="memberName">會員名稱</label>
+                    <input type="text" id="memberName" v-model="memberForm.memberName" required class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="email">電子郵件</label>
+
+                    <div class="d-flex gap-2">
+                        <input type="email" id="email" v-model="memberForm.email" required class="form-control" />
+
+                        <button type="button" class="btn btn-secondary" @click="checkEmail">
+                            檢查
+                        </button>
+                    </div>
+
+                    <small>{{ emailCheckResult }}</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="phone">電話</label>
+
+                    <div class="d-flex gap-2">
+                        <input type="text" id="phone" v-model="memberForm.phone" class="form-control" />
+
+                        <button type="button" class="btn btn-secondary" @click="checkPhone">
+                            檢查
+                        </button>
+                    </div>
+
+                    <small>{{ phoneCheckResult }}</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="address">地址</label>
+
+                    <input type="text" id="address" v-model="memberForm.address" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="registerTime">創建時間</label>
+
+                    <input type="text" id="registerTime" v-model="memberForm.registerTime" readonly
+                        class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="lastLogin">最後登入時間</label>
+
+                    <input type="text" id="lastLogin" v-model="memberForm.lastLogin" readonly class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="oldPassword">請輸入舊密碼</label>
+
+                    <input type="password" id="oldPassword" v-model="oldPassword" class="form-control" />
+
+                    <button type="button" class="btn btn-secondary mt-2" @click="verifyOldPassword">
+                        驗證
+                    </button>
+
+                    <div class="mt-2" style="color: red;">
+                        {{ verifyResult }}
+                    </div>
+                </div>
+
+                <div class="mb-3" v-if="showNewPassword">
+                    <label for="password">新密碼</label>
+
+                    <input type="password" id="password" v-model="newPassword" class="form-control" />
+                </div>
+
             </div>
 
-            <!-- 創建時間 -->
-            <div class="mb-3">
-                <label for="registerTime">創建時間</label>
-                <input type="text" id="registerTime" v-model="memberForm.registerTime" readonly class="form-control" />
-            </div>
-
-            <!-- 最後登入時間 -->
-            <div class="mb-3">
-                <label for="lastLogin">最後登入時間</label>
-                <input type="text" id="lastLogin" v-model="memberForm.lastLogin" readonly class="form-control" />
-            </div>
-
-            <!-- 舊密碼驗證 -->
-            <div class="mb-3">
-                <label for="oldPassword">請輸入舊密碼</label>
-                <input type="password" id="oldPassword" v-model="oldPassword" class="form-control" />
-                <button type="button" class="btn btn-secondary mt-2" @click="verifyOldPassword">驗證</button>
-                <div class="mt-2" style="color: red;">{{ verifyResult }}</div>
-            </div>
-
-            <!-- 新密碼 -->
-            <div class="mb-3" v-if="showNewPassword">
-                <label for="password">新密碼</label>
-                <input type="password" id="password" v-model="newPassword" class="form-control" />
-            </div>
-
-            <!-- 儲存修改 -->
+            <!-- 按鈕 -->
             <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">儲存修改</button>
-                <router-link to="/member/center" class="btn btn-secondary">返回會員中心</router-link>
+
+                <button type="submit" class="btn btn-primary">
+                    {{ isGoogleForceChange ? '完成設定' : '儲存修改' }}
+                </button>
+
+                <router-link v-if="!isGoogleForceChange" to="/member/center" class="btn btn-secondary">
+                    返回會員中心
+                </router-link>
+
             </div>
+
         </form>
     </div>
 </template>

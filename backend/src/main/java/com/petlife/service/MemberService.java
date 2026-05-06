@@ -58,7 +58,11 @@ public class MemberService implements IMemberService{
 	@Override
 	public Optional<Member> login(LoginRequest request){
 		return memberRepos.findByEmail(request.getEmail())
-				.filter( m -> PasswordUtils.checkPassword(request.getPassword(), m.getPasswordHash()));
+				.filter( m -> PasswordUtils.checkPassword(request.getPassword(), m.getPasswordHash()))
+				.map(m ->{
+					m.setLastLogin(LocalDateTime.now());
+					return memberRepos.save(m);
+				});
 	}
 	
 	
@@ -147,6 +151,17 @@ public class MemberService implements IMemberService{
 	    // 更新資料庫欄位
 	    member.setUserImage(newImagePath);
 	    return memberRepos.save(member);
+	}
+	
+	@Override
+	public Member setPassword(Integer memberId , String newPassword) {
+		Member member = memberRepos.findById(memberId)
+				.orElseThrow( () -> new IllegalArgumentException("會員不存在"));
+		
+		//更改密碼
+		member.setPasswordHash(PasswordUtils.hashPassword(newPassword));
+		
+		return memberRepos.save(member);
 	}
 	
 	
