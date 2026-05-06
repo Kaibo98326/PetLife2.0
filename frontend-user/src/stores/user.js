@@ -46,11 +46,11 @@ export const useUserStore = defineStore('user', {
       localStorage.removeItem('jwtToken')
       
     },
-    initFromLocalStorage() {
+    async initFromLocalStorage() {
       const token = localStorage.getItem('jwtToken')
       if (token) {
         this.login(token)
-        
+        await this.fetchUser()
       }
     }
   }

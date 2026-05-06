@@ -92,11 +92,11 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
+		<!--<dependency>
 			<groupId>PetLife</groupId>
 			<artifactId>PetLife</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
     			<groupId>io.jsonwebtoken</groupId>
     			<artifactId>jjwt-api</artifactId>
@@ -118,6 +118,11 @@
         		<groupId>org.springframework.boot</groupId>
         		<artifactId>spring-boot-starter-oauth2-client</artifactId>
     		</dependency>
+    		<dependency>
+    			<groupId>org.mindrot</groupId>
+    			<artifactId>jbcrypt</artifactId>
+    			<version>0.4</version>
+		</dependency>
 	</dependencies>
 
 	<build>

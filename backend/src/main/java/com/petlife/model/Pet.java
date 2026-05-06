@@ -1,6 +1,6 @@
 package com.petlife.model;
 
-import java.math.BigDecimal;
+
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,7 +34,7 @@ public class Pet {
 	    private Integer age;
 
 	    @Column(name = "weight")
-	    private BigDecimal weight;
+	    private Double weight;
 
 	    @Column(name = "medical_history")
 	    private String medicalHistory;

@@ -3,6 +3,8 @@ import HomeView from '../views/HomeView.vue'
 import LoginMember from '@/views/LoginMember.vue'
 import MemberCenter from '@/views/MemberCenter.vue'
 import ProfileView from '@/views/ProfileView.vue'
+import PetListView from '@/views/PetListView.vue'
+import AddPetView from '@/views/AddPetView.vue'
 
 
 const routes = [
@@ -22,6 +24,8 @@ const routes = [
     component: MemberCenter,
     children:[
       {path: 'profile', component: ProfileView},
+      {path: 'pets' , component: PetListView},
+      {path: 'pets/add',component: AddPetView},
       
     ]
   },
