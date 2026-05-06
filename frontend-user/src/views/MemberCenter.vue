@@ -159,7 +159,6 @@ const handleLogout = () => {
         <div class="menu-grid">
             <div class="menu-item" @click="router.push('/member/center/orders')">📦 訂單紀錄</div>
             <div class="menu-item" @click="router.push('/member/center/profile')">👤 個人資料</div>
-            <div class="menu-item" @click="router.push('/member/center/address')">🏠 收件資訊</div>
             <div class="menu-item" @click="router.push('/member/center/favorites')">❤️ 我的收藏</div>
             <div class="menu-item" @click="router.push(`/pets/list/${userStore.user?.memberId}`)">🐕 寵物管理</div>
             <div class="menu-item" @click="router.push('/member/points')">💎 紅利點數</div>
