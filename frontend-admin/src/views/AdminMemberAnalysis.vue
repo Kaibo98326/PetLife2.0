@@ -225,7 +225,7 @@ onMounted(() => {
 <template>
     <div class="p-4">
         <div class="card shadow-sm p-4">
-            <h3 class="mb-4">會員狀態分析</h3>
+            <h3 class="mb-4">會員分析圖表</h3>
             <div class="d-flex gap-2 mb-4">
                 <button class="btn" :class="chartMode === 'status' ? 'btn-warning' : 'btn-outline-warning'"
                     @click="chartMode = 'status'; loadStatusChart()">帳號狀態分析</button>
