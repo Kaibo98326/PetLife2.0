@@ -16,6 +16,7 @@ public class SecutityConfig {
 					.requestMatchers("/api/pets/**").permitAll()
 					.requestMatchers("/callback/**").permitAll()
 					.requestMatchers("/images/**").permitAll()
+					.requestMatchers("/api/admin/**").permitAll()
 					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
 					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2
 	                .requestMatchers("/api/categories/**").permitAll() 
