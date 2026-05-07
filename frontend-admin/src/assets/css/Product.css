@@ -59,9 +59,11 @@
 /* 5. 搜尋框 - 圓潤且溫潤 */
 .search-wrapper {
     position: relative;
-    width: 250px;       /* 固定的寬度 */
-    flex-shrink: 0;    /* ✨ 防止在工具列被擠壓 */
-    display: flex;     /* 確保內部的 input-group 正常運作 */
+    width: auto;         /* 改為自動寬度，容納按鈕 */
+    min-width: 250px;    /* 保留最小寬度 */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center; /* 垂直居中 */
     font-size: small;
 }
 
@@ -161,13 +163,33 @@
 .status-inactive { background: #fdf2f2; color: #e74c3c; }
 
 /* 9. 分類標籤 */
+.td-category-cell {
+    white-space: normal !important; /* 允許換行 */
+    overflow: visible !important;
+}
+
+.category-tags-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+
 .category-tag {
     background: #fff3e0;
     color: #e67e22;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    border: 1px solid #ffe0b2;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.category-tag:hover {
+    background: #ffe0b2;
+    transform: translateY(-1px);
 }
 
 /* 10. 分頁按鈕優化 */
@@ -310,6 +332,39 @@
     border-color: #e74c3c;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+}
+
+.btn-back {
+    background: #fff;
+    border: 1.5px solid #eee5d8;
+    color: #8d6e63;
+    padding: 10px 20px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-back:hover {
+    background: #fdf2e9;
+    border-color: #f39c12;
+    color: #f39c12;
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.12);
+}
+
+.btn-back i {
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-back:hover i {
+    transform: translateX(-2px);
 }
 
 .selected-count-badge {

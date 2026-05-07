@@ -13,7 +13,7 @@ const categories = ref([])
 const product = ref({
   productId: '',
   productName: '',
-  categoryId: '',
+  categoryIds: [],
   productPrice: 0,
   productStock: 0,
   productDescription: '',
@@ -26,9 +26,19 @@ const loading = ref(true)
 
 // 取得商品資料
 const fetchProduct = async () => {
+  if (!productId.value) {
+    loading.value = false
+    return
+  }
   try {
     const res = await request.get(`/api/products/${productId.value}`)
     product.value = res.data
+    // 如果後端尚未回傳 categoryIds 但有 categories，我們可以對應
+    if (product.value.categories) {
+      product.value.categoryIds = product.value.categories.map(c => c.categoryId)
+    } else if (!product.value.categoryIds) {
+      product.value.categoryIds = []
+    }
     if (product.value.productImage) {
       previewUrl.value = `http://localhost:8082/${product.value.productImage}`
     }
@@ -61,7 +71,15 @@ const saveProduct = async () => {
 
   formData.append('productId', product.value.productId)
   formData.append('productName', product.value.productName || '')
-  formData.append('categoryId', product.value.categoryId || '')
+  
+  if (product.value.categoryIds && product.value.categoryIds.length > 0) {
+    product.value.categoryIds.forEach(id => {
+      formData.append('categoryIds', id)
+    })
+  } else {
+    // 傳送一個空的表示清空
+    formData.append('categoryIds', '')
+  }
   formData.append('productPrice', product.value.productPrice || 0)
   formData.append('productStock', product.value.productStock || 0)
   formData.append('productDescription', product.value.productDescription || '')
@@ -72,14 +90,15 @@ const saveProduct = async () => {
   }
 
   try {
-    await request.post('/api/products/update', formData, {
+    const url = productId.value ? '/api/products/update' : '/api/products/insert'
+    await request.post(url, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    Swal.fire('成功', '商品資料已更新', 'success').then(() => {
+    Swal.fire('成功', productId.value ? '商品資料已更新' : '商品已成功新增', 'success').then(() => {
       router.push('/admin/product')
     })
   } catch (error) {
-    Swal.fire('錯誤', '更新失敗', 'error')
+    Swal.fire('錯誤', '儲存失敗', 'error')
   }
 }
 
@@ -141,8 +160,8 @@ onMounted(() => {
       <button class="btn-back" @click="goBack">
         <span class="back-arrow">←</span> 返回商品列表
       </button>
-      <h2 class="edit-title">編輯商品</h2>
-      <div class="edit-id-badge">#{{ product.productId }}</div>
+      <h2 class="edit-title">{{ productId ? '編輯商品' : '新增商品' }}</h2>
+      <div v-if="productId" class="edit-id-badge">#{{ product.productId }}</div>
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -184,13 +203,13 @@ onMounted(() => {
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">分類</label>
-              <select v-model="product.categoryId" class="form-input">
-                <option value="" disabled>請選擇分類</option>
-                <option v-for="cat in categories" :key="cat.categoryId" :value="cat.categoryId">
-                  {{ cat.categoryName }}
-                </option>
-              </select>
+              <label class="form-label">分類 (可多選)</label>
+              <div class="checkbox-group" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <label v-for="cat in categories" :key="cat.categoryId" class="checkbox-label" style="display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" v-model="product.categoryIds" :value="cat.categoryId" style="width: 16px; height: 16px; cursor: pointer;">
+                  <span>{{ cat.categoryName }}</span>
+                </label>
+              </div>
             </div>
 
             <div class="form-group">
@@ -220,7 +239,8 @@ onMounted(() => {
           </div>
 
           <div class="form-actions">
-            <button class="btn-delete" @click="deleteProduct">🗑️ 刪除商品</button>
+            <button v-if="productId" class="btn-delete" @click="deleteProduct">🗑️ 刪除商品</button>
+            <div v-else></div> <!-- Placeholder to keep right alignment -->
             <div class="form-actions-right">
               <button class="btn-cancel" @click="goBack">取消</button>
               <button class="btn-save" @click="saveProduct">💾 儲存修改</button>

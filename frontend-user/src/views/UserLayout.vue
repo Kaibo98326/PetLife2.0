@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from '@/axios.js'
 import logo from '@/assets/images/logo01.png'
 import Swal from 'sweetalert2'
 import { useUserStore } from '@/stores/user'
@@ -30,6 +31,29 @@ function goToAllProducts() {
 }
 
 // ── 登出 ──────────────────────────────────────────────────────────────────
+// ── 分類選單資料 ──────────────────────────────────────────────────────────
+const categories = ref([])
+
+async function fetchCategories() {
+  try {
+    const res = await axios.get('/shop/categories')
+    // 同步後台排序
+    categories.value = (res.data || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+  } catch (e) {
+    console.error('取得導航分類失敗', e)
+  }
+}
+
+// 動態大專區 (Type 2)
+const mainAreas = computed(() => {
+  return categories.value.filter(c => c.categoryType === 2)
+})
+
+// 動態活動標籤 (Type 3)
+const activityTags = computed(() => {
+  return categories.value.filter(c => c.categoryType === 3)
+})
+
 const handleLogout = () => {
   Swal.fire({
     icon: 'warning',
@@ -61,6 +85,7 @@ onMounted(async () => {
   if (userStore.token) {
     await userStore.fetchUser()
   }
+  await fetchCategories()
 })
 </script>
 
@@ -158,12 +183,23 @@ onMounted(async () => {
         <nav class="header-nav mt-3">
           <div class="container-fluid px-lg-5">
             <ul class="nav-menu-list">
-              <li><a href="#" class="nav-menu-link" @click.prevent="goToAllProducts">全部商品</a></li>
-              <li><router-link :to="{ path: '/', query: { catId: 1 } }" class="nav-menu-link">🐱 貓貓專區</router-link></li>
-              <li><router-link :to="{ path: '/', query: { catId: 2 } }" class="nav-menu-link">🐶 狗狗專區</router-link></li>
+              <!-- 動態大專區 (從後台分類自動抓取) -->
+              <li v-for="area in mainAreas" :key="area.categoryId">
+                <router-link :to="{ path: '/', query: { catId: area.categoryId } }" class="nav-menu-link">
+                  {{ area.categoryName }}
+                </router-link>
+              </li>
+
+              <!-- 動態活動標籤 (Type 3) -->
+              <li v-for="tag in activityTags" :key="tag.categoryId">
+                <router-link :to="{ path: '/', query: { catId: tag.categoryId } }" class="nav-menu-link">
+                  {{ tag.categoryName }}
+                </router-link>
+              </li>
+
+              <!-- 靜態連結 (確保固定在最後面) -->
               <li><router-link to="/beauty-booking" class="nav-menu-link">🛁 寵物美容</router-link></li>
               <li><router-link to="/hotel" class="nav-menu-link">🏠 寵物旅館</router-link></li>
-              <li><a href="#" class="nav-menu-link">🔥 限時特惠</a></li>
             </ul>
           </div>
         </nav>

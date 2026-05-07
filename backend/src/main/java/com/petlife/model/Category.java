@@ -28,9 +28,21 @@ public class Category implements Serializable {
     @Column(name = "category_name", nullable = false, length = 100)
     private String categoryName;
 
+//分類類型 (1: 實體分類, 2: 大專區, 3: 活動標籤)
+    @Column(name = "category_type", nullable = false)
+    private Integer categoryType = 1;
+
+//父分類編號 (可用於層級關係)
+    @Column(name = "parent_id")
+    private Integer parentId;
+
 //商品數量 (非資料庫欄位，用於查詢統計)
  // Hibernate 的動態計算 @Formula
-    @Formula("(SELECT COUNT(*) FROM Product p WHERE p.category_id = category_id)")
+    @Formula("(SELECT COUNT(*) FROM Product_Category_Mapping pcm WHERE pcm.category_id = category_id)")
     private Integer productCount;
+
+//自訂排序順序
+    @Column(name = "sort_order", nullable = false)
+    private Integer sortOrder = 0;
 }
 

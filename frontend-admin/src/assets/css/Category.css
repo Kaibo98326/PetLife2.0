@@ -1,0 +1,280 @@
+/* Category.css - 暖心奶油專業版 - 列表樹狀版 */
+
+.category-container {
+    min-height: 100vh;
+    padding: 0;
+    font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+}
+
+.page-title {
+    font-weight: 700;
+    color: #5d4037;
+    margin-bottom: 5px;
+}
+
+.page-subtitle {
+    color: #a1887f !important;
+}
+
+/* 區塊容器 */
+.category-section {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(211, 160, 80, 0.05);
+    border: 1px solid rgba(243, 156, 18, 0.05);
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #5d4037;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 列表設計 */
+.category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #f1e4d3;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    background: #fff;
+    border-bottom: 1px solid #fdf2e9;
+    transition: background 0.2s ease;
+}
+
+.category-item:last-child {
+    border-bottom: none;
+}
+
+.category-item:hover {
+    background: #fffaf5;
+}
+
+/* 縮排 */
+.indent-space {
+    width: 46px;
+    /* 原本30px，增加一個字元的寬度(約16px)以增加明顯度 */
+    display: inline-block;
+}
+
+/* 箭頭控制按鈕 */
+.hierarchy-controls {
+    display: flex;
+    gap: 6px;
+    margin-right: 20px;
+}
+
+.btn-arrow {
+    background: #fff;
+    border: 1px solid #eee5d8;
+    color: #8d6e63;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+
+.btn-arrow:hover {
+    background: #fdf2e9;
+    color: #e67e22;
+    border-color: #f39c12;
+}
+
+.btn-arrow:disabled {
+    background: #f9f9f9;
+    color: #d2cdc9;
+    border-color: #f0f0f0;
+    cursor: not-allowed;
+}
+
+/* 分類名稱 */
+.category-name-area {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.cat-name {
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+.cat-name.is-main {
+    font-weight: 700;
+    color: #5d4037;
+}
+
+/* 標籤 */
+.type-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.product-count-badge {
+    background-color: #f1f3f5;
+    color: #495057;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.clickable-badge {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-badge:hover {
+    background-color: #e9ecef;
+    color: #212529;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 操作按鈕區 */
+.action-area {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-action-edit {
+    background: none;
+    border: 1.5px solid #eee5d8;
+    color: #8d6e63;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.25s ease;
+}
+
+.btn-action-edit:hover {
+    background: linear-gradient(135deg, #FFDE95 0%, #FFB347 100%);
+    color: #5d4037;
+    border-color: transparent;
+}
+
+.btn-action-delete {
+    background: none;
+    border: 1.5px solid #f5c6cb;
+    color: #e74c3c;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.25s ease;
+}
+
+.btn-action-delete:hover {
+    background: #fdf2f2;
+    color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+/* 新增按鈕 */
+.add-btn-wrapper {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-primary-custom {
+    background: linear-gradient(135deg, #FFDE95 0%, #FFB347 100%);
+    color: #5d4037;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 24px;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.25);
+    transition: all 0.3s;
+}
+
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.35);
+}
+
+/* 編輯區塊 */
+.edit-card {
+    background: #fff9f0 !important;
+    border: 1px solid #f39c12 !important;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+/* 獨立的表單佈局 (不依賴 Bootstrap row/col) */
+.add-card {
+    background: linear-gradient(to right, #ffffff, #fffaf2);
+    border-left: 6px solid #f39c12;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(211, 160, 80, 0.08);
+    margin-bottom: 30px;
+}
+
+.custom-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.submit-group {
+    flex: 0 0 120px;
+}
+
+.form-label {
+    display: block;
+    color: #8d6e63;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.form-control,
+.form-select {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 12px;
+    border: 1.5px solid #eee5d8;
+    padding: 12px 15px;
+    transition: all 0.3s;
+    background-color: #fff;
+    color: #5d4037;
+    font-size: 0.95rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #f39c12;
+    box-shadow: 0 0 0 4px rgba(243, 156, 18, 0.1);
+    outline: none;
+}

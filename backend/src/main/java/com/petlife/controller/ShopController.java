@@ -66,11 +66,13 @@ public class ShopController {
         List<Product> activeProducts = productPage.getContent().stream()
                 .filter(p -> p.getProductStatus() != null && p.getProductStatus() == 1)
                 .collect(Collectors.toList());
-
+        // 手動補齊分類名稱
         for (Product p : activeProducts) {
-            if (p.getCategoryId() != null) {
-                Category cat = categoryService.getCategoryById(p.getCategoryId());
-                if (cat != null) p.setCategoryName(cat.getCategoryName());
+            if (p.getCategories() != null && !p.getCategories().isEmpty()) {
+                String names = p.getCategories().stream()
+                        .map(Category::getCategoryName)
+                        .collect(java.util.stream.Collectors.joining(", "));
+                p.setCategoryName(names);
             }
         }
 

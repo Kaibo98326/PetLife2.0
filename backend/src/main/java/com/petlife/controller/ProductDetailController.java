@@ -58,13 +58,11 @@ public class ProductDetailController {
 
 		if (product != null) {
 			// --- 手動關聯分類名稱 (處理 @Transient 欄位) ---
-			if (product.getCategoryId() != null) {
-				// 根據商品存放的分類 ID 找尋對應名稱
-				Category cat = categoryService.getCategoryById(product.getCategoryId());
-				if (cat != null) {
-					// 將查詢結果塞入非持久化欄位，供前端 Thymeleaf 顯示
-					product.setCategoryName(cat.getCategoryName());
-				}
+			if (product.getCategories() != null && !product.getCategories().isEmpty()) {
+				String names = product.getCategories().stream()
+						.map(Category::getCategoryName)
+						.collect(java.util.stream.Collectors.joining(", "));
+				product.setCategoryName(names);
 			}
 			model.addAttribute("product", product);
 			return "ProductDetail";

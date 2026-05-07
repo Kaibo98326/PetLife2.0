@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from '@/axios.js'
 import Swal from 'sweetalert2'
 import { useUserStore } from '@/stores/user'
+import '@/assets/css/ShopPanel.css'
 
 // ── 使用者 Store（登入判斷、購物車） ──────────────────────────────────────
 const userStore = useUserStore()
@@ -71,15 +72,41 @@ const top10Products = computed(() => {
   return [...products.value].slice(0, 10)
 })
 
-/** 搜尋結果提示文字 */
-const searchMsg = computed(() => {
-  if (searchKeyword.value) return `搜尋關鍵字：「${searchKeyword.value}」`
-  if (selectedCategoryId.value) {
-    const cat = categories.value.find(c => c.categoryId === selectedCategoryId.value)
-    return cat ? cat.categoryName : '分類商品'
+/** 麵包屑導覽路徑 */
+const breadcrumbs = computed(() => {
+  const crumbs = [{ label: '', id: null }]
+  
+  if (searchKeyword.value) {
+    crumbs.push({ label: `搜尋關鍵字：「${searchKeyword.value}」`, id: 'search' })
+    return crumbs
   }
-  if (route.query.view === 'all') return '全部商品'
-  return ''
+  
+  if (selectedCategoryId.value) {
+    const current = categories.value.find(c => c.categoryId === selectedCategoryId.value)
+    if (current) {
+      // 如果有父分類 (大專區)，先放進去
+      if (current.parentId) {
+        const parent = categories.value.find(c => c.categoryId === current.parentId)
+        if (parent) {
+          crumbs.push({ label: parent.categoryName, id: parent.categoryId })
+        }
+      }
+      crumbs.push({ label: current.categoryName, id: current.categoryId })
+    }
+    return crumbs
+  }
+  
+  if (route.query.view === 'all') {
+    crumbs.push({ label: '全部商品', id: 'all' })
+  }
+  
+  return crumbs
+})
+
+/** 頁面標題文字 */
+const pageTitle = computed(() => {
+  const lastCrumb = breadcrumbs.value[breadcrumbs.value.length - 1]
+  return lastCrumb ? lastCrumb.label : '精選好物'
 })
 
 // ── 後端圖片基礎 URL ──────────────────────────────────────────────────────
@@ -98,11 +125,41 @@ function getImageUrl(imagePath) {
 async function fetchCategories() {
   try {
     const res = await axios.get('/shop/categories')
-    categories.value = res.data
+    // 確保原始資料就先照 sortOrder 排序
+    categories.value = (res.data || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
   } catch (e) {
     console.error('取得分類失敗', e)
   }
 }
+
+/** 
+ * 核心：將扁平分類轉換為樹狀結構 (同步後台排序)
+ * 結構：[ { ...area, children: [ ...physical ] }, ...activityTags ]
+ */
+const categoryTree = computed(() => {
+  const all = categories.value
+  const tree = []
+  
+  // 1. 先找出所有「大專區」(Type 2)
+  const mainAreas = all.filter(c => c.categoryType === 2)
+  
+  mainAreas.forEach(area => {
+    // 2. 找出屬於該專區的「實體分類」(Type 1)
+    const children = all.filter(c => c.parentId === area.categoryId && c.categoryType === 1)
+    tree.push({
+      ...area,
+      children: children
+    })
+  })
+  
+  // 3. 處理「活動標籤」(Type 3) - 獨立成一個區塊
+  const activityTags = all.filter(c => c.categoryType === 3)
+  
+  return {
+    shopTree: tree,
+    activityTags: activityTags
+  }
+})
 
 // ── 取得商品列表 ──────────────────────────────────────────────────────────
 async function fetchProducts(page = 1) {
@@ -266,30 +323,49 @@ onMounted(async () => {
       <aside class="col-lg-2">
         <div class="sticky-sidebar">
           <div class="category-sidebar">
-            <div class="sidebar-title">
-              <i class="fas fa-bars me-2"></i>商品分類
-            </div>
+            
+            
             <nav class="sidebar-nav">
-              <a
-                href="#"
-                class="category-item"
-                :class="{ 'is-active': selectedCategoryId === null }"
-                @click.prevent="selectCategory(null)"
-              >
-                <span>全部商品</span>
-                <i class="fas fa-chevron-right small"></i>
+              <!-- 全部商品 -->
+              <a href="#" class="nav-item all-products-link" :class="{ 'active': route.query.view === 'all' }" @click.prevent="selectCategory(null)">
+                全部商品
               </a>
-              <a
-                v-for="cat in categories"
-                :key="cat.categoryId"
-                href="#"
-                class="category-item"
-                :class="{ 'is-active': selectedCategoryId === cat.categoryId }"
-                @click.prevent="selectCategory(cat.categoryId)"
-              >
-                <span>{{ cat.categoryName }}</span>
-                <i class="fas fa-chevron-right small"></i>
-              </a>
+
+              <!-- 商城分類結構 (大專區 + 實體分類) -->
+              <div v-for="area in categoryTree.shopTree" :key="area.categoryId" class="nav-group">
+                <div class="group-title" :class="{ 'active': selectedCategoryId === area.categoryId }" @click="selectCategory(area.categoryId)">
+                  {{ area.categoryName }}
+                </div>
+                <div class="group-content">
+                  <a v-for="sub in area.children" 
+                     :key="sub.categoryId" 
+                     href="#" 
+                     class="sub-item"
+                     :class="{ 'active': selectedCategoryId === sub.categoryId }"
+                     @click.prevent="selectCategory(sub.categoryId)"
+                  >
+                    {{ sub.categoryName }}
+                  </a>
+                </div>
+              </div>
+
+              <!-- 活動專區 -->
+              <div v-if="categoryTree.activityTags.length > 0" class="nav-group mt-4">
+                <div class="group-title text-danger">
+                  <i class="fas fa-bullhorn me-2"></i>活動特報 (功能尚未完成)
+                </div>
+                <!-- <div class="group-content">
+                  <a v-for="tag in categoryTree.activityTags" 
+                     :key="tag.categoryId" 
+                     href="#" 
+                     class="sub-item activity-item"
+                     :class="{ 'active': selectedCategoryId === tag.categoryId }"
+                     @click.prevent="selectCategory(tag.categoryId)"
+                  >
+                    <i class="fas fa-tag me-2"></i>{{ tag.categoryName }}
+                  </a>
+                </div> -->
+              </div>
             </nav>
           </div>
 
@@ -305,10 +381,18 @@ onMounted(async () => {
         <!-- 麵包屑 -->
         <nav v-if="!showCarousel" aria-label="breadcrumb" class="mb-3">
           <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <a href="#" class="text-decoration-none text-muted" @click.prevent="selectCategory(null)">商城首頁</a>
+            <li v-for="(crumb, index) in breadcrumbs" 
+                :key="index" 
+                class="breadcrumb-item" 
+                :class="{ active: index === breadcrumbs.length - 1 }">
+              <a v-if="index < breadcrumbs.length - 1" 
+                 href="#" 
+                 class="text-decoration-none text-muted" 
+                 @click.prevent="selectCategory(crumb.id === 'search' || crumb.id === 'all' ? null : crumb.id)">
+                {{ crumb.label }}
+              </a>
+              <span v-else>{{ crumb.label }}</span>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">{{ searchMsg }}</li>
           </ol>
         </nav>
 
@@ -407,8 +491,7 @@ onMounted(async () => {
         <section class="product-section">
           <div class="section-header d-flex justify-content-between align-items-center mb-2">
             <h4 class="section-title mb-0">
-              <span v-if="searchMsg">{{ searchMsg }}</span>
-              <span v-else>精選好物</span>
+              <span>{{ pageTitle }}</span>
             </h4>
           </div>
 
@@ -493,4 +576,4 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped></style>
+

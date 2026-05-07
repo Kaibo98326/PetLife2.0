@@ -1,11 +1,19 @@
 <script setup>
-import { ref, computed, onMounted, watchEffect } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watchEffect, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import request from '@/utils/request' // 1. 改用你的全域配置
 import Swal from 'sweetalert2'
 import '@/assets/css/Product.css'
 
 const router = useRouter()
+const route = useRoute()
+
+// 分類類型配色 (與 Category.vue 保持同步)
+const typeMap = {
+  1: { label: '實體分類', color: '#795548' }, // 溫暖褐色
+  2: { label: '大專區', color: '#e67e22' },    // 活力橘色
+  3: { label: '活動標籤', color: '#d81b60' }     // 質感桃紅
+}
 
 // --- 資料狀態 ---
 const productList = ref([])
@@ -98,19 +106,38 @@ const handleImgError = (e) => {
 // --- API 呼叫 ---
 const fetchProducts = async (page = 1) => {
   try {
+    const params = { 
+      cp: page, 
+      searchKeyword: searchKeyword.value 
+    }
+    // 如果網址有帶 categoryId，就加入搜尋條件
+    if (route.query.categoryId) {
+      params.categoryId = route.query.categoryId
+    }
+
     // 對齊後端路徑: /api/products/list
-    const res = await request.get('/api/products/list', {
-      params: { 
-        cp: page, 
-        searchKeyword: searchKeyword.value 
-      }
-    })
+    const res = await request.get('/api/products/list', { params })
     // 根據你 Java 回傳的 Map 結構抓資料
     productList.value = res.data.productList
     pagination.value.currentPage = res.data.currentPage
     pagination.value.totalPages = res.data.totalPages
   } catch (error) {
     console.error("讀取失敗", error)
+  }
+}
+
+// 監聽網址參數變化 (例如點擊分類跳轉過來時)
+watch(() => route.query.categoryId, () => {
+  fetchProducts(1)
+})
+
+// 返回上一步 (或是清除搜尋/過濾)
+const goBack = () => {
+  if (route.query.categoryId) {
+    router.back()
+  } else {
+    searchKeyword.value = ''
+    fetchProducts(1)
   }
 }
 
@@ -135,7 +162,11 @@ const saveProduct = async () => {
   
   // 按照 Java @ModelAttribute 的需求塞入欄位
   formData.append('productName', currentProduct.value.productName || '')
-  formData.append('categoryId', currentProduct.value.categoryId || '')
+  if (currentProduct.value.categoryIds && currentProduct.value.categoryIds.length > 0) {
+    currentProduct.value.categoryIds.forEach(id => formData.append('categoryIds', id))
+  } else {
+    formData.append('categoryIds', '')
+  }
   formData.append('productPrice', currentProduct.value.productPrice || 0)
   formData.append('productStock', currentProduct.value.productStock || 0)
   formData.append('productDescription', currentProduct.value.productDescription || '')
@@ -206,7 +237,7 @@ onMounted(() => {
       
       <div class="toolbar-group">
   <div class="btn-left">
-    <button @click="mode = 'add'" class="btn-action btn-add">＋ 新增商品</button>
+    <button @click="router.push('/admin/product/add')" class="btn-action btn-add">＋ 新增商品</button>
     <span class="toolbar-divider"></span>
     <button @click="batchStatus(1)" class="btn-action btn-batch-up">▲ 批次上架</button>
     <button @click="batchStatus(0)" class="btn-action btn-batch-down">▼ 批次下架</button>
@@ -223,6 +254,9 @@ onMounted(() => {
       class="search-input" 
       placeholder="搜尋商品名稱..."
     >
+    <button v-if="route.query.categoryId || searchKeyword" @click="goBack" class="btn-back ms-2">
+      <i class="fas fa-arrow-left"></i>返回
+    </button>
   </div>
 </div>
 
@@ -275,7 +309,7 @@ onMounted(() => {
                 </span>
               </div>
             </th>
-            <th style="width: 90px;" class="sortable-th" @click="toggleSort('categoryName')">
+            <th style="width: 150px;" class="sortable-th" @click="toggleSort('categoryName')">
               <div class="th-sort-wrap">
                 <span>分類</span>
                 <span class="sort-arrows">
@@ -309,7 +343,22 @@ onMounted(() => {
             <td>
               <span :class="{'text-danger fw-bold': p.productStock < 10}">{{ p.productStock }}</span>
             </td>
-            <td><span class="category-tag">{{ p.categoryName || '預設分類' }}</span></td>
+            <td class="td-category-cell">
+              <div class="category-tags-wrapper">
+                <span v-for="cat in p.categories" :key="cat.categoryId" class="category-tag" 
+                      :style="{ 
+                        backgroundColor: (typeMap[cat.categoryType]?.color || '#999') + '15', 
+                        color: typeMap[cat.categoryType]?.color || '#999',
+                        borderColor: (typeMap[cat.categoryType]?.color || '#999') + '40'
+                      }">
+                  <i v-if="cat.categoryType !== 2" class="fas fa-tag me-1" style="font-size: 0.6rem;"></i>{{ cat.categoryName }}
+                </span>
+                <!-- 如果沒有物件資料，才顯示原本的字串 (保險起見) -->
+                <span v-if="(!p.categories || p.categories.length === 0) && p.categoryName" class="category-tag">
+                  {{ p.categoryName }}
+                </span>
+              </div>
+            </td>
             <td>
               <button @click="goEdit(p.productId)" 
                       class="btn-edit-link">修改</button>

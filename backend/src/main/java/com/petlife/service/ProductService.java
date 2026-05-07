@@ -19,9 +19,11 @@ import com.petlife.repository.ProductRepository;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final com.petlife.repository.CategoryRepository categoryRepository;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(ProductRepository productRepository, com.petlife.repository.CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
 //===== 查全部商品 (不分頁) ====================================================================================
@@ -38,10 +40,36 @@ public class ProductService {
 
 //===== 新增&更新商品 ========================================================================================
     public Product addProduct(Product product) {
+        if (product.getCategoryIds() != null) {
+            java.util.List<Integer> validIds = product.getCategoryIds().stream()
+                    .filter(id -> id != null)
+                    .collect(java.util.stream.Collectors.toList());
+            if (!validIds.isEmpty()) {
+                List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
+                product.setCategories(cats);
+            }
+        }
         return productRepository.save(product);
     }
 
     public Product updateProduct(Product product) {
+        if (product.getCategoryIds() != null) {
+            java.util.List<Integer> validIds = product.getCategoryIds().stream()
+                    .filter(id -> id != null)
+                    .collect(java.util.stream.Collectors.toList());
+            if (!validIds.isEmpty()) {
+                List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
+                product.setCategories(cats);
+            } else {
+                product.setCategories(new java.util.ArrayList<>());
+            }
+        } else {
+            // 如果沒傳 categoryIds，保留原本的關聯 (需從資料庫先查出原本的關聯)
+            Product existing = productRepository.findById(product.getProductId()).orElse(null);
+            if (existing != null) {
+                product.setCategories(existing.getCategories());
+            }
+        }
         return productRepository.save(product);
     }
 

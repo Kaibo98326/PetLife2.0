@@ -20,7 +20,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	
 //===== 分類查詢 ================================================================================================
 
-	@Query("SELECT p FROM Product p WHERE p.categoryId = :catId")
+	@Query("SELECT p FROM Product p JOIN p.categories c WHERE c.categoryId = :catId OR c.parentId = :catId")
 	Page<Product> findByCategory(@Param("catId") Integer categoryId, Pageable pageable);
 
     
@@ -33,7 +33,8 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	
 //===== 統計筆數 ===============================================================================================
     
-	long countByCategoryId(Integer categoryId);
+   	@Query("SELECT COUNT(p) FROM Product p JOIN p.categories c WHERE c.categoryId = :catId")
+	long countByCategoryId(@Param("catId") Integer categoryId);
 
     @Query("SELECT COUNT(p) FROM Product p WHERE p.productName LIKE %:kw%")
     long countByKeyword(@Param("kw") String keyword);
