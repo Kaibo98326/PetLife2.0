@@ -47,9 +47,11 @@ public class InnerProductController {
         List<Product> productList = productPage.getContent();
         // 手動補齊分類名稱 (這段邏輯保留)
         for (Product p : productList) {
-            if (p.getCategoryId() != null) {
-                Category cat = categoryService.getCategoryById(p.getCategoryId());
-                if (cat != null) p.setCategoryName(cat.getCategoryName());
+            if (p.getCategories() != null && !p.getCategories().isEmpty()) {
+                String names = p.getCategories().stream()
+                        .map(Category::getCategoryName)
+                        .collect(java.util.stream.Collectors.joining(", "));
+                p.setCategoryName(names);
             }
         }
 
@@ -74,6 +76,7 @@ public class InnerProductController {
             productService.addProduct(product);
             return ResponseEntity.ok("success");
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("fail: " + e.getMessage());
         }
     }
@@ -108,9 +111,11 @@ public class InnerProductController {
     @GetMapping("/detail/{id}")
     public ResponseEntity<?> showDetail(@PathVariable("id") Integer id) {
         Product product = productService.getProductById(id);
-        if (product != null && product.getCategoryId() != null) {
-            Category cat = categoryService.getCategoryById(product.getCategoryId());
-            if (cat != null) product.setCategoryName(cat.getCategoryName());
+        if (product != null && product.getCategories() != null && !product.getCategories().isEmpty()) {
+            String names = product.getCategories().stream()
+                    .map(Category::getCategoryName)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            product.setCategoryName(names);
         }
         return ResponseEntity.ok(product);
     }

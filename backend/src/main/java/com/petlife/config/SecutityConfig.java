@@ -19,9 +19,11 @@ public class SecutityConfig {
 					.requestMatchers("/api/admin/**").permitAll()
 					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
 					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2
-	                .requestMatchers("/api/categories/**").permitAll() 
-	                .requestMatchers("/api/products/**").permitAll()
 	                .requestMatchers("/api/member/me").permitAll()
+	                .requestMatchers("/api/categories", "/api/categories/**").permitAll() 
+	                .requestMatchers("/api/products", "/api/products/**").permitAll()
+	                .requestMatchers("/api/shop", "/api/shop/**").permitAll()
+					.requestMatchers("/error").permitAll()
 					.anyRequest().authenticated()
 					);
 		return http.build();
