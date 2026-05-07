@@ -1,5 +1,6 @@
 package com.petlife.service;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.domain.Page;
@@ -8,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.petlife.repository.MemberRepository;
+import com.petlife.repository.MonthlyRegisterStatsDto;
+import com.petlife.repository.UpdateMemberRequest;
 import com.petlife.model.Member;
 import lombok.RequiredArgsConstructor;
 
@@ -84,6 +87,80 @@ public class AdminMemberService {
 				);
 		
 	}
+	
+	//快速修改會員狀態
+	public void updateMemberStatus(Integer memberId , String accountStatus) {
+		
+		Member member = memberRepository.findById(memberId)
+				.orElseThrow( () -> new RuntimeException("會員不存在"));
+		
+		member.setAccountStatus(accountStatus);
+		
+		memberRepository.save(member);
+	}
+	
+	//修改會員資料
+	public void updateMember(Integer memberId, UpdateMemberRequest request ) {
+		
+		Member member = memberRepository.findById(memberId)
+						.orElseThrow(() -> new RuntimeException("會員不存在"));
+		
+		member.setMemberName(request.getMemberName());
+		member.setPhone(request.getPhone());
+		member.setAddress(request.getAddress());
+		member.setAccountStatus(request.getAccountStatus());
+		
+		memberRepository.save(member);
+		
+	}
+	
+	//會員狀態分析
+	public Map<String , Long> getMemberStatusAnalysis(){
+		
+		long active = memberRepository.countByAccountStatus("active");
+		
+		long disable = memberRepository.countByAccountStatus("disable");
+		
+		long delete = memberRepository.countByAccountStatus("delete");
+		
+		return Map.of(
+				"active"  , active,
+				"disable" , disable,
+				"delete"  , delete
+				);
+	}
+	//會員登入來源分析
+	public Map<String, Long> getProviderAnalysis(){
+		
+		long local = memberRepository.countByProvider("local");
+		
+		long google = memberRepository.countByProvider("google");
+		
+		
+		return Map.of(
+				"local",local,
+				"google",google
+				);
+		
+	}
+	//會員每月註冊分析
+	public List<MonthlyRegisterStatsDto> getMonthlyRegisterStats(){
+		return memberRepository.getMonthlyRegisterStatsRaw()
+				.stream()
+				.map(row -> new MonthlyRegisterStatsDto(
+						row[0].toString(),
+						((Number) row[1]).longValue()
+				)).toList();
+	}
+	//月份切換
+	public List<Member> getMembersByRegisterMonth(String month){
+		
+		return memberRepository.findMembersByRegisterMonth(month);
+	}
+	
+	
+	
+	
 	
 	
 }	

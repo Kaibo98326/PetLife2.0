@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import request from '@/utils/request';
 import Swal from 'sweetalert2';
 import * as bootstrap from 'bootstrap';
@@ -14,6 +14,17 @@ const totalElements = ref(0)
 const searchType = ref('')
 const keyword = ref('')
 const selectKeyword = ref('')
+const emailCheckResult = ref('')
+const phoneCheckResult = ref('')
+
+const emailAvailable = ref(false)
+const phoneAvailable = ref(false)
+const selectedMember = ref(null)
+
+const originalEditPhone = ref('')
+const editPhoneCheckResult = ref('')
+const editPhoneAvailable = ref(true)
+
 
 const searchTypes = [
     { label: '不篩選', value: '' },
@@ -101,7 +112,7 @@ const nextPage = () => {
     loadMembers()
 }
 
-const addForm = ref({
+const addForm = reactive({
     memberName: '',
     email: '',
     password: '',
@@ -110,23 +121,80 @@ const addForm = ref({
 });
 
 const openAddModal = () => {
-    addForm.value = {
-        memberName: '',
-        email: '',
-        password: '',
-        phone: '',
-        address: ''
-    }
+    addForm.memberName = ''
+    addForm.email = ''
+    addForm.password = ''
+    addForm.phone = ''
+    addForm.address = ''
+
+    emailCheckResult.value = ''
+    phoneCheckResult.value = ''
+    emailAvailable.value = false
+    phoneAvailable.value = false
 
     const modal = new bootstrap.Modal(
         document.getElementById('addMemberModal')
     );
     modal.show();
 }
+const checkEmail = async () => {
+    if (!addForm.email) return
+
+    try {
+        const res = await request.get('/api/member/checkEmail', {
+            params: {
+                email: addForm.email
+            }
+        })
+
+        emailAvailable.value = res.data.available
+        emailCheckResult.value = res.data.available ? '✓ Email 可使用' : '✗ Email 已被使用'
+    } catch (err) {
+        console.log(err);
+    }
+}
+const checkPhone = async () => {
+
+    if (!addForm.phone) return
+
+    try {
+        const res = await request.get('/api/member/checkPhone', {
+            params: {
+                phone: addForm.phone
+            }
+        })
+        phoneAvailable.value = res.data.available
+
+        phoneCheckResult.value = res.data.available ? '✓ 電話可使用' : '✗ 電話已被使用'
+
+    } catch (err) {
+
+    }
+
+}
 
 const submitAddMember = async () => {
+
+    if (!emailAvailable.value) {
+        Swal.fire(
+            '錯誤',
+            'Email 已被使用',
+            'error'
+        )
+        return
+    }
+    if (!phoneAvailable.value) {
+        Swal.fire(
+            '錯誤',
+            '電話已被使用',
+            'error'
+        )
+        return
+    }
+
+
     try {
-        await request.post('/api/admin/members', addForm.value)
+        await request.post('/api/admin/members', addForm)
 
         Swal.fire(
             '成功',
@@ -150,6 +218,114 @@ const submitAddMember = async () => {
         )
     }
 }
+const opDetailModal = (member) => {
+    selectedMember.value = member
+
+    originalEditPhone.value = member.phone || ''
+    editPhoneCheckResult.value = ''
+    editPhoneAvailable.value = true
+
+
+    const modal = new bootstrap.Modal(
+        document.getElementById('memberDetailModal')
+    )
+    modal.show()
+}
+
+const changeStatus = async (member) => {
+
+    const { value: newStatus } = await Swal.fire({
+        title: `修改${member.memberName}的帳號狀態`,
+        input: 'select',
+        inputOptions: {
+            active: '啟用',
+            disable: '停權',
+            delete: '刪除'
+        },
+        inputValue: member.accountStatus,
+        showCancelButton: true,
+        confirmButtonText: '確認修改',
+        cancelButtonText: '取消'
+    })
+
+    if (!newStatus) return
+
+    try {
+        await request.put(
+            `/api/admin/members/${member.memberId}/status`,
+            {
+                accountStatus: newStatus
+            }
+        )
+        Swal.fire(
+            '成功',
+            '會員狀態已更新',
+            'success'
+        )
+        loadMembers()
+    } catch (err) {
+        console.log(err);
+        Swal.fire(
+            '錯誤',
+            '狀態更新失敗',
+            'error'
+        )
+    }
+
+}
+const submitUpdateMember = async () =>{
+
+    if(!editPhoneAvailable.value){
+        Swal.fire('錯誤','電話已被使用，無法修改','error')
+        return
+    }
+
+    try{
+        await request.put(`/api/admin/members/${selectedMember.value.memberId}`,
+            {
+                memberName: selectedMember.value.memberName,
+                phone: selectedMember.value.phone,
+                address: selectedMember.value.address,
+                accountStatus: selectedMember.value.accountStatus
+            }
+        )
+        Swal.fire(
+            '成功',
+            '會員資料修改成功',
+            'success'
+        )
+        loadMembers()
+    }catch(err){
+        console.log(err);
+        Swal.fire(
+            '錯誤',
+            '更新失敗',
+            'error'
+        )
+    }
+
+}
+const checkEditPhone = async () =>{
+    if(!selectedMember.value?.phone) return
+
+    if(selectedMember.value.phone === originalEditPhone.value){
+        editPhoneAvailable.value = true
+        editPhoneCheckResult.value = ''
+        return
+    }
+
+    try{
+        const res = await request.get('/api/member/checkPhone',{
+            params:{
+                phone: selectedMember.value.phone
+            }
+        })
+        editPhoneAvailable.value = res.data.available
+        editPhoneCheckResult.value = res.data.available ? '✓ 電話可使用' : '✗ 電話已被使用'
+    }catch(err){
+        console.log(err);
+    }
+}
 
 onMounted(loadMembers)
 </script>
@@ -168,7 +344,7 @@ onMounted(loadMembers)
                 <select v-model="searchType" class="form-select" style="width: 180px;">
                     <option v-for="type in searchTypes" :key="type.value" :value="type.value"> {{ type.label }}</option>
                 </select>
-                <input v-if="searchType && !needSelectKeyword" v-model="keyword" :type="text" class="form-control"
+                <input v-if="searchType && !needSelectKeyword" v-model="keyword" type="text" class="form-control"
                     style="width: 250px;" :placeholder="searchType === 'phoneLast3' ? '請輸入手機末三碼' : '請輸入查詢關鍵字'"
                     :maxlength="searchType === 'phoneLast3' ? 3 : null" @input="handleKeywordInput"
                     @keyup.enter="searchMembers" />
@@ -188,7 +364,7 @@ onMounted(loadMembers)
             </div>
         </div>
         <div class="admin-table-container shadow-sm">
-            <table class="table align-middle admin-fixed-talbe m-0">
+            <table class="table align-middle admin-fixed-table m-0">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -219,8 +395,8 @@ onMounted(loadMembers)
                         <td>{{ m.registerTime ? new Date(m.registerTime).toLocaleString() : '-' }}</td>
                         <td>{{ m.lastLogin ? new Date(m.lastLogin).toLocaleString() : '-' }}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-primary me-2">查看</button>
-                            <button class="btn btn-sm btn-outline-warning">狀態</button>
+                            <button @click="opDetailModal(m)" class="btn btn-sm btn-outline-primary me-2">查看</button>
+                            <button @click="changeStatus(m)" class="btn btn-sm btn-outline-warning">狀態</button>
                         </td>
                     </tr>
                 </tbody>
@@ -247,7 +423,10 @@ onMounted(loadMembers)
                             </div>
                             <div class="mb-3">
                                 <label>Email</label>
-                                <input v-model="addForm.email" type="email" class="form-control" required />
+                                <input v-model="addForm.email" type="email" class="form-control" required
+                                    @input="emailAvailable = false; emailCheckResult = ''" @blur="checkEmail" />
+                                <small :class="emailAvailable ? 'text-success' : 'text-danger'">{{ emailCheckResult
+                                }}</small>
                             </div>
                             <div class="mb-3">
                                 <label>密碼</label>
@@ -255,7 +434,10 @@ onMounted(loadMembers)
                             </div>
                             <div class="mb-3">
                                 <label>電話</label>
-                                <input v-model="addForm.phone" type="text" class="form-control" />
+                                <input v-model="addForm.phone" type="text" class="form-control"
+                                    @input="phoneAvailable = false; phoneCheckResult = ''" @blur="checkPhone" />
+                                <small :class="phoneAvailable ? 'text-success' : 'text-danger'">{{ phoneCheckResult
+                                }}</small>
                             </div>
                             <div class="mb-3">
                                 <label>地址</label>
@@ -267,6 +449,85 @@ onMounted(loadMembers)
                             <button type="submit" class="btn btn-success">新增會員</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+        <!-- 會員詳細資料 Modal -->
+        <div class="modal fade" id="memberDetailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">會員詳細資料</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" v-if="selectedMember">
+                        <div class="text-center mb-4">
+                            <img v-if="selectedMember.userImage"
+                                :src="`http://localhost:8082${selectedMember.userImage}`" class="member-img" />
+                        </div>
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>會員編號</th>
+                                    <td>{{ selectedMember.memberId }}</td>
+                                </tr>
+                                <tr>
+                                    <th>會員姓名</th>
+                                    <td><input v-model="selectedMember.memberName"  type="text" class="form-control"></td>
+                                </tr>
+                                <tr>
+                                    <th>Email</th>
+                                    <td>{{ selectedMember.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>電話</th>
+                                    <td><input v-model="selectedMember.phone" @input="editPhoneAvailable = false; editPhoneCheckResult = ''" @blur="checkEditPhone" type="text" class="form-control">
+                                    <small :class="editPhoneAvailable ? 'text-success' : 'text-danger'">{{ editPhoneCheckResult }}</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>地址</th>
+                                    <td><input v-model="selectedMember.address" type="text" class="form-control"></td>
+                                </tr>
+                                <tr>
+                                    <th>帳號狀態</th>
+                                    <td>
+                                        <select v-model="selectedMember.accountStatus" class="from-control">
+                                            <option value="active">啟用</option>
+                                            <option value="disable">停權</option>
+                                            <option value="delete">刪除</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>登入來源</th>
+                                    <td>{{ selectedMember.provider || 'local' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>紅利點數</th>
+                                    <td>{{ selectedMember.bonusPoints ?? 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>註冊時間</th>
+                                    <td>
+                                        {{ selectedMember.registerTime ? new
+                                            Date(selectedMember.registerTime).toLocaleString() : '-' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>最後登入</th>
+                                    <td>
+                                        {{ selectedMember.lastLogin ? new
+                                            Date(selectedMember.lastLogin).toLocaleString() : '-' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button @click="submitUpdateMember" type="button" class="btn btn-warning">儲存修改</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -342,5 +603,12 @@ onMounted(loadMembers)
 .status-pill.deleted {
     background-color: #ffebee;
     color: #c62828;
+}
+.member-img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #ff9800;
 }
 </style>

@@ -106,7 +106,7 @@ const handleLogin = async () => {
     Swal.fire({
       icon: 'error',
       title: '登入失敗',
-      text: '帳號或密碼錯誤'
+      text: err.response?.data || '帳號或密碼錯誤'
     })
 
   }
@@ -152,6 +152,11 @@ async function handleGoogleLogin(code) {
     }
   } catch (err) {
     console.error("Google login failed:", err);
+    Swal.fire({
+      icon: 'error',
+      title: '登入失敗',
+      text: err.response?.data || '無法登入，請聯繫管理員'
+    })
   }
 }
 

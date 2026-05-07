@@ -18,6 +18,13 @@ export const useEmployeeStore = defineStore('employee', {
       this.empName = decoded.empName
       this.role = decoded.role
     },
+    initFromLocalStorage(){
+      const token = localStorage.getItem('employeeToken')
+      if(token){
+        this.login(token)
+      }
+      
+    },
     logout() {
       this.token = null
       this.employeeId = null

@@ -25,17 +25,6 @@ const routes = [
         path: 'product/:id',
         name: 'productDetail',
         component: ProductDetailView
-      },
-      {
-        // 會員中心
-        path: 'member/center',
-        name: 'MemberCenter',
-        component: MemberCenter,
-        children: [
-          { path: 'profile' , component: ProfileView   },
-          { path: 'pets'    , component: PetListView   },
-          { path: 'pets/add', component: AddPetView    },
-        ]
       }
     ]
   },
@@ -49,6 +38,17 @@ const routes = [
     path: '/set-password',
     name: 'SetPassword',
     component: () => import('@/views/SetPassword.vue'),
+  },
+  {
+        // 會員中心
+        path: '/member/center',
+        name: 'MemberCenter',
+        component: MemberCenter,
+        children: [
+          { path: 'profile' , component: ProfileView   },
+          { path: 'pets'    , component: PetListView   },
+          { path: 'pets/add', component: AddPetView    },
+        ]
   }
 ]
 

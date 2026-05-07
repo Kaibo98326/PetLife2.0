@@ -48,6 +48,7 @@ public class MemberService implements IMemberService{
 		member.setPhone(request.getPhone());
 		member.setAddress(request.getAddress());
 		member.setAccountStatus("active");
+		member.setProvider("local");
 		member.setUserImage("/images/member/petlife.jpg");
 		member.setBonusPoints(0);
 		
@@ -56,13 +57,28 @@ public class MemberService implements IMemberService{
 	
 	//登入
 	@Override
-	public Optional<Member> login(LoginRequest request){
-		return memberRepos.findByEmail(request.getEmail())
-				.filter( m -> PasswordUtils.checkPassword(request.getPassword(), m.getPasswordHash()))
-				.map(m ->{
-					m.setLastLogin(LocalDateTime.now());
-					return memberRepos.save(m);
-				});
+	public Member login(LoginRequest request){
+		
+		Member member = memberRepos.findByEmail(request.getEmail())
+				.orElseThrow(() -> new IllegalArgumentException("帳號或密碼錯誤"));
+		
+		if(!PasswordUtils.checkPassword(request.getPassword(), member.getPasswordHash())) {
+			throw new IllegalArgumentException("帳號或密碼錯誤");
+		}
+		if("disable".equals(member.getAccountStatus())) {
+			throw new IllegalArgumentException("此帳號已停權，請聯繫客服");
+		}
+		if("delete".equals(member.getAccountStatus())) {
+			throw new IllegalArgumentException("此帳號已刪除，無法登入");
+		}
+		
+		if(!"active".equals(member.getAccountStatus())) {
+			throw new IllegalArgumentException("此帳號狀態異常，請聯繫客服");
+		}
+		member.setLastLogin(LocalDateTime.now());
+		
+		return memberRepos.save(member);
+		
 	}
 	
 	

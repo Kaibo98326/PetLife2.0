@@ -11,7 +11,7 @@ public interface IMemberService {
 	
 	Member register(RegisterRequest request);
 	
-	Optional<Member> login(LoginRequest request);
+	Member login(LoginRequest request);
 	
 	 Optional<String> loginAndGenerateToken(LoginRequest requset);
 	 

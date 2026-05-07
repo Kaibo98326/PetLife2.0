@@ -36,6 +36,11 @@ const routes = [
         component: () => import('@/views/AdminMemberList.vue')
       },
       {
+        path: 'member/analysis',
+        name: '會員狀態分析',
+        component: () => import('@/views/AdminMemberAnalysis.vue')
+      },
+      {
         path: 'product/edit/:id', // 對應 /admin/product/edit/:id
         name: 'ProductEdit',
         component: () => import('@/views/ProductEdit.vue')

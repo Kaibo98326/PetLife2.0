@@ -79,7 +79,19 @@ public class GoogleAuthService {
         if (auth != null) {
             // 舊會員 → 更新最後登入時間
         	member = auth.getMember();
+        		
+        		if ("disable".equals(member.getAccountStatus())) {
+        			throw new IllegalStateException("此帳號已停權，請聯繫客服");
+        		}
 
+        		if ("delete".equals(member.getAccountStatus())) {
+        			throw new IllegalStateException("此帳號已刪除，無法登入");
+        		}
+
+        		if (!"active".equals(member.getAccountStatus())) {
+        			throw new IllegalStateException("此帳號狀態異常，請聯繫客服");
+        		}
+        		
             member.setLastLogin(LocalDateTime.now());
             member.setProvider("google");
             member.setProviderUserId(userInfo.getSub());

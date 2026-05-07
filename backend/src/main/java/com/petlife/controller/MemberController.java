@@ -68,23 +68,25 @@ public class MemberController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
-	    return memberService.login(request)
-	            .<ResponseEntity<?>>map(member -> {
-	                String token = JwtUtils.generateToken(member.getMemberId());
-
-	                UserResponse user = new UserResponse(
-	                        member.getMemberId(),
-	                        member.getMemberName(),
-	                        member.getEmail(),
-	                        member.getUserImage()
-	                );
-
-	                return ResponseEntity.ok(new LoginResponse(token, user));
-	            })
-	            .orElseGet(() ->
-	                    ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-	                            .body("帳號或密碼錯誤")
-	            );
+	    try {
+	    		Member member = memberService.login(request);
+	    		
+	    		String token = JwtUtils.generateToken(member.getMemberId());
+	    		
+	    		UserResponse user = new UserResponse(member.getMemberId(), 
+	    					member.getMemberName(), member.getEmail(), member.getUserImage());
+	    				
+	    		return ResponseEntity.ok(new LoginResponse(token, user));
+	    				
+	    }catch(IllegalStateException e ) {
+	    		
+	    		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+	    					.body(e.getMessage());
+	    }catch(IllegalArgumentException e) {
+	    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+	    				.body(e.getMessage());
+	    }
+	    
 	}
 	
 
