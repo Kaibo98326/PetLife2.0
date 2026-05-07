@@ -201,7 +201,7 @@ body {
 .nav-menu-link {
     color: var(--text-main);
     text-decoration: none !important;
-    font-size: 16px;
+    font-size: 19.2px; /* 放大 120% (原 16px) */
     font-weight: 500;
     position: relative;
     transition: 0.3s;

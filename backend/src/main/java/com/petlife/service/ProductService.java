@@ -53,16 +53,30 @@ public class ProductService {
 //===== 依分類查商品 (分頁) ===================================================================================
     @Transactional(readOnly = true) // 查詢操作設定為唯讀，優化效能
     public Page<Product> getProductsByCategory(Integer categoryId, int page, int size) {
-        Pageable pageable = PageRequest.of(page - 1, size);	// Spring Data JPA 的頁碼是從 0 開始，所以畫面傳進來的 page 要減 1
+        // 為了不影響後台，這裡預設加上最新上架排序
+        Pageable pageable = PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by("productId").descending());
         return productRepository.findByCategory(categoryId, pageable);
     }
 
-//===== 依關鍵字查商品 (分頁) ==================================================================================
     @Transactional(readOnly = true) // 查詢操作設定為唯讀，優化效能
     public Page<Product> searchProducts(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page - 1, size);
+        // 為了不影響後台，這裡預設加上最新上架排序
+        Pageable pageable = PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by("productId").descending());
         return productRepository.searchByName(keyword, pageable);
     }
+    
+    // 【新增】支援動態分頁與排序的版本
+    @Transactional(readOnly = true)
+    public Page<Product> searchProducts(String keyword, Pageable pageable) {
+        return productRepository.searchByName(keyword, pageable);
+    }
+    
+    // 【新增】支援分類動態分頁與排序的版本
+    @Transactional(readOnly = true)
+    public Page<Product> getProductsByCategory(Integer categoryId, Pageable pageable) {
+        return productRepository.findByCategory(categoryId, pageable);
+    }
+    
     
 //===== 獲取低庫存商品清單 =========================================================================
 

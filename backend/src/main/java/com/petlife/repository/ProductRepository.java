@@ -20,14 +20,15 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	
 //===== 分類查詢 ================================================================================================
 
-	@Query("SELECT p FROM Product p WHERE p.categoryId = :catId ORDER BY p.productId DESC")
+	@Query("SELECT p FROM Product p WHERE p.categoryId = :catId")
 	Page<Product> findByCategory(@Param("catId") Integer categoryId, Pageable pageable);
 
     
 //===== 關鍵字查詢 ==============================================================================================
 
-	@Query("SELECT p FROM Product p WHERE p.productName LIKE %:kw% ORDER BY p.productId DESC")
+	@Query("SELECT p FROM Product p WHERE p.productName LIKE %:kw%")
     Page<Product> searchByName(@Param("kw") String keyword, Pageable pageable);
+    
     
 	
 //===== 統計筆數 ===============================================================================================
