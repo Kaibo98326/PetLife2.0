@@ -11,8 +11,8 @@ import com.petlife.model.StayRoom;
 public interface StayRoomRepository extends JpaRepository<StayRoom, Integer>{
 
 	// 查這個房型總共幾間房
-	List<StayRoom> findByStayRoomType_StayRoomTypeId(Integer roomTypeId);
+	List<StayRoom> findByStayRoomType_RoomTypeId(Integer roomTypeId);
 	
 	// 查這個房型中 狀態為空閒的房間
-	List<StayRoom> findByStayRoom_StayRoomTypeIdAndRoomStatus(Integer stayRoomTyeId,String roomStatus);
+	List<StayRoom> findByStayRoomType_RoomTypeIdAndRoomStatus(Integer roomTypeId,String roomStatus);
 }

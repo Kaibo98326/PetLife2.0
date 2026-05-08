@@ -1,6 +1,5 @@
 package com.petlife.controller;
 
-import com.petlife.repository.StayRepository;
 import com.petlife.repository.StayRequestDto;
 import com.petlife.repository.StayResponseDto;
 
@@ -16,9 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.RoomTypeDto;
 import com.petlife.service.IStayService;
 
@@ -66,4 +65,32 @@ public class StayController {
 		return ResponseEntity.ok(result);
 		
 	}
-}
+	
+	// 行事曆查詢
+	@GetMapping("/calendar")
+	public ResponseEntity<List<CalendarDayDto>> getCalendar(@RequestParam Integer roomTypeId,
+			@RequestParam int year,
+			@RequestParam int month
+			){
+	List<CalendarDayDto> result = stayService.getCalendar(roomTypeId, year, month);
+	return ResponseEntity.ok(result);
+	}
+	
+	// 所有房型列表
+	@GetMapping("roomtype")
+	public ResponseEntity<List<RoomTypeDto>> getAllRoomTypes(){
+		List<RoomTypeDto> result = stayService.getAllRoomTypes();
+		return ResponseEntity.ok(result);
+	}
+	
+	// 回傳頁面資料
+	@GetMapping("/roomtype/{roomTypeId}")
+	public ResponseEntity<RoomTypeDto> getRoomTypeById(
+			@PathVariable Integer roomTypeId
+			){
+		RoomTypeDto result =stayService.getRoomTypeById(roomTypeId);
+		return ResponseEntity.ok(result);
+	}
+	
+	
+	}

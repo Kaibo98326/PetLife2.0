@@ -3,6 +3,7 @@ package com.petlife.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.RoomTypeDto;
 import com.petlife.repository.StayRequestDto;
 import com.petlife.repository.StayResponseDto;
@@ -23,4 +24,14 @@ public interface IStayService {
 	 
 	// 取得會員訂單
 	List<StayResponseDto> getMyStays(Integer memberId);
+	
+	// 從前端得到 ? 年 ? 月 回傳 此月每一號可用空房
+	List<CalendarDayDto> getCalendar(Integer roomTypeId,int year,int month);
+	
+	// 查詢所有房型
+	List<RoomTypeDto> getAllRoomTypes();
+	
+	// 取得房型ID
+	RoomTypeDto getRoomTypeById(Integer roomTypeId);
+	
 }

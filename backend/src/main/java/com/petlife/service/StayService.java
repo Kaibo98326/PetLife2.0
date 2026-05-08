@@ -3,6 +3,7 @@ package com.petlife.service;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import com.petlife.model.Pet;
 import com.petlife.model.Stay;
 import com.petlife.model.StayRoom;
 import com.petlife.model.StayRoomType;
+import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.PetRepository;
 import com.petlife.repository.RoomTypeDto;
 import com.petlife.repository.StayRemarkDto;
@@ -52,7 +54,7 @@ public class StayService implements IStayService {
 		
 		StayRoomType roomType = stayRoomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RuntimeException("找不到房型") );
 	
-		int totalRooms = stayRoomRepository.findByStayRoomType_StayRoomTypeId(roomTypeId).size();
+		int totalRooms = stayRoomRepository.findByStayRoomType_RoomTypeId(roomTypeId).size();
 		
 		int bookedRooms = stayRepository.findOverlappingStays(roomTypeId, startDate, endDate).size();
 		
@@ -76,7 +78,7 @@ public class StayService implements IStayService {
 
 		// 確認還有空房
 		List<StayRoom> availableRooms = stayRoomRepository
-	            .findByStayRoom_StayRoomTypeIdAndRoomStatus(
+	            .findByStayRoomType_RoomTypeIdAndRoomStatus(
 	                request.getStayRoomTypeId(), "可預約");
 		
 		int bookedRooms = stayRepository.findOverlappingStays(request.getStayRoomTypeId(), request.getStayStartDate(), request.getStayEndDate()).size();
@@ -214,6 +216,90 @@ public class StayService implements IStayService {
 			result.add(dto);
 		}
 		return result;
+	}
+
+	// 從前端得到 ? 年 ? 月 回傳 此月每一號可用空房
+	@Override
+	public List<CalendarDayDto> getCalendar(Integer roomTypeId, int year, int month) {
+		
+		// 取得這個月的第一天和最後一天
+	    LocalDate startOfMonth = LocalDate.of(year, month, 1);
+	     	// 自動取得這個月有幾天，不用自己判斷
+	    LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
+	    
+	    // 查這個房型總共幾間可預約的房間
+	    int totalRooms = stayRoomRepository
+	            .findByStayRoomType_RoomTypeIdAndRoomStatus(roomTypeId, "可預約").size();
+		
+	    // 建立結果清單
+	    List<CalendarDayDto> result = new ArrayList<>();
+	    
+	    // 逐天計算
+	    LocalDate current = startOfMonth;
+	    	//從月初逐天跑到月底
+	    while (!current.isAfter(endOfMonth)) {
+	    	// 查這天有幾筆重疊的預約
+	        int bookedRooms = stayRepository
+	                .findOverlappingStays(roomTypeId, current, current.plusDays(1)).size();
+
+	        int availableCount = totalRooms - bookedRooms;
+
+	        CalendarDayDto dto = new CalendarDayDto();
+	        dto.setStayRoomTypeId(roomTypeId);
+	        dto.setDate(current);
+	        dto.setAvailableCount(availableCount);
+	        dto.setIsAvailable(availableCount > 0);
+
+	        result.add(dto);
+	         // 跟迴圈 i++ 同理 
+	        current = current.plusDays(1);
+	    }
+	    return result;
+	}
+
+	// 取得所有房型
+	@Override
+	public List<RoomTypeDto> getAllRoomTypes() {
+
+		List<StayRoomType> roomTypes = stayRoomTypeRepository.findAll();
+		
+		List<RoomTypeDto> result = new ArrayList<>();
+		
+		for (StayRoomType roomType : roomTypes) {
+			// 查這個房型總共幾間可預約的房間
+			int totalRooms = stayRoomRepository.findByStayRoomType_RoomTypeIdAndRoomStatus(roomType.getRoomTypeId(),"可預約").size();
+			
+			//  存入
+			RoomTypeDto dto = new RoomTypeDto();
+			dto.setRoomTypeId(roomType.getRoomTypeId());
+			dto.setRoomName(roomType.getRoomName());
+			dto.setRoomPrice(roomType.getRoomPrice());
+			dto.setRoomDescription(roomType.getRoomDescription());
+			dto.setCapacity(roomType.getCapacity());
+			dto.setAvailableCount(totalRooms);
+			
+			result.add(dto);
+		}
+		return result;
+	}
+
+	// 取得房型ID
+	@Override
+	public RoomTypeDto getRoomTypeById(Integer roomTypeId) {
+		StayRoomType roomType = stayRoomTypeRepository.findById(roomTypeId)
+				.orElseThrow(() -> new RuntimeException("找不到此房型!!"));
+		
+		int totalRooms = stayRoomRepository
+	            .findByStayRoomType_RoomTypeIdAndRoomStatus(roomTypeId, "可預約").size();
+		
+		 RoomTypeDto dto = new RoomTypeDto();
+		    dto.setRoomTypeId(roomType.getRoomTypeId());
+		    dto.setRoomName(roomType.getRoomName());
+		    dto.setRoomPrice(roomType.getRoomPrice());
+		    dto.setRoomDescription(roomType.getRoomDescription());
+		    dto.setCapacity(roomType.getCapacity());
+		    dto.setAvailableCount(totalRooms);
+		return dto;
 	}
 	
 	
