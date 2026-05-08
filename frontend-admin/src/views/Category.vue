@@ -1,13 +1,37 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 // 1. 改引入你自己寫的全域配置
 import request from '@/utils/request' 
 import Swal from 'sweetalert2'
 
+// 引入獨立的 CSS 樣式檔 (暖心奶油專業版風格)
+import '@/assets/css/Category.css'
+
+const router = useRouter()
+
 const categories = ref([])
-const newCategoryName = ref('')
 const isEditing = ref(false)
-const editItem = ref({ categoryId: null, categoryName: '' })
+
+const newCategory = ref({
+  categoryName: '',
+  categoryType: 1,
+  parentId: null
+})
+
+const editItem = ref({
+  categoryId: null,
+  categoryName: '',
+  categoryType: 1,
+  parentId: null
+})
+
+// 分類類型定義
+const typeMap = {
+  1: { label: '實體分類', class: 'type-physical', color: '#795548' }, // 溫暖褐色
+  2: { label: '大專區', class: 'type-area', color: '#e67e22' },    // 活力橘色
+  3: { label: '活動標籤', class: 'type-tag', color: '#d81b60' }     // 質感桃紅
+}
 
 // 1. 初始化讀取清單
 const fetchCategories = async () => {
@@ -23,14 +47,181 @@ const fetchCategories = async () => {
 
 
 
+// 取得特定群組的樹狀結構 (用來區分「商城分類(Type 1,2)」與「活動標籤(Type 3)」)
+const getTree = (filterFn) => {
+  const result = []
+  const map = {}
+  
+  // 過濾並存入 map
+  const filtered = categories.value.filter(filterFn)
+  filtered.forEach(cat => {
+    map[cat.categoryId] = { ...cat, children: [] }
+  })
+  
+  // 建立樹狀結構
+  const roots = []
+  filtered.forEach(cat => {
+    if (cat.parentId && map[cat.parentId]) {
+      map[cat.parentId].children.push(map[cat.categoryId])
+    } else {
+      roots.push(map[cat.categoryId])
+    }
+  })
+  
+  // 依照 sortOrder 排序
+  const sortItems = (items) => {
+    items.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    items.forEach((item, index) => {
+      // 紀錄自己在同層級中的相對位置
+      item.isFirstSibling = index === 0;
+      item.isLastSibling = index === items.length - 1;
+      
+      if (item.children.length > 0) sortItems(item.children)
+    })
+  }
+  sortItems(roots)
+  
+  // 遞迴展開為扁平列表以便顯示
+  const flatten = (items, depth = 0) => {
+    items.forEach((item) => {
+      result.push({ 
+        ...item, 
+        depth, 
+        // 視覺上的上一個項目，用來做 makeSubcategory (抓取結果陣列的最後一個元素)
+        visualPrevId: result.length > 0 ? result[result.length - 1].categoryId : null
+      })
+      if (item.children.length > 0) {
+        flatten(item.children, depth + 1)
+      }
+    })
+  }
+  
+  flatten(roots)
+  return result
+}
+
+// 區分兩個區塊
+const mainCategories = computed(() => getTree(cat => cat.categoryType === 1 || cat.categoryType === 2))
+
+// 活動標籤不需要階層，直接扁平化顯示，並隱藏名稱為「活動標籤」的虛擬父節點
+const activityCategories = computed(() => {
+  const tags = categories.value
+    .filter(cat => cat.categoryType === 3 && cat.categoryName !== '活動標籤')
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    
+  return tags.map((cat, index) => ({
+    ...cat,
+    depth: 0,
+    isFirstSibling: index === 0,
+    isLastSibling: index === tags.length - 1
+  }))
+})
+
+// ========================
+// 階層與排序操作
+// ========================
+
+const updateCategoryField = async (catId, fieldUpdateObj) => {
+  const target = categories.value.find(c => c.categoryId === catId)
+  if (!target) return
+  const updated = { ...target, ...fieldUpdateObj }
+  try {
+    await request.put(`/api/categories/${catId}`, updated)
+    // 成功後更新本地資料
+    Object.assign(target, fieldUpdateObj)
+  } catch (error) {
+    Swal.fire('失敗', '更新失敗', 'error')
+  }
+}
+
+const makeSubcategory = async (cat) => {
+  if (!cat.visualPrevId) return
+  await updateCategoryField(cat.categoryId, { parentId: cat.visualPrevId, categoryType: 1 })
+  fetchCategories()
+}
+
+const makeMainCategory = async (cat) => {
+  await updateCategoryField(cat.categoryId, { parentId: null, categoryType: 2 })
+  fetchCategories()
+}
+
+const moveUp = async (cat) => {
+  // 找出所有同層級的兄弟節點
+  let siblings = []
+  if (cat.categoryType === 3) {
+    // 活動標籤：忽略 parentId，統一看作一個群組，並排除虛擬父節點
+    siblings = categories.value
+      .filter(c => c.categoryType === 3 && c.categoryName !== '活動標籤')
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+  } else {
+    // 商城分類：嚴格比對同層級
+    siblings = categories.value
+      .filter(c => c.parentId == cat.parentId && c.categoryType == cat.categoryType)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+  }
+    
+  const index = siblings.findIndex(c => c.categoryId === cat.categoryId)
+  if (index > 0) {
+    // 為了避免大家都是 0 換不出結果，先強制賦予有間距的排序值
+    siblings.forEach((s, i) => { s.sortOrder = i * 10 })
+    
+    // 交換兩者
+    const prevCat = siblings[index - 1]
+    const currentOrder = cat.sortOrder
+    cat.sortOrder = prevCat.sortOrder
+    prevCat.sortOrder = currentOrder
+    
+    // 更新到資料庫
+    await updateCategoryField(cat.categoryId, { sortOrder: cat.sortOrder })
+    await updateCategoryField(prevCat.categoryId, { sortOrder: prevCat.sortOrder })
+    fetchCategories()
+  }
+}
+
+const moveDown = async (cat) => {
+  let siblings = []
+  if (cat.categoryType === 3) {
+    siblings = categories.value
+      .filter(c => c.categoryType === 3 && c.categoryName !== '活動標籤')
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+  } else {
+    siblings = categories.value
+      .filter(c => c.parentId == cat.parentId && c.categoryType == cat.categoryType)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+  }
+    
+  const index = siblings.findIndex(c => c.categoryId === cat.categoryId)
+  if (index !== -1 && index < siblings.length - 1) {
+    siblings.forEach((s, i) => { s.sortOrder = i * 10 })
+    
+    const nextCat = siblings[index + 1]
+    const currentOrder = cat.sortOrder
+    cat.sortOrder = nextCat.sortOrder
+    nextCat.sortOrder = currentOrder
+    
+    await updateCategoryField(cat.categoryId, { sortOrder: cat.sortOrder })
+    await updateCategoryField(nextCat.categoryId, { sortOrder: nextCat.sortOrder })
+    fetchCategories()
+  }
+}
+
+
 // 2. 執行新增
 const submitAdd = async () => {
-  if (!newCategoryName.value.trim()) return
+  if (!newCategory.value.categoryName.trim()) {
+    Swal.fire('提示', '請填寫分類名稱', 'warning')
+    return
+  }
+  if (newCategory.value.categoryType === 1 && !newCategory.value.parentId) {
+    Swal.fire('提示', '實體分類必須隸屬於一個大專區', 'warning')
+    return
+  }
+  if (newCategory.value.categoryType !== 1) {
+    newCategory.value.parentId = null
+  }
   try {
-    await request.post('/api/categories', { 
-      categoryName: newCategoryName.value 
-    })
-    newCategoryName.value = ''
+    await request.post('/api/categories', newCategory.value)
+    newCategory.value = { categoryName: '', categoryType: 1, parentId: null }
     Swal.fire('成功', '分類已新增', 'success')
     fetchCategories() 
   } catch (error) {
@@ -39,13 +230,31 @@ const submitAdd = async () => {
 }
 
 // 3. 準備修改 (打開編輯模式)
-const startEdit = (cat) => {
+const startEdit = async (cat) => {
   editItem.value = { ...cat } 
   isEditing.value = true
+  
+  // 等待 Vue 將編輯區塊渲染到畫面上後，再將該區塊捲動到可視範圍
+  await nextTick()
+  const editContainer = document.querySelector('.category-container')
+  if (editContainer) {
+    editContainer.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 }
 
 // 4. 執行更新
 const submitUpdate = async () => {
+  if (!editItem.value.categoryName.trim()) {
+    Swal.fire('提示', '請填寫分類名稱', 'warning')
+    return
+  }
+  if (editItem.value.categoryType === 1 && !editItem.value.parentId) {
+    Swal.fire('提示', '實體分類必須隸屬於一個大專區', 'warning')
+    return
+  }
+  if (editItem.value.categoryType !== 1) {
+    editItem.value.parentId = null
+  }
   try {
     await request.put(`/api/categories/${editItem.value.categoryId}`, editItem.value)
     isEditing.value = false
@@ -84,63 +293,145 @@ const confirmDelete = (cat) => {
   })
 }
 
+// 6. 前往商品列表並過濾分類
+const viewProducts = (categoryId) => {
+  router.push({ path: '/admin/product', query: { categoryId } })
+}
+
 onMounted(fetchCategories)
 </script>
 
 <template>
-  <div class="category-wrapper p-4">
-    <div class="card shadow-sm p-3 mb-4">
-      <div class="d-flex gap-2">
-        <input v-model="newCategoryName" type="text" class="form-control" placeholder="輸入新分類名稱">
-        <button @click="submitAdd" class="btn btn-primary px-4">執行新增</button>
+  <div class="category-container">
+    
+    <!-- 新增區塊 (恢復為原本的區塊，不使用 Modal 避免破圖) -->
+    <div v-if="!isEditing" class="add-card shadow-sm mb-4">
+      <div class="custom-form-row">
+        <div class="form-group">
+          <label class="form-label">分類名稱</label>
+          <input v-model="newCategory.categoryName" type="text" class="form-control" placeholder="例如：貓砂、熱銷促銷">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分類類型</label>
+          <select v-model="newCategory.categoryType" class="form-select">
+            <option v-for="(info, type) in typeMap" :key="type" :value="Number(type)">
+              {{ info.label }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group" v-if="newCategory.categoryType === 1">
+          <label class="form-label">隸屬大專區</label>
+          <select v-model="newCategory.parentId" class="form-select">
+            <option :value="null" disabled>-- 請選擇大專區 --</option>
+            <option v-for="cat in mainCategories.filter(c => c.depth === 0)" :key="cat.categoryId" :value="cat.categoryId">
+              {{ cat.categoryName }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group submit-group">
+          <button @click="submitAdd" class="btn-primary-custom w-100">+ 新增分類</button>
+        </div>
       </div>
     </div>
 
-    <div v-if="isEditing" class="card shadow-sm p-3 mb-4 bg-light border-warning">
-      <h5 class="text-warning mb-3">✏️ 修改分類 (編號: {{ editItem.categoryId }})</h5>
-      <div class="d-flex gap-2">
-        <input v-model="editItem.categoryName" type="text" class="form-control">
-        <button @click="submitUpdate" class="btn btn-warning">儲存</button>
-        <button @click="isEditing = false" class="btn btn-secondary">取消</button>
+    <!-- 編輯區塊 (保留 Inline Edit 彈出效果) -->
+    <div v-if="isEditing" class="edit-card shadow-sm animate__animated animate__fadeIn">
+      <h5 class="text-warning mb-4 fw-bold"><i class="fas fa-edit me-2"></i>編輯分類 (ID: {{ editItem.categoryId }})</h5>
+      <div class="custom-form-row">
+        <div class="form-group">
+          <label class="form-label">分類名稱</label>
+          <input v-model="editItem.categoryName" type="text" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分類類型</label>
+          <select v-model="editItem.categoryType" class="form-select">
+            <option v-for="(info, type) in typeMap" :key="type" :value="Number(type)">
+              {{ info.label }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group" v-if="editItem.categoryType === 1">
+          <label class="form-label">隸屬大專區</label>
+          <select v-model="editItem.parentId" class="form-select">
+            <option :value="null" disabled>-- 請選擇大專區 --</option>
+            <option v-for="cat in mainCategories.filter(c => c.depth === 0)" :key="cat.categoryId" :value="cat.categoryId" v-show="cat.categoryId !== editItem.categoryId">
+              {{ cat.categoryName }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group submit-group d-flex gap-2">
+          <button @click="submitUpdate" class="btn btn-warning flex-grow-1 text-white fw-bold border-0" style="border-radius: 12px; padding: 12px;">儲存</button>
+          <button @click="isEditing = false" class="btn btn-light" style="border-radius: 12px; padding: 12px; border: 1.5px solid #eee5d8;">取消</button>
+        </div>
       </div>
     </div>
 
-    <div class="card shadow-sm p-3">
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>編號</th>
-            <th>分類名稱</th>
-            <th>商品數量</th>
-            <th>管理操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="categories.length === 0">
-            <td colspan="4" class="text-center text-muted py-4">目前沒有分類資料</td>
-          </tr>
-          <tr v-for="cat in categories" :key="cat.categoryId">
-            <td>{{ cat.categoryId }}</td>
-            <td class="fw-bold">{{ cat.categoryName }}</td>
-            <td><span class="badge bg-info text-dark">{{ cat.productCount || 0 }} 件商品</span></td>
-            <td>
-              <button @click="startEdit(cat)" class="btn btn-sm btn-outline-primary me-2">修改</button>
-              <button @click="confirmDelete(cat)" class="btn btn-sm btn-outline-danger">刪除</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- 區塊一：活動標籤 -->
+    <div class="category-section">
+      <h4 class="section-title"><i class="fas fa-tags" style="color: #d81b60;"></i> 活動標籤 【 備註：等昀翔完成後，要再修改這裡 】</h4>
+      <ul class="category-list">
+        <li v-for="cat in activityCategories" :key="cat.categoryId" class="category-item">
+          
+          <div class="hierarchy-controls">
+            <button class="btn-arrow" @click="moveUp(cat)" :disabled="cat.isFirstSibling"><i class="fas fa-arrow-up"></i></button>
+            <button class="btn-arrow" @click="moveDown(cat)" :disabled="cat.isLastSibling"><i class="fas fa-arrow-down"></i></button>
+          </div>
+
+          <div class="category-name-area">
+            <span class="cat-name fw-bold text-danger">{{ cat.categoryName }}</span>
+            <span class="product-count-badge clickable-badge ms-2" v-if="cat.productCount > 0" @click="viewProducts(cat.categoryId)" title="點擊查看此分類商品">
+              {{ cat.productCount }} 件商品
+            </span>
+          </div>
+
+          <div class="action-area">
+            <button @click="startEdit(cat)" class="btn btn-action-edit">編輯</button>
+            <button @click="confirmDelete(cat)" class="btn btn-action-delete">刪除</button>
+          </div>
+        </li>
+      </ul>
+      <div v-if="activityCategories.length === 0" class="text-center text-muted p-4 border rounded mt-3 bg-light">沒有資料</div>
     </div>
+
+    <!-- 區塊二：分類結構 -->
+    <div class="category-section">
+      <h4 class="section-title"><i class="fas fa-sitemap"></i> 分類結構 (大專區 / 實體分類)</h4>
+      <ul class="category-list">
+        <li v-for="cat in mainCategories" :key="cat.categoryId" class="category-item">
+          <!-- 左側：縮排控制 -->
+          <div v-for="n in cat.depth" :key="n" class="indent-space"></div>
+          
+          <div class="hierarchy-controls">
+            <!-- 上下排序 -->
+            <button class="btn-arrow" @click="moveUp(cat)" :disabled="cat.isFirstSibling" title="向上移動">
+              <i class="fas fa-arrow-up"></i>
+            </button>
+            <button class="btn-arrow" @click="moveDown(cat)" :disabled="cat.isLastSibling" title="向下移動">
+              <i class="fas fa-arrow-down"></i>
+            </button>
+          </div>
+
+          <!-- 中間：名稱與資訊 -->
+          <div class="category-name-area">
+            <span :class="['cat-name', { 'is-main': cat.depth === 0 }]">{{ cat.categoryName }}</span>
+            <span class="type-badge" :style="{ backgroundColor: (typeMap[cat.categoryType]?.color || '#999') + '15', color: typeMap[cat.categoryType]?.color || '#999' }">
+              <i class="fas fa-tag me-2" style="font-size: 0.65rem;"></i>{{ typeMap[cat.categoryType]?.label || '未知' }}
+            </span>
+            <span class="product-count-badge clickable-badge ms-2" v-if="cat.productCount > 0" @click="viewProducts(cat.categoryId)" title="點擊查看此分類商品">
+              {{ cat.productCount }} 件商品
+            </span>
+          </div>
+
+          <!-- 右側：操作按鈕 -->
+          <div class="action-area">
+            <button @click="startEdit(cat)" class="btn btn-action-edit">編輯</button>
+            <button @click="confirmDelete(cat)" class="btn btn-action-delete">刪除</button>
+          </div>
+        </li>
+      </ul>
+      <div v-if="mainCategories.length === 0" class="text-center text-muted p-4 border rounded mt-3 bg-light">沒有資料</div>
+    </div>
+
   </div>
-</template>
 
-<style scoped>
-.btn-primary {
-  background-color: #ff7a00;
-  border-color: #ff7a00;
-}
-.btn-primary:hover {
-  background-color: #e66e00;
-  border-color: #e66e00;
-}
-</style>
+</template>
