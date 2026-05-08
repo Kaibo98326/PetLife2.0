@@ -6,6 +6,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -15,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.petlife.model.Order;
+import com.petlife.model.OrderDetail;
 import com.petlife.model.OrderPaymentRecord;
 import com.petlife.repository.CartItemRepository;
 import com.petlife.repository.OrderDetailRepository;
@@ -95,14 +100,15 @@ public class OrderService {
 		params.put("TotalAmount", String.valueOf(order.getOrderTotal().intValue()));
 		params.put("TradeDesc", "PetLifeOrder");
 		params.put("ItemName", "PetLifeProduct一批");
-		params.put("ReturnURL", "https://your-domain.com/api/payment/callback");
 		params.put("ChoosePayment", "ALL");
 		params.put("EncryptType", "1"); // 成功為1，失敗為0
 		params.put("ClientBackURL", "http://localhost:5173/shop"); // 取消訂單時的退款按鈕要用
 		// 內網穿透工具(ngrok) 要正式測試要記得來改網址!!!
 		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
-		params.put("OrderResultURL", "http://localhost:5173/checkoutsuccess");// 結帳完導回的頁面
-
+//		params.put("OrderResultURL", "http://localhost:5173/checkoutsuccess");// 結帳完導回的頁面
+		params.put("ClientBackURL", "http://localhost:5173/checkoutsuccess");
+		params.put("NeedExtraPaidInfo", "N");
+		
 		// 計算加密簽章CheckMacValue
 		String checkMacValue = calculateCheckMacValue(params);
 		params.put("CheckMacValue", checkMacValue);
@@ -164,5 +170,51 @@ public class OrderService {
 		} else {
 			System.out.println("找不到對應的金流紀錄：" + merchantTradeNo);
 		}
+	}
+	
+	// 結帳成功要抓資料用的
+	public Map<String, Object> getOrderDetailWithItems(Integer orderId) {
+	    Order order = or.findById(orderId).orElse(null);
+	    if (order == null) return null;
+
+	    Map<String, Object> result = new HashMap<>();
+	    result.put("orderId", order.getOrderId());
+	    result.put("orderDate", order.getOrderDate());
+	    result.put("orderAddress", order.getOrderAddress());
+	    result.put("orderName", order.getOrderName()); 
+	    result.put("orderTotal", order.getOrderTotal());
+
+	    // 抓取該訂單的所有明細
+	    List<OrderDetail> details = odr.findByOrderBean_OrderId(orderId); 
+	    
+	    List<Map<String, Object>> itemsList = new ArrayList<>();
+	    if (details != null && !details.isEmpty()) {
+	        for (OrderDetail detail : details) {
+	            Map<String, Object> itemMap = new HashMap<>();
+	            
+	            // 這裡請對應你資料庫 OrderDetail 表的欄位名稱
+	            itemMap.put("productName", detail.getProductName()); 
+	            itemMap.put("productPrice", detail.getProductPrice());
+	            itemMap.put("quantity", detail.getQuantity());
+	            itemMap.put("subtotal", detail.getSubtotal());
+//	            itemMap.put("discount", detail.getDiscount() != null ? detail.getDiscount() : 0);
+	           
+	            itemsList.add(itemMap);
+	        }
+	    } else {
+	        System.out.println("⚠️ 警告：資料庫中找不到訂單編號 " + orderId + " 的任何明細！");
+	    }
+	    
+	    result.put("items", itemsList); 
+	    return result;
+	}
+	
+	// 取得特定會員的所有訂單 (未刪除的)
+	public List<Order> findByMemberId(Integer memberId) {
+	    return or.findAll().stream()
+	            .filter(o -> o.getMemberId() != null && o.getMemberId().equals(memberId))
+	            .filter(o -> o.getIsDeleted() == null || !o.getIsDeleted())
+	            .sorted(Comparator.comparing(Order::getOrderDate).reversed()) // 最新的在前面
+	            .collect(Collectors.toList());
 	}
 }

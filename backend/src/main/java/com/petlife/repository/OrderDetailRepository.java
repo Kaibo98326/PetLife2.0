@@ -16,7 +16,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, OrderD
 
     // 透過orderId查詢明細
     List<OrderDetail> findByOrderBean_OrderId(Integer orderId);
-
+    
     // 刪除某訂單的所有明細
     void deleteByOrderBean_OrderId(Integer orderId);
 

@@ -1,17 +1,25 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { useRouter } from 'vue-router' //
 import axios from '@/axios'
 import Swal from 'sweetalert2'
 
 const userStore = useUserStore()
+const router = useRouter()
 const cartItems = ref([])
 
 // 取得購物車資料
 const fetchCart = async () => {
-  if (!userStore.user?.memberId) return
+  const mId = userStore.memberId
+  // console.log('讀取到的會員ID:', mId)
+  if (!mId) {
+    console.warn('請確認是否已登入')
+    return
+  }
   try {
-    const res = await axios.get(`/api/cart/${userStore.user.memberId}`)
+    const res = await axios.get(`/cart/${mId}`)
+    // console.log('購物車 API 回傳結果:', res.data)
     cartItems.value = res.data
   } catch (error) {
     console.error('獲取購物車失敗', error)
@@ -31,8 +39,8 @@ const changeQty = async (item, delta) => {
     return
   }
   try {
-    await axios.put(`/api/cart/update/${item.itemId}`, null, {
-      params: { quantity: newQty }
+    await axios.put(`/cart/update/${item.itemId}`, null, {
+      params: { quantity: newQty },
     })
     fetchCart()
   } catch {
@@ -42,23 +50,45 @@ const changeQty = async (item, delta) => {
 
 // 刪除商品
 const deleteItem = async (itemId) => {
+  // 詢問是否確定刪除
   const result = await Swal.fire({
     title: '確定要移除這項商品嗎？',
+    text: '移除後需重新加入購物車喔！',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#fd7e14',
     confirmButtonText: '確定',
-    cancelButtonText: '取消'
+    cancelButtonText: '取消',
   })
 
   if (result.isConfirmed) {
     try {
-      await axios.delete(`/api/cart/item/${itemId}`)
+      await axios.delete(`/cart/item/${itemId}`)
+
+      // 告知刪除成功
+      await Swal.fire({
+        title: '已刪除！',
+        text: '商品已從購物車中移除。',
+        icon: 'success',
+        confirmButtonColor: '#fd7e14',
+        timer: 1500,
+      })
+
       fetchCart()
-    } catch {
-      Swal.fire('錯誤', '刪除失敗', 'error')
+    } catch (error) {
+      console.error('刪除失敗:', error)
+      Swal.fire('錯誤', '刪除失敗，請稍後再試', 'error')
     }
   }
+}
+
+// 結帳按鈕
+const goToCheckout = () => {
+  if (cartItems.value.length === 0) {
+    Swal.fire('提示', '購物車是空的，無法結帳喔！', 'warning')
+    return
+  }
+  router.push('/checkout')
 }
 
 onMounted(() => {
@@ -84,7 +114,7 @@ onMounted(() => {
 
         <tbody>
           <tr v-for="item in cartItems" :key="item.itemId">
-            <td style="text-align: left;">{{ item.productName }}</td>
+            <td style="text-align: left">{{ item.productName }}</td>
             <td class="price-text">$ {{ item.productPrice }}</td>
             <td>
               <button class="btn-qty" @click="changeQty(item, -1)">-</button>
@@ -117,7 +147,7 @@ onMounted(() => {
           <i class="fa-solid fa-house me-1"></i>返回首頁
         </router-link>
 
-        <button v-if="cartItems.length > 0" class="btn-orange">
+        <button v-if="cartItems.length > 0" class="btn-orange" @click="goToCheckout">
           <i class="fa-solid fa-credit-card me-1"></i>前往結帳
         </button>
       </div>
@@ -126,127 +156,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-
-.cart-page-container {
-  padding: 50px 0;
-  background-color: #f8f9fa;
-  min-height: 80vh;
-}
-
-.cart-card {
-  max-width: 900px;
-  margin: 0 auto;
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.cart-title {
-  color: #333;
-  text-align: center;
-  margin-bottom: 25px;
-  font-weight: bold;
-}
-
-.cart-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.cart-table th {
-  background-color: #fdf2e9;
-  color: #e67e22;
-  padding: 12px;
-  border-bottom: 2px solid #fadbd8;
-}
-
-.cart-table td {
-  padding: 15px;
-  text-align: center;
-  border-bottom: 1px solid #eee;
-}
-
-.price-text {
-  color: #e67e22;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.btn-qty {
-  background-color: #eee;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.btn-qty:hover {
-  background-color: #ddd;
-}
-
-.qty-display {
-  padding: 0 15px;
-  font-weight: bold;
-}
-
-.btn-del {
-  background-color: #fff0f0;
-  color: #e74c3c;
-  border: 1px solid #ffcccc;
-  padding: 8px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.btn-del:hover {
-  background-color: #e74c3c;
-  color: white;
-}
-
-.total-section {
-  text-align: right;
-  font-size: 1.3rem;
-  font-weight: bold;
-  margin-top: 20px;
-  padding-top: 10px;
-  border-top: 2px solid #eee;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 25px;
-}
-
-.btn-orange {
-  background-color: #fd7e14;
-  color: white;
-  padding: 12px 25px;
-  border-radius: 8px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-}
-
-.btn-orange:hover {
-  background-color: #e86c00;
-  color: white;
-}
-
-.no-underline {
-  text-decoration: none;
-}
-
-.empty-msg {
-  padding: 50px !important;
-  color: #999;
-  font-size: 1.2rem;
-}
+@import '../assets/css/CartView.css';
 </style>

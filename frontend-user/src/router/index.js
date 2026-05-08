@@ -29,13 +29,6 @@ const routes = [
         name: 'productDetail',
         component: ProductDetailView,
       },
-      {
-        // 會員中心
-        path: 'member/center',
-        name: 'MemberCenter',
-        component: MemberCenter,
-        children: [{ path: 'profile', component: ProfileView }],
-      },
     ],
   },
   // 購物車的router
@@ -78,7 +71,13 @@ const routes = [
       },
     ],
   },
-
+  {
+    // 會員中心
+    path: '/member/center',
+    name: 'MemberCenter',
+    component: MemberCenter,
+    children: [{ path: 'profile', component: ProfileView }],
+  },
   {
     // 登入頁（獨立頁面，不套用 UserLayout）
     path: '/login',

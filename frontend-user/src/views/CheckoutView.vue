@@ -1,252 +1,222 @@
 <script setup>
-import { ref, onMounted} from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import axios from '@/axios'
 import Swal from 'sweetalert2'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
 const userStore = useUserStore()
-
-// 1. 統一資料定義
 const cartItems = ref([])
-const totalAmount = ref(0)
-const currentDate = ref(new Date().toLocaleString())
+const isProcessing = ref(false)
 
+// 表單資料綁定
 const orderForm = ref({
-  orderName: '',
-  orderPhone: '',
-  orderAddress: '',
-  orderPayment: 'LinePay',
-  orderNote: ''
+  receiverName: '',
+  receiverPhone: '',
+  shippingAddress: '',
+  paymentMethod: 'LinePay', // 預設支付方式
+  orderNotes: '',
 })
 
-onMounted(async () => {
-    
-  if (!userStore.memberId) {
-    Swal.fire('請先登入', '', 'info')
-    router.push('/login')
+//取得會員資訊並預填表單
+const fetchMemberInfo = async () => {
+  const mId = userStore.memberId
+  if (!mId) return
+
+  try {
+    const res = await axios.get(`/member/${mId}`)
+    const member = res.data
+
+    // 預填邏輯
+    orderForm.value.receiverName = member.memberName || ''
+    orderForm.value.receiverPhone = member.phone || ''
+    orderForm.value.shippingAddress = member.address || ''
+  } catch (error) {
+    console.error('獲取會員資訊失敗:', error)
+    // 獲取失敗不影響結帳，讓使用者手打
+  }
+}
+
+// 取得購物車資料
+const fetchCart = async () => {
+  const mId = userStore.memberId
+  if (!mId) return
+  try {
+    const res = await axios.get(`/cart/${mId}`)
+    cartItems.value = res.data
+
+    if (res.data && res.data.length > 0 && res.data[0].cartId) {
+      userStore.cartId = res.data[0].cartId
+      console.log('✅ cartId 已更新:', userStore.cartId)
+    } else {
+      console.warn('⚠️ 後端回傳資料中找不到 cartId，請檢查 API 回傳結構')
+    }
+  } catch (error) {
+    console.error('獲取購物車失敗:', error)
+  }
+}
+
+//計算總額
+const totalAmount = computed(() => {
+  return cartItems.value.reduce((sum, item) => sum + (item.subtotal || 0), 0)
+})
+
+//送出訂單並處理跳轉
+const submitOrder = async () => {
+  if (
+    !orderForm.value.receiverName ||
+    !orderForm.value.receiverPhone ||
+    !orderForm.value.shippingAddress
+  ) {
+    Swal.fire('提示', '請填寫完整的收件資訊', 'warning')
     return
   }
 
+  isProcessing.value = true
   try {
-    // 獲取會員預設資訊 (注意路徑：不加開頭斜線與 api)
-    const memberRes = await axios.get(`cart/member/info/${userStore.memberId}`)
-    const member = memberRes.data
-    orderForm.value.orderName = member.memberName
-    orderForm.value.orderPhone = member.phone
-    orderForm.value.orderAddress = member.address
-
-    // 獲取購物車內容與總金額
-    const cartRes = await axios.get(`cart/${userStore.memberId}`)
-    
-    // 根據後端回傳格式賦值
-    // 如果後端直接回傳 List，就用 cartRes.data；如果有封裝，就用 cartRes.data.items
-    cartItems.value = cartRes.data.items || cartRes.data 
-    totalAmount.value = cartRes.data.totalAmount || 0
-    
-    // 如果 totalAmount 是計算出來的，也可以這樣寫：
-    if(!totalAmount.value && cartItems.value.length > 0) {
-       totalAmount.value = cartItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const orderData = {
+      memberId: userStore.memberId,
+      orderName: orderForm.value.receiverName,
+      orderPhone: orderForm.value.receiverPhone,
+      orderAddress: orderForm.value.shippingAddress,
+      orderPayment: orderForm.value.paymentMethod,
+      orderNote: orderForm.value.orderNotes,
+      usedPoint: 0,
+      remainingPoint: 0,
     }
 
+    console.log('準備送出的 cartId:', userStore.cartId)
+    const res = await axios.post('/orders/checkout', orderData, {
+      params: { cartId: userStore.cartId },
+    })
+    // 讓結帳成功畫面可以用orderId去抓資料
+    if (res.data.order && res.data.order.orderId) {
+      sessionStorage.setItem('lastOrderId', res.data.order.orderId)
+      console.log('訂單 ID 已存入 sessionStorage:', res.data.order.orderId)
+    }
+
+    if (res.data.form) {
+      const div = document.createElement('div')
+      div.innerHTML = res.data.form
+      document.body.appendChild(div)
+
+      // 必須強制觸發 submit
+      document.getElementById('ecpayForm').submit()
+      const form = div.querySelector('form')
+      if (form) form.submit()
+    } else {
+      const backupForm = document.getElementById('ecpayForm')
+      if (backupForm) backupForm.submit()
+    }
   } catch (error) {
-    console.error("載入資料失敗:", error)
+    console.error('下單失敗詳細資訊:', error.response?.data)
+    Swal.fire('錯誤', '訂單處理失敗，請檢查後端 Console', 'error')
+  } finally {
+    isProcessing.value = false
   }
+}
+
+onMounted(async () => {
+  await Promise.all([fetchCart(), fetchMemberInfo()])
 })
-
-// 確認下單函式
-const submitOrder = async () => {
-  const result = await Swal.fire({
-    title: '確認要下單嗎？',
-    text: `付款方式：${orderForm.value.orderPayment}`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#f39c12',
-    cancelButtonColor: '#d33',
-    confirmButtonText: '確定下單',
-    cancelButtonText: '再檢查一下',
-    reverseButtons: true
-  });
-
-  if (!result.isConfirmed) return;
-
-  try {
-    Swal.fire({
-      title: '訂單處理中...',
-      text: '正在聯繫金流伺服器，請勿關閉視窗',
-      allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading(); }
-    });
-
-    // 呼叫 API
-    // 路徑要確認跟 OrderController 一樣
-    const res = await axios.post(`/orders/checkout?cartId=${userStore.cartId}`, {
-      ...orderForm.value,
-      memberId: userStore.memberId
-    });
-
-    // 拿到後端回傳的資料 (order跟form表單)
-    const { order, form } = res.data;
-
-    // 訂單編號暫存，結帳成功頁面可以用
-    sessionStorage.setItem('lastOrderId', order.orderId);
-
-    // 綠界跳轉
-    const div = document.createElement('div');
-    div.innerHTML = form; // 將後端產出的 <form id="ecpayForm"> 塞進去
-    document.body.appendChild(div);
-    
-    // 綠界表單內含自動submit的script，如果沒有跑舊手動觸發
-    document.getElementById("ecpayForm").submit();
-
-  } catch (error) {
-    console.error("下單失敗:", error);
-    Swal.fire({
-      icon: 'error',
-      title: '下單失敗',
-      text: '金流連線異常，請稍後再試',
-      confirmButtonColor: '#f39c12'
-    });
-  }
-};
 </script>
 
 <template>
-  <div class="checkout-container py-5">
-    <div class="success-container shadow-sm rounded-3 overflow-hidden">
-      <!-- 標題 -->
-      <div class="header-banner bg-orange text-white p-3 text-center">
-        <h2><i class="fas fa-paw me-2"></i> 填寫配送資訊</h2>
+  <div class="checkout-page">
+    <div class="checkout-card">
+      <h2 class="main-title"><i class="fa-regular fa-clipboard"></i> 填寫結帳資訊</h2>
+
+      <div class="order-details-section">
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th class="text-start">商品明細</th>
+              <th class="text-center">數量</th>
+              <th class="text-end">小計</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in cartItems" :key="item.itemId">
+              <td class="product-name">{{ item.productName }}</td>
+              <td class="product-qty">{{ item.quantity }}</td>
+              <td class="product-subtotal">$ {{ item.subtotal.toLocaleString() }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <form @submit.prevent="submitOrder" class="p-4 bg-white">
-        <!-- 配送資訊表格 -->
-        <table class="table table-bordered align-middle info-grid">
-        <tbody>
-
-            <tr>
-                <td class="label-bg text-center fw-bold" style="width: 15%;">收件人姓名</td>
-                <td style="width: 35%;">
-                    <input type="text" v-model="orderForm.orderName" class="form-control" required>
-                </td>
-                <td class="label-bg text-center fw-bold" style="width: 15%;">聯絡電話</td>
-            <td style="width: 35%;">
-                <input type="text" v-model="orderForm.orderPhone" class="form-control" required>
-            </td>
-        </tr>
-        <tr>
-            <td class="label-bg text-center fw-bold">配送地址</td>
-            <td colspan="3">
-                <input type="text" v-model="orderForm.orderAddress" class="form-control" required>
-            </td>
-        </tr>
-        <tr>
-            <td class="label-bg text-center fw-bold">付款方式</td>
-            <td>
-                <select v-model="orderForm.orderPayment" class="form-select">
-                    <option value="visa金融卡">visa金融卡</option>
-                    <option value="信用卡">信用卡</option>
-                    <option value="LinePay">LinePay</option>
-                </select>
-            </td>
-        </tr>
-        <tr>
-            <td class="label-bg text-center fw-bold">訂單備註</td>
-            <td colspan="3">
-                <textarea v-model="orderForm.orderNote" class="form-control" rows="2" placeholder="有什麼想告訴毛孩店員的嗎？"></textarea>
-            </td>
-        </tr>
-    </tbody>
-    </table>
-
-        <!-- 訂單摘要 -->
-        <div class="list-title mt-4 mb-3 fw-bold fs-5 border-bottom pb-2">
-          <i class="far fa-file-alt me-2"></i> 訂單摘要
+      <div class="form-section">
+        <h4 class="section-title"><i class="fa-solid fa-truck"></i> 寄送資訊</h4>
+        <div class="form-group">
+          <label>收件人姓名</label>
+          <input
+            v-model="orderForm.receiverName"
+            type="text"
+            placeholder="請輸入姓名"
+            class="custom-input"
+          />
+        </div>
+        <div class="form-group">
+          <label>連絡電話</label>
+          <input
+            v-model="orderForm.receiverPhone"
+            type="text"
+            placeholder="請輸入電話"
+            class="custom-input"
+          />
+        </div>
+        <div class="form-group">
+          <label>寄送地址</label>
+          <input
+            v-model="orderForm.shippingAddress"
+            type="text"
+            placeholder="請輸入完整地址"
+            class="custom-input"
+          />
         </div>
 
-        <div class="summary-box px-3">
-          <div class="d-flex justify-content-between py-2">
-            <span>會員名稱</span>
-            <span>{{ userStore.memberName || '載入中...' }}</span>
-          </div>
-
-          <div class="d-flex justify-content-between py-2">
-            <span>訂單日期</span>
-            <span>{{ currentDate }}</span>
-          </div>
-
-               <!-- 本次購買商品清單 -->
-         <div class="purchase-section border-top pt-3">
-           <div class="fw-bold mb-2 text-secondary"><i class="fas fa-shopping-bag me-1"></i> 本次購買</div>
-        
-           <div class="cart-items-list mb-3">
-             <div v-for="item in cartItems" :key="item.productId" 
-                  class="d-flex justify-content-between align-items-center py-2 border-bottom-dashed">
-               <div class="item-info">
-                 <span class="fw-bold" style="font-size: 0.95rem;">{{ item.productName }}</span>
-                 <small class="text-muted ms-2">x {{ item.quantity }}</small>
-               </div>
-               <span class="text-dark fw-medium">$ {{ item.price * item.quantity }}</span>
-             </div>
-           </div>
-         </div>
-
-         <hr class="my-3">
-          
-          <div class="total-row d-flex justify-content-between align-items-center mt-3">
-            <span class="total-label fs-5 fw-bold">應付總額：</span>
-            <span class="total-amount fs-4 text-danger fw-bold">$ {{ totalAmount }}</span>
-          </div>
+        <h4 class="section-title mt-4"><i class="fa-solid fa-credit-card"></i> 付款方式</h4>
+        <div class="payment-methods">
+          <label class="radio-item">
+            <input type="radio" v-model="orderForm.paymentMethod" value="LinePay" />
+            <span class="radio-label">LinePay</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" v-model="orderForm.paymentMethod" value="信用卡" />
+            <span class="radio-label">信用卡</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" v-model="orderForm.paymentMethod" value="金融卡" />
+            <span class="radio-label">金融卡</span>
+          </label>
         </div>
-        
-        <div class="button-area d-flex justify-content-end mt-5 me-3 gap-3">
-          <!-- 回首頁按鈕 -->
-          <router-link to="/" class="btn btn-orange px-4 py-2 fs-5 text-white shadow-sm">返回商店</router-link>
-          <!-- 結帳按鈕 -->
-          <button type="submit" class="btn btn-orange px-4 py-2 text-white fs-5 shadow-sm">前往結帳</button>
+
+        <div class="form-group mt-3">
+          <label>訂單備註</label>
+          <textarea
+            v-model="orderForm.orderNotes"
+            placeholder="有什麼想告訴我們的？"
+            class="custom-textarea"
+          ></textarea>
         </div>
-      </form>
+      </div>
+
+      <div class="checkout-footer">
+        <div class="total-amount-box">
+          <span class="label">應付總額：</span>
+          <span class="amount">$ {{ totalAmount.toLocaleString() }}</span>
+        </div>
+
+        <div class="button-group">
+          <router-link to="/cart" class="btn-cancel">返回修改購物車</router-link>
+          <button class="btn-confirm" @click="submitOrder" :disabled="isProcessing">
+            {{ isProcessing ? '處理中...' : '確認下單' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.success-container {
-  max-width: 900px;
-  margin: 0 auto;
-  border: 1px solid #eee;
-}
-
-.bg-orange {
-  background-color: #f39c12;
-}
-
-.text-orange {
-  color: #f39c12;
-}
-
-.btn-orange {
-  background-color: #f39c12;
-  border: none;
-  transition: 0.3s;
-}
-
-.btn-orange:hover {
-  background-color: #e67e22;
-  transform: translateY(-2px);
-}
-
-.label-bg {
-  background-color: #fafafa;
-}
-
-.info-grid td {
-  padding: 12px;
-}
-
-.form-control:focus, .form-select:focus {
-  border-color: #f39c12;
-  box-shadow: 0 0 0 0.25rem rgba(243, 156, 18, 0.25);
-}
+@import '../assets/css/CheckoutView.css';
 </style>

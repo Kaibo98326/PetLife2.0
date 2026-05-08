@@ -13,7 +13,6 @@ import com.petlife.model.Member;
 
 @RestController
 @RequestMapping("/api/cart")
-@CrossOrigin(origins = "*")  // 跨域
 public class CartController {
 
     @Autowired
@@ -75,7 +74,4 @@ public class CartController {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("找不到會員");
     }
-    
-    // 串金流用
-    
 }

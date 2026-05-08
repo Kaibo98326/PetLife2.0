@@ -1,28 +1,26 @@
 <template>
   <div class="product-order-container">
-    <!-- 如果訂單為空 -->
-    <div v-if="orders.length === 0" class="empty-state text-center py-5">
-      <div class="empty-icon mb-3">
-        <i class="fas fa-shopping-cart fa-3x text-muted opacity-25"></i>
-      </div>
-      <p class="fs-5 text-muted">目前還沒有任何訂單紀錄喔！</p>
-      <!-- 要來改導回頁面的路徑 -->
-      <router-link to="/shop/index" class="btn btn-warning px-4 py-2 mt-2 shadow-sm fw-bold">
-        前往購物
-      </router-link>
+    <div v-if="isLoading" class="text-center py-5">
+      <div class="spinner-border text-warning" role="status"></div>
+      <p class="mt-2 text-muted">訂單載入中...</p>
     </div>
 
-    <!-- 訂單資訊 -->
+    <div v-else-if="orders.length === 0" class="empty-state text-center py-5">
+      <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+      <p class="text-muted">目前沒有購買紀錄</p>
+      <router-link to="/" class="btn btn-warning">前往商城逛逛</router-link>
+    </div>
+
     <div v-else class="table-responsive">
       <table class="table table-hover align-middle custom-table">
         <thead class="table-light">
           <tr>
-            <th style="width: 10%">訂單編號</th>
-            <th style="width: 25%">下單時間</th>
-            <th style="width: 15%">訂單金額</th>
-            <th style="width: 15%">交易狀態</th>
-            <th style="width: 15%">付款方式</th>
-            <th style="width: 20%" class="text-end">訂單明細</th>
+            <th>訂單編號</th>
+            <th>日期</th>
+            <th>總額</th>
+            <th>狀態</th>
+            <th>付款方式</th>
+            <th class="text-end">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -37,21 +35,15 @@
               >
             </td>
             <td>
-              <span
-                :class="[
-                  'badge',
-                  order.orderStatus === '已完成' ? 'bg-success' : 'bg-warning text-dark',
-                ]"
-              >
-                {{ order.orderStatus }}
+              <span :class="['badge', getStatusLabel(order.orderStatus).class]">
+                {{ getStatusLabel(order.orderStatus).text }}
               </span>
             </td>
             <td>{{ order.orderPayment }}</td>
             <td class="text-end">
-              <!-- 查看訂單明細 -->
               <button
-                @click="viewDetail(order.orderId)"
-                class="btn btn-outline-warning btn-sm px-4 fw-bold shadow-sm"
+                @click="openModal(order.orderId)"
+                class="btn btn-outline-warning btn-sm px-4 fw-bold"
               >
                 查看內容
               </button>
@@ -60,42 +52,105 @@
         </tbody>
       </table>
     </div>
+
+    <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content" v-if="selectedOrderDetail">
+          <div class="modal-header bg-warning text-white">
+            <h5 class="modal-title">訂單詳情 #{{ selectedOrderDetail.orderId }}</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <p><strong>收件人：</strong> {{ selectedOrderDetail.orderName }}</p>
+                <p><strong>配送地址：</strong> {{ selectedOrderDetail.orderAddress }}</p>
+              </div>
+            </div>
+            <table class="table border">
+              <thead class="table-light">
+                <tr>
+                  <th>商品</th>
+                  <th>單價</th>
+                  <th>數量</th>
+                  <th>小計</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in selectedOrderDetail.items" :key="item.productName">
+                  <td>{{ item.productName }}</td>
+                  <td>${{ item.productPrice }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>${{ item.subtotal }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="text-end mt-3">
+              <h4 class="text-danger">總計: ${{ formatPrice(selectedOrderDetail.orderTotal) }}</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '@/axios'
-import { useRouter } from 'vue-router'
+import { Modal } from 'bootstrap'
 
-const router = useRouter()
 const orders = ref([])
+const selectedOrderDetail = ref(null)
+const isLoading = ref(true)
+let detailModal = null
 
-// 抓取後端資料
 onMounted(async () => {
-  try {
-    const response = await axios.get('/orders')
-    orders.value = response.data
-  } catch (error) {
-    console.error('抓取訂單失敗:', error)
+  await fetchOrders()
+  const modalElement = document.getElementById('orderDetailModal')
+  if (modalElement) {
+    detailModal = new Modal(modalElement, { focus: false })
   }
 })
 
-// 格式化價格
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('zh-TW').format(price)
+const fetchOrders = async () => {
+  isLoading.value = true
+  try {
+    // 確保路徑對應後端 /api/orders/historyorders
+    const response = await axios.get('/orders/historyorders')
+    orders.value = response.data
+  } catch (err) {
+    console.error('抓取失敗:', err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
-// 格式化日期
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-TW', { hour12: false })
+const openModal = async (orderId) => {
+  try {
+    const response = await axios.get(`/orders/detail/${orderId}`)
+    selectedOrderDetail.value = response.data
+    if (detailModal) detailModal.show()
+  } catch (err) {
+    console.error('抓取訂單明細失敗:', err)
+    alert('無法讀取明細')
+  }
 }
 
-// 前往明細頁面
-const viewDetail = (id) => {
-  router.push(`/orderDetail/${id}`)
+const formatPrice = (price) => (price ? new Intl.NumberFormat('zh-TW').format(price) : '0')
+const formatDateTime = (str) => (str ? str.replace('T', ' ').substring(0, 19) : '')
+const getStatusLabel = (s) => {
+  const map = {
+    處理中: { class: 'bg-warning text-dark', text: '處理中' },
+    已完成: { class: 'bg-success', text: '已完成' },
+    已取消: { class: 'bg-danger', text: '已取消' },
+  }
+  return map[s] || { class: 'bg-secondary', text: s || '處理中' }
 }
 </script>
 
@@ -104,33 +159,10 @@ const viewDetail = (id) => {
   border-collapse: separate;
   border-spacing: 0 10px;
 }
-
-.custom-table thead th {
-  border: none;
-  background-color: #f8f9fa;
-  color: #666;
-  font-weight: 600;
-  padding: 15px;
-}
-
-.custom-table tbody tr {
-  transition: transform 0.2s;
-}
-
-.custom-table tbody tr:hover {
-  transform: scale(1.01);
-  background-color: #fffdf9;
-}
-
 .price-text {
   font-size: 1.1rem;
 }
-
 .empty-state {
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  min-height: 300px;
 }
 </style>
