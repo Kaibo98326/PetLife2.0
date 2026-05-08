@@ -46,9 +46,9 @@ const routes = [
         component: () => import('@/views/ProductEdit.vue')
       },
       {
-        path: 'product/add', // 對應 /admin/product/add
-        name: 'ProductAdd',
-        component: () => import('@/views/ProductEdit.vue')
+        path: 'employee', 
+        name: '員工管理',
+        component: () => import('@/views/AdminEmployeeList.vue')
       }
     ]
   }

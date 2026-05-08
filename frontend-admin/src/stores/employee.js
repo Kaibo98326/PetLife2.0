@@ -6,7 +6,7 @@ export const useEmployeeStore = defineStore('employee', {
     token: null,
     employeeId: null,
     empName: null,
-    role: null
+    roles: []
   }),
   actions: {
     login(token) {
@@ -16,7 +16,7 @@ export const useEmployeeStore = defineStore('employee', {
       const decoded = jwtDecode(token)
       this.employeeId = parseInt(decoded.sub)
       this.empName = decoded.empName
-      this.role = decoded.role
+      this.roles = decoded.roles ||[]
     },
     initFromLocalStorage(){
       const token = localStorage.getItem('employeeToken')
@@ -29,7 +29,7 @@ export const useEmployeeStore = defineStore('employee', {
       this.token = null
       this.employeeId = null
       this.empName = null
-      this.role = null
+      this.roles = []
       localStorage.removeItem('employeeToken')
     }
   }
