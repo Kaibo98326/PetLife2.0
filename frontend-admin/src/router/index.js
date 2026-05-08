@@ -32,6 +32,16 @@ const routes = [
         component: () => import('@/views/Product.vue'),
       },
       {
+        path: 'product/edit/:id', // 對應 /admin/product/edit/:id
+        name: 'ProductEdit',
+        component: () => import('@/views/ProductEdit.vue'),
+      },
+      {
+        path: 'product/add', // 對應 /admin/product/add
+        name: 'ProductAdd',
+        component: () => import('@/views/ProductEdit.vue'),
+      },
+      {
         path: '/order',
         name: '訂單管理',
         component: OrderAdminView,

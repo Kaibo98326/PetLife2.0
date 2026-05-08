@@ -2,6 +2,9 @@ package com.petlife.model;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,9 +25,18 @@ public class Product implements Serializable{
 	@Column(name = "product_id")
 	private Integer productId;
 	
-//商品分類編號 (外鍵)
-	@Column(name = "category_id")
-	private Integer categoryId;
+//商品分類編號列表 (用於接收前端傳來的分類，不映射資料庫欄位)
+	@Transient
+	private List<Integer> categoryIds = new ArrayList<>();
+	
+//多對多分類關聯
+	@ManyToMany(fetch = FetchType.EAGER)
+	@JoinTable(
+		name = "Product_Category_Mapping",
+		joinColumns = @JoinColumn(name = "product_id"),
+		inverseJoinColumns = @JoinColumn(name = "category_id")
+	)
+	private List<Category> categories = new ArrayList<>();
 	
 //商品名稱
 	@Column(name = "product_name" , nullable = false , length = 100)
@@ -67,8 +79,11 @@ public class Product implements Serializable{
     public Integer getProductId() { return productId; }
     public void setProductId(Integer productId) { this.productId = productId; }
 
-    public Integer getCategoryId() { return categoryId; }
-    public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
+    public List<Integer> getCategoryIds() { return categoryIds; }
+    public void setCategoryIds(List<Integer> categoryIds) { this.categoryIds = categoryIds; }
+
+    public List<Category> getCategories() { return categories; }
+    public void setCategories(List<Category> categories) { this.categories = categories; }
 
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
