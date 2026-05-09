@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.petlife.model.Employee;
+import com.petlife.repository.EmployeeRoleUpdateRequest;
 import com.petlife.repository.UpdateEmployeePasswordRequest;
 import com.petlife.repository.UpdateEmployeeRequset;
 import com.petlife.service.AdminEmployeeService;
@@ -25,9 +27,12 @@ public class AdminEmployeeController {
 	private AdminEmployeeService adminEmployeeService;
 	
 	@GetMapping
-	public ResponseEntity<?> getAllEmployees(){
+	public ResponseEntity<?> getEmployees(@RequestParam(defaultValue ="0") int page,
+										 @RequestParam(defaultValue = "10") int size,
+										 @RequestParam(required = false) String searchType,
+										 @RequestParam(required = false) String keyword ){
 		
-		return ResponseEntity.ok(adminEmployeeService.getAllEmployees());
+		return ResponseEntity.ok(adminEmployeeService.getEmployees(page,size,searchType,keyword));
 	}
 	
 	@PostMapping
@@ -55,4 +60,23 @@ public class AdminEmployeeController {
 		
 		return ResponseEntity.ok("狀態更新成功");
 	}
+	
+	@GetMapping("/{empId}/roles")
+	public ResponseEntity<?> getEmployeeRoleIds(@PathVariable Integer empId){
+		
+		
+		return ResponseEntity.ok(adminEmployeeService.getEmployeeRoleIds(empId));
+		
+	}
+	
+	@PutMapping("/{empId}/roles")
+	public ResponseEntity<?> updateEmployeeRoles(@PathVariable Integer empId,
+												@RequestBody EmployeeRoleUpdateRequest request){
+		adminEmployeeService.updateEmployeeRoles(empId, request.getRoleIds());
+		
+		
+		return ResponseEntity.ok("員工角色更新");
+	}
+	
+	
 }

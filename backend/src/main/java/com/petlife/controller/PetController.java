@@ -36,18 +36,21 @@ public class PetController {
 	
 	//會員端新增寵物
 	@PostMapping
-	public ResponseEntity<Pet> addPet(@ModelAttribute Pet pet,
+	public ResponseEntity<Pet> addPet(@RequestParam Integer memberId,
+									 @ModelAttribute Pet pet,
 									 @RequestParam(value = "file",required = false) MultipartFile file){
-		Pet saved = petService.addPet(pet,file);
+		Pet saved = petService.addPet(memberId,pet,file);
 		
 		return ResponseEntity.ok(saved);
 	}
 	
 	//會員端修改寵物
 	@PutMapping("/{petId}")
-	public ResponseEntity<Pet> updatePet(@PathVariable Integer petId,@ModelAttribute Pet pet,
+	public ResponseEntity<Pet> updatePet(@PathVariable Integer petId,
+										@RequestParam(required = false) Integer memberId,
+										@ModelAttribute Pet pet,
 	        								@RequestParam(value = "file", required = false)MultipartFile file){
-		return ResponseEntity.ok(petService.updatePet(petId, pet, file));
+		return ResponseEntity.ok(petService.updatePet(petId,memberId, pet, file));
 	}
 	
 	//會員端軟刪除寵物

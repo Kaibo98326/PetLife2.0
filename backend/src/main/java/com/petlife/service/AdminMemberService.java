@@ -61,18 +61,14 @@ public class AdminMemberService {
 			  	case "provider":
 			  		
 			  		//本地帳號
-			  		if("local".equals(keyword)) {
-			  			
-			  			result = memberRepository.findByProviderIsNull(pageable);
-			  		}else {
-			  			result = memberRepository.findByProvider(keyword, pageable);
-			  		}
+			  		result = memberRepository.findByProvider(keyword, pageable);
 			  		
 			  		break;
 			  		
 			  	default:
 			  		
 			  		result = memberRepository.findAll(pageable);
+			  	break;
 			}
 			
 		}

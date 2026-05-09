@@ -49,6 +49,11 @@ const routes = [
         path: 'employee', 
         name: '員工管理',
         component: () => import('@/views/AdminEmployeeList.vue')
+      },
+      {
+        path: 'pet', 
+        name: '寵物管理',
+        component: () => import('@/views/AdminPetList.vue')
       }
     ]
   }

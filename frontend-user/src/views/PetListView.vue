@@ -46,7 +46,7 @@ const loadPets = async () => {
 }
 const openEditModal = (pet) => {
     editPetForm.petId = pet.petId
-    editPetForm.memberId = pet.memberId
+    editPetForm.memberId = userStore.memberId
     editPetForm.petName = pet.petName
     editPetForm.species = pet.species
     editPetForm.breed = pet.breed
@@ -76,7 +76,7 @@ const updatePet = async () => {
     try {
         const formData = new FormData()
 
-        formData.append('memberId', editPetForm.memberId)
+        formData.append('memberId', userStore.memberId)
         formData.append('petName', editPetForm.petName)
         formData.append('species', editPetForm.species)
         formData.append('breed', editPetForm.breed)

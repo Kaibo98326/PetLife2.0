@@ -19,6 +19,10 @@ const statusMap = {
     停權: 'disable',
     刪除: 'delete'
 }
+const providerMap = {
+    本地註冊: 'local',
+    google: 'google'
+}
 
 const handleChartClick = async (params) => {
 
@@ -32,7 +36,9 @@ const handleChartClick = async (params) => {
 
     if (chartMode.value === 'provider') {
         searchType = 'provider'
-        keyword = params.name
+        keyword = providerMap[params.name]
+
+
     }
     if(chartMode.value === 'registerTrend'){
         selectedStatusTitle.value = `${params.name} 註冊會員`
