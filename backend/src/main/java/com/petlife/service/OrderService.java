@@ -211,10 +211,17 @@ public class OrderService {
 	
 	// 取得特定會員的所有訂單 (未刪除的)
 	public List<Order> findByMemberId(Integer memberId) {
-	    return or.findAll().stream()
-	            .filter(o -> o.getMemberId() != null && o.getMemberId().equals(memberId))
-	            .filter(o -> o.getIsDeleted() == null || !o.getIsDeleted())
-	            .sorted(Comparator.comparing(Order::getOrderDate).reversed()) // 最新的在前面
-	            .collect(Collectors.toList());
+	    return or.findByMemberIdAndIsDeletedFalseOrderByOrderDateDesc(memberId);
 	}
+	
+	// 查詢單筆訂單
+    public Order findById(Integer orderId) {
+        // findById 回傳的是 Optional，我們用 .orElse(null) 表示找不到就回傳 null
+        return or.findById(orderId).orElse(null);
+    }
+
+    // 儲存/更新訂單（取消訂單後需要存回去）
+    public void save(Order order) {
+        or.save(order);
+    }
 }

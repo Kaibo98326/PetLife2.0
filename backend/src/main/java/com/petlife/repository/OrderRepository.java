@@ -31,4 +31,11 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     // 取得特定訂單總額(綠界驗證用)
     @Query("SELECT o.orderTotal FROM Order o WHERE o.orderId = :orderId")
     BigDecimal findOrderTotalById(@Param("orderId") Integer orderId);
+    
+    List<Order> findByMemberIdAndIsDeletedFalseOrderByOrderDateDesc(Integer memberId);
+
+	List<Order> findByOrderNameContainingAndIsDeletedFalseOrderByOrderDateAsc(String search);
+
+	List<Order> findByIsDeletedFalseOrderByOrderDateDesc();
+
 }

@@ -3,6 +3,8 @@ package com.petlife.model;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -32,6 +34,7 @@ public class OrderDetail implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id") 
     @ToString.Exclude
+    @JsonBackReference
     private Order orderBean; 
     
     @Id

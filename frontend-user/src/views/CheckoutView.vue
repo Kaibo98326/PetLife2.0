@@ -21,18 +21,14 @@ const orderForm = ref({
 const fetchMemberInfo = async () => {
   const mId = userStore.memberId
   if (!mId) return
-
   try {
     const res = await axios.get(`/member/${mId}`)
     const member = res.data
-
-    // 預填邏輯
     orderForm.value.receiverName = member.memberName || ''
     orderForm.value.receiverPhone = member.phone || ''
     orderForm.value.shippingAddress = member.address || ''
   } catch (error) {
     console.error('獲取會員資訊失敗:', error)
-    // 獲取失敗不影響結帳，讓使用者手打
   }
 }
 
@@ -43,12 +39,9 @@ const fetchCart = async () => {
   try {
     const res = await axios.get(`/cart/${mId}`)
     cartItems.value = res.data
-
     if (res.data && res.data.length > 0 && res.data[0].cartId) {
       userStore.cartId = res.data[0].cartId
       console.log('✅ cartId 已更新:', userStore.cartId)
-    } else {
-      console.warn('⚠️ 後端回傳資料中找不到 cartId，請檢查 API 回傳結構')
     }
   } catch (error) {
     console.error('獲取購物車失敗:', error)
@@ -71,6 +64,17 @@ const submitOrder = async () => {
     return
   }
 
+  // 三種支付方式都跳出確認框
+  const result = await Swal.fire({
+    title: '確認下單',
+    text: `您選擇了 ${orderForm.value.paymentMethod}，是否要送出訂單？`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: '確定',
+    cancelButtonText: '取消',
+  })
+  if (!result.isConfirmed) return
+
   isProcessing.value = true
   try {
     const orderData = {
@@ -88,8 +92,8 @@ const submitOrder = async () => {
     const res = await axios.post('/orders/checkout', orderData, {
       params: { cartId: userStore.cartId },
     })
-    // 讓結帳成功畫面可以用orderId去抓資料
-    if (res.data.order && res.data.order.orderId) {
+
+    if (res.data.order?.orderId) {
       sessionStorage.setItem('lastOrderId', res.data.order.orderId)
       console.log('訂單 ID 已存入 sessionStorage:', res.data.order.orderId)
     }
@@ -98,9 +102,6 @@ const submitOrder = async () => {
       const div = document.createElement('div')
       div.innerHTML = res.data.form
       document.body.appendChild(div)
-
-      // 必須強制觸發 submit
-      document.getElementById('ecpayForm').submit()
       const form = div.querySelector('form')
       if (form) form.submit()
     } else {

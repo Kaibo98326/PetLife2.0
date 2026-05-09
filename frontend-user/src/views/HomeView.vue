@@ -258,6 +258,7 @@ async function addToCart(product) {
     }
 
     await axios.post(`/cart/add/${userStore.memberId}`, cartData)
+    userStore.updateCartCount()
 
     Swal.fire({
       icon: 'success',
@@ -317,6 +318,9 @@ onMounted(async () => {
   }
   if (route.query.catId) {
     selectedCategoryId.value = parseInt(route.query.catId)
+  }
+  if (userStore.token && userStore.memberId) {
+    userStore.updateCartCount()
   }
 
   await fetchProducts(1)

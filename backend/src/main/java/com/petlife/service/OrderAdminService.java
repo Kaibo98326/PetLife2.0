@@ -23,17 +23,11 @@ public class OrderAdminService {
 
     // 取得所有訂單
     public List<Order> findActiveOrders(String search) {
-        List<Order> allOrders;
         if (search != null && !search.trim().isEmpty()) {
-            allOrders = orderRepository.findByOrderNameContainingOrderByOrderDateAsc(search);
+            return orderRepository.findByOrderNameContainingAndIsDeletedFalseOrderByOrderDateAsc(search);
         } else {
-            allOrders = orderRepository.findAllByOrderByOrderDateDesc();
+            return orderRepository.findByIsDeletedFalseOrderByOrderDateDesc();
         }
-
-        // 過濾掉被軟刪除的
-        return allOrders.stream()
-                .filter(o -> o.getIsDeleted() == null || !o.getIsDeleted())
-                .collect(Collectors.toList());
     }
 
     // 取得訂單詳細明細

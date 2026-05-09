@@ -190,6 +190,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import OrderDetailAdminView from './OrderDetailAdminView.vue'
+import { useEmployeeStore } from '@/stores/employee'
+
+const employeeStore = useEmployeeStore()
 
 const orders = ref([])
 const searchQuery = ref('')
@@ -203,10 +206,14 @@ const fetchOrders = async () => {
     const url = searchQuery.value
       ? `/api/order/all?search=${encodeURIComponent(searchQuery.value)}`
       : `/api/order/all`
-    const res = await fetch(url)
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${employeeStore.token}` },
+    })
+
     if (!res.ok) throw new Error(`伺服器連線失敗 (${res.status})`)
+
     const data = await res.json()
-    // 為每筆資料注入 isEditing
     orders.value = Array.isArray(data) ? data.map((o) => ({ ...o, isEditing: false })) : []
   } catch (err) {
     errorMessage.value = err.message
@@ -224,7 +231,10 @@ const saveOrder = async (order) => {
   try {
     const response = await fetch(`/api/order/update/${order.orderId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${employeeStore.token}`,
+      },
       body: JSON.stringify({
         orderStatus: order.orderStatus,
         orderPayment: order.orderPayment,
@@ -247,19 +257,22 @@ const deleteOrder = async (id) => {
   if (!confirm(`確定要永久刪除訂單 #${id} 嗎？此操作將無法從清單中撤銷。`)) return
 
   try {
-    const response = await fetch(`/order/delete/${id}`, {
+    const response = await fetch(`/api/order/delete/${id}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${employeeStore.token}`,
+      },
     })
 
     if (!response.ok) throw new Error('伺服器處理失敗')
 
-    // 從前端移除
+    // 從前端移除或重新抓取
     orders.value = orders.value.filter((o) => o.orderId !== id)
     alert('訂單已刪除成功。')
   } catch (err) {
     console.error(err)
-    alert('刪除失敗：連線逾時或權限不足。')
+    alert('刪除失敗：' + err.message)
   }
 }
 

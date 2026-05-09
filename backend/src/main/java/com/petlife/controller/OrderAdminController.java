@@ -19,7 +19,6 @@ public class OrderAdminController {
     // 取得所有訂單 (排除已軟刪除的資料)
     @GetMapping("/all")
     public ResponseEntity<List<Order>> getAllOrders(@RequestParam(required = false) String search) {
-        // 在 Service 層實作時，務必加上 WHERE is_deleted = 0
         List<Order> orders = oas.findActiveOrders(search);
         return ResponseEntity.ok(orders);
     }
