@@ -12,38 +12,52 @@
       <span>首頁</span>
     </el-menu-item>
 
-    <el-menu-item index="/admin/member">
-      <el-icon><User /></el-icon>
-      <span>會員管理</span>
-    </el-menu-item>
+    <el-sub-menu index="member-group">
+      <template #title>
+        <el-icon>
+          <User />
+        </el-icon>
+        <span>會員管理</span>
+      </template>
+      <el-menu-item index="/admin/member/list">現有會員</el-menu-item>
+      <el-menu-item index="/admin/member/analysis">會員狀態分析</el-menu-item>
+    </el-sub-menu>
 
     <el-menu-item index="/admin/employee">
-      <el-icon><UserFilled /></el-icon>
+      <el-icon>
+        <UserFilled />
+      </el-icon>
       <span>員工管理</span>
     </el-menu-item>
 
     <el-menu-item index="/admin/pet">
-      <el-icon><MagicStick /></el-icon>
+      <el-icon>
+        <MagicStick />
+      </el-icon>
       <span>寵物管理</span>
     </el-menu-item>
 
     <el-sub-menu index="product-group">
       <template #title>
-        <el-icon><Box /></el-icon>
+        <el-icon>
+          <Box />
+        </el-icon>
         <span>商品管理</span>
       </template>
       <el-menu-item index="/admin/category">商品類別管理</el-menu-item>
       <el-menu-item index="/admin/product">商品管理</el-menu-item>
     </el-sub-menu>
 
-    <el-menu-item index="/order">
+    <el-menu-item index="/admin/order">
       <el-icon><ShoppingCart /></el-icon>
       <span>訂單管理</span>
     </el-menu-item>
 
     <el-sub-menu index="beauty-group">
       <template #title>
-        <el-icon><Scissor /></el-icon>
+        <el-icon>
+          <Scissor />
+        </el-icon>
         <span>寵物美容管理</span>
       </template>
       <el-menu-item index="/admin/beauty/service">服務項目</el-menu-item>
@@ -52,14 +66,18 @@
 
     <el-sub-menu index="hotel-group">
       <template #title>
-        <el-icon><House /></el-icon>
+        <el-icon>
+          <House />
+        </el-icon>
         <span>寵物旅館管理</span>
       </template>
       <el-menu-item index="/admin/hotel/room">房型管理</el-menu-item>
     </el-sub-menu>
 
     <el-menu-item index="/admin/discount">
-      <el-icon><PriceTag /></el-icon>
+      <el-icon>
+        <PriceTag />
+      </el-icon>
       <span>優惠活動管理</span>
     </el-menu-item>
   </el-menu>

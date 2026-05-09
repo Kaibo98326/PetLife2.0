@@ -16,7 +16,8 @@ app.use(pinia)
 // 初始化 userStore
 import { useUserStore } from './stores/user'
 const userStore = useUserStore()
-userStore.initFromLocalStorage()
+
+await userStore.initFromLocalStorage()
 
 
 app.use(router)
