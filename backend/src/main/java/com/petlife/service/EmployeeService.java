@@ -12,6 +12,7 @@ import com.petlife.model.Role;
 import com.petlife.repository.EmployeeRepository;
 import com.petlife.repository.EmployeeRoleRepository;
 
+
 @Service
 public class EmployeeService {
 	
@@ -26,23 +27,34 @@ public class EmployeeService {
 
     // 員工登入並生成 JWT
     public String login(String username, String password) {
+    	
         Optional<Employee> empOpt = employeeRepos.findByUsername(username);
-        if (empOpt.isPresent()) {
-            Employee emp = empOpt.get();
-            // 假設你有 PasswordUtils 來驗證雜湊密碼
-            if (PasswordUtils.checkPassword(password, emp.getPasswordHash())) {
-                // 更新最後登入時間
-                emp.setLastLoginAt(new Timestamp(System.currentTimeMillis()));
-                employeeRepos.save(emp);
-
-                // 查詢員工角色清單
-                List<Role> roles = employeeRoleRepository.findRolesByEmployee(emp);
-
-                // 生成 JWT，包含 empId, username, empName, roles
-                return empJwtUtil.generateToken(emp.getEmpId(), emp.getUsername(), emp.getEmpName(), roles);
-            }
+        
+        
+        if (empOpt.isEmpty()) {
+        	throw new IllegalArgumentException("帳號或密碼錯誤");
         }
-        return null;
+        Employee emp = empOpt.get();
+        
+        if(!PasswordUtils.checkPassword(password, emp.getPasswordHash())) {
+        	throw new IllegalArgumentException("帳號或密碼錯誤");
+        }
+        
+        if("disable".equals(emp.getStatus())) {
+        	throw new IllegalArgumentException("此員工帳號已停權");
+        }
+        if("delete".equals(emp.getStatus())) {
+        	throw new IllegalArgumentException("此員工帳號已刪除");
+        }
+        if(!"active".equals(emp.getStatus())) {
+        	throw new IllegalArgumentException("此員工帳號狀態異常");
+        }
+        emp.setLastLoginAt(new Timestamp(System.currentTimeMillis()));
+        employeeRepos.save(emp);
+        
+        List<Role> roles = employeeRoleRepository.findRolesByEmployee(emp);
+        
+        return empJwtUtil.generateToken(emp.getEmpId(), emp.getUsername(), emp.getEmpName(), roles);
     }
 
     // 查詢所有員工
@@ -57,6 +69,10 @@ public class EmployeeService {
 
     // 新增員工
     public Employee addEmployee(Employee employee) {
+    	
+    	employee.setPasswordHash(PasswordUtils.hashPassword(employee.getPasswordHash()));
+    	employee.setStatus("active");
+    	
         return employeeRepos.save(employee);
     }
 
@@ -68,7 +84,7 @@ public class EmployeeService {
     // 軟刪除員工
     public boolean softDeleteEmployee(Integer empId) {
         return employeeRepos.findById(empId).map(emp -> {
-            emp.setStatus("deleted"); // ✅ 改成軟刪除
+            emp.setStatus("delete"); // ✅ 改成軟刪除
             employeeRepos.save(emp);
             return true;
         }).orElse(false);

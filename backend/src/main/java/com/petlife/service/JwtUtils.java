@@ -68,4 +68,32 @@ public class JwtUtils {
                 return null;
             }
     }
+     // ✅ Google 登入用：帶 mustSetPassword flag
+        public String generateToken(Integer memberId, boolean mustSetPassword) {
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("mustSetPassword", mustSetPassword);
+
+            return Jwts.builder()
+                    .setClaims(claims)
+                    .setSubject(String.valueOf(memberId))
+                    .setIssuedAt(new Date())
+                    .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                    .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                    .compact();
+        }
+
+        // ✅ 解析 Token 取出 mustSetPassword flag
+        public Boolean extractMustSetPassword(String token) {
+            try {
+                return (Boolean) Jwts.parserBuilder()
+                        .setSigningKey(getSigningKey())
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody()
+                        .get("mustSetPassword");
+            } catch (JwtException e) {
+                return null;
+            }
+        }
+        
 }
