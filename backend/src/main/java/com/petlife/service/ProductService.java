@@ -20,10 +20,15 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final com.petlife.repository.CategoryRepository categoryRepository;
+    private final com.petlife.repository.ProductImageRepository productImageRepository;
 
-    public ProductService(ProductRepository productRepository, com.petlife.repository.CategoryRepository categoryRepository) {
+    public ProductService(
+            ProductRepository productRepository, 
+            com.petlife.repository.CategoryRepository categoryRepository,
+            com.petlife.repository.ProductImageRepository productImageRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.productImageRepository = productImageRepository;
     }
 
 //===== 查全部商品 (不分頁) ====================================================================================
@@ -53,23 +58,41 @@ public class ProductService {
     }
 
     public Product updateProduct(Product product) {
-        if (product.getCategoryIds() != null) {
-            java.util.List<Integer> validIds = product.getCategoryIds().stream()
-                    .filter(id -> id != null)
-                    .collect(java.util.stream.Collectors.toList());
-            if (!validIds.isEmpty()) {
-                List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
-                product.setCategories(cats);
+        Product existing = productRepository.findById(product.getProductId()).orElse(null);
+        if (existing != null) {
+            // 處理分類關聯
+            if (product.getCategoryIds() != null) {
+                java.util.List<Integer> validIds = product.getCategoryIds().stream()
+                        .filter(id -> id != null)
+                        .collect(java.util.stream.Collectors.toList());
+                if (!validIds.isEmpty()) {
+                    List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
+                    product.setCategories(cats);
+                } else {
+                    product.setCategories(new java.util.ArrayList<>());
+                }
             } else {
-                product.setCategories(new java.util.ArrayList<>());
-            }
-        } else {
-            // 如果沒傳 categoryIds，保留原本的關聯 (需從資料庫先查出原本的關聯)
-            Product existing = productRepository.findById(product.getProductId()).orElse(null);
-            if (existing != null) {
                 product.setCategories(existing.getCategories());
             }
+
+            // 處理多圖關聯：合併舊有的圖片與新上傳的圖片
+            List<com.petlife.model.ProductImage> existingImages = existing.getImages();
+            List<com.petlife.model.ProductImage> newImages = product.getImages();
+            
+            // 建立一個新的列表來裝載合併後的結果
+            List<com.petlife.model.ProductImage> mergedImages = new java.util.ArrayList<>();
+            if (existingImages != null) {
+                mergedImages.addAll(existingImages);
+            }
+            if (newImages != null) {
+                for (com.petlife.model.ProductImage img : newImages) {
+                    img.setProduct(product);
+                    mergedImages.add(img);
+                }
+            }
+            product.setImages(mergedImages);
         }
+
         return productRepository.save(product);
     }
 
@@ -103,6 +126,17 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<Product> getProductsByCategory(Integer categoryId, Pageable pageable) {
         return productRepository.findByCategory(categoryId, pageable);
+    }
+    
+    // 【商城前台專用】僅查詢上架商品
+    @Transactional(readOnly = true)
+    public Page<Product> searchActiveProducts(String keyword, Pageable pageable) {
+        return productRepository.searchActiveByName(keyword, pageable);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<Product> getActiveProductsByCategory(Integer categoryId, Pageable pageable) {
+        return productRepository.findActiveByCategory(categoryId, pageable);
     }
     
     

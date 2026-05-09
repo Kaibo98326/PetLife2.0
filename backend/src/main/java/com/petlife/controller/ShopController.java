@@ -55,17 +55,16 @@ public class ShopController {
         Page<Product> productPage;
 
         if (categoryId != null && categoryId != 0) {
-            // 【分類篩選】
-            productPage = productService.getProductsByCategory(categoryId, pageable);
+            // 【分類篩選】(僅查上架)
+            productPage = productService.getActiveProductsByCategory(categoryId, pageable);
         } else {
-            // 【關鍵字搜尋 / 全部商品】
-            productPage = productService.searchProducts(keyword.trim(), pageable);
+            // 【關鍵字搜尋 / 全部商品】(僅查上架)
+            productPage = productService.searchActiveProducts(keyword.trim(), pageable);
         }
 
-        // 只取上架商品 (productStatus === 1)，並補齊分類名稱
-        List<Product> activeProducts = productPage.getContent().stream()
-                .filter(p -> p.getProductStatus() != null && p.getProductStatus() == 1)
-                .collect(Collectors.toList());
+        // 直接取得資料庫回傳的已上架商品
+        List<Product> activeProducts = productPage.getContent();
+        
         // 手動補齊分類名稱
         for (Product p : activeProducts) {
             if (p.getCategories() != null && !p.getCategories().isEmpty()) {

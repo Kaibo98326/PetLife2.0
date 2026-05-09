@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
@@ -10,30 +10,60 @@ const router = useRouter()
 
 const productId = computed(() => route.params.id)
 const categories = ref([])
+
+const typeMap = {
+  2: { label: '專區', color: '#e67e22', icon: 'fas fa-sitemap' },
+  1: { label: '實體分類', color: '#795548', icon: 'fas fa-tag' },
+  3: { label: '活動標籤', color: '#d81b60', icon: 'fas fa-thumbtack' }
+}
+
 const product = ref({
   productId: '',
   productName: '',
   categoryIds: [],
   productPrice: 0,
   productStock: 0,
+  lowStock: 10,
+  storagePosition: '',
   productDescription: '',
   productImage: '',
   productStatus: 1,
 })
 const previewUrl = ref(null)
 const tempFile = ref(null)
+
+// ── 多張細節圖相關狀態 ──
+const tempExtraFiles = ref([])
+const extraPreviewUrls = ref([])
+const existingExtraImages = ref([])
+
 const loading = ref(true)
 
-// 取得商品資料
+// 過濾分類
+const bigCategories = computed(() => categories.value.filter(c => c.categoryType === 2))
+const activityLabels = computed(() => categories.value.filter(c => c.categoryType === 3))
+
+// 取得當前選中的專區
+const selectedBigCatIds = computed(() => {
+  return product.value.categoryIds.filter(id => {
+    const cat = categories.value.find(c => c.categoryId === id)
+    return cat && cat.categoryType === 2
+  })
+})
+
+// 根據選中的專區，取得對應的實體分類
+const getChildrenByParent = (parentId) => {
+  return categories.value.filter(c => c.categoryType === 1 && c.parentId === parentId)
+}
+
 const fetchProduct = async () => {
   if (!productId.value) {
     loading.value = false
     return
   }
   try {
-    const res = await request.get(`/api/products/${productId.value}`)
+    const res = await request.get(`/api/products/detail/${productId.value}`)
     product.value = res.data
-    // 如果後端尚未回傳 categoryIds 但有 categories，我們可以對應
     if (product.value.categories) {
       product.value.categoryIds = product.value.categories.map(c => c.categoryId)
     } else if (!product.value.categoryIds) {
@@ -42,21 +72,26 @@ const fetchProduct = async () => {
     if (product.value.productImage) {
       previewUrl.value = `http://localhost:8082/${product.value.productImage}`
     }
+    
+    // 載入已有的細節圖 (過濾掉主圖)
+    if (product.value.images && product.value.images.length > 0) {
+      existingExtraImages.value = product.value.images
+        .filter(img => img.imageUrl !== product.value.productImage)
+        .map(img => `http://localhost:8082/${img.imageUrl}`)
+    }
   } catch (error) {
-    console.error('讀取商品失敗', error)
-    Swal.fire('錯誤', '找不到該商品資料', 'error')
+    console.error('讀取失敗', error)
+    Swal.fire('錯誤', '找不到商品', 'error')
   } finally {
     loading.value = false
   }
 }
 
-// 取得分類清單
 const fetchCategories = async () => {
   const res = await request.get('/api/categories')
   categories.value = res.data
 }
 
-// 圖片預覽處理
 const handleFileChange = (e) => {
   const file = e.target.files[0]
   if (file) {
@@ -65,87 +100,129 @@ const handleFileChange = (e) => {
   }
 }
 
-// 儲存修改
-const saveProduct = async () => {
-  const formData = new FormData()
+const handleExtraFilesChange = (e) => {
+  const files = Array.from(e.target.files)
+  files.forEach(file => {
+    tempExtraFiles.value.push(file)
+    extraPreviewUrls.value.push(URL.createObjectURL(file))
+  })
+  // 清空 input 讓下次選同檔名也能觸發
+  e.target.value = ''
+}
 
-  formData.append('productId', product.value.productId)
-  formData.append('productName', product.value.productName || '')
-  
-  if (product.value.categoryIds && product.value.categoryIds.length > 0) {
-    product.value.categoryIds.forEach(id => {
-      formData.append('categoryIds', id)
+const removeExtraFile = (index) => {
+  tempExtraFiles.value.splice(index, 1)
+  extraPreviewUrls.value.splice(index, 1)
+}
+
+
+const saveProduct = async () => {
+  // --- 表單必填驗證 ---
+  if (!product.value.productName || !product.value.productName.trim()) {
+    return Swal.fire('提示', '請填寫商品名稱', 'warning')
+  }
+  if (!product.value.productPrice || product.value.productPrice <= 0) {
+    return Swal.fire('提示', '請輸入正確的商品單價', 'warning')
+  }
+  if (!product.value.categoryIds || product.value.categoryIds.length === 0) {
+    return Swal.fire('提示', '請至少選擇一個商品分類', 'warning')
+  }
+  if (!product.value.productImage && !tempFile.value) {
+    return Swal.fire('提示', '請上傳商品主圖', 'warning')
+  }
+
+  // --- 庫存為 0 的提醒 ---
+  if (product.value.productStock === 0 || !product.value.productStock) {
+    const confirmZero = await Swal.fire({
+      title: '提醒：庫存為 0',
+      text: '目前的庫存數量為 0，確定要繼續儲存商品嗎？',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f39c12',
+      cancelButtonText: '取消',
+      confirmButtonText: '確定儲存'
     })
-  } else {
-    // 傳送一個空的表示清空
-    formData.append('categoryIds', '')
+    if (!confirmZero.isConfirmed) return
+  }
+
+  const formData = new FormData()
+  if (productId.value) formData.append('productId', product.value.productId)
+  formData.append('productName', product.value.productName || '')
+  if (product.value.categoryIds) {
+    product.value.categoryIds.forEach(id => formData.append('categoryIds', id))
   }
   formData.append('productPrice', product.value.productPrice || 0)
   formData.append('productStock', product.value.productStock || 0)
+  formData.append('lowStock', product.value.lowStock || 10)
+  formData.append('storagePosition', product.value.storagePosition || '')
+  formData.append('productStatus', product.value.productStatus ?? 1)
   formData.append('productDescription', product.value.productDescription || '')
   formData.append('oldImage', product.value.productImage || '')
+  if (tempFile.value) formData.append('file', tempFile.value)
 
-  if (tempFile.value) {
-    formData.append('file', tempFile.value)
+  // 加入多張細節圖
+  if (tempExtraFiles.value.length > 0) {
+    tempExtraFiles.value.forEach(file => {
+      formData.append('extraFiles', file)
+    })
   }
 
   try {
     const url = productId.value ? '/api/products/update' : '/api/products/insert'
-    await request.post(url, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    Swal.fire('成功', productId.value ? '商品資料已更新' : '商品已成功新增', 'success').then(() => {
-      router.push('/admin/product')
-    })
+    const res = await request.post(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    if (res.data === 'success') {
+      Swal.fire('成功', '商品資料已儲存', 'success').then(() => router.push('/admin/product'))
+    } else {
+      throw new Error(res.data)
+    }
   } catch (error) {
-    Swal.fire('錯誤', '儲存失敗', 'error')
+    Swal.fire('錯誤', `儲存失敗: ${error.message}`, 'error')
   }
 }
 
-// 返回商品列表
-const goBack = () => {
-  router.push('/admin/product')
-}
-
-// 刪除商品（此操作不可逆，僅供緊急用途）
+// 執行刪除
 const deleteProduct = async () => {
-  const first = await Swal.fire({
-    title: '確定要刪除此商品嗎？',
-    text: '此操作無法復原，商品資料將永久刪除！',
+  const result = await Swal.fire({
+    title: '確定刪除？',
+    text: `即將永久刪除「${product.value.productName}」，此操作無法復原！`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: '確認刪除',
-    cancelButtonText: '取消',
     confirmButtonColor: '#e74c3c',
-  })
-  if (!first.isConfirmed) return
-
-  // 二次確認以防止誤操作
-  const second = await Swal.fire({
-    title: '再次確認',
-    text: `即將永久刪除商品「${product.value.productName}」，是否繼續？`,
-    icon: 'error',
-    showCancelButton: true,
-    confirmButtonText: '永久刪除',
     cancelButtonText: '取消',
-    confirmButtonColor: '#c0392b',
+    confirmButtonText: '確定刪除'
   })
-  if (!second.isConfirmed) return
-
-  try {
-    await request.delete(`/api/products/${productId.value}`)
-    Swal.fire('已刪除', '商品已成功刪除', 'success').then(() => {
-      router.push('/admin/product')
-    })
-  } catch (error) {
-    Swal.fire('錯誤', '刪除失敗，請稍後再試', 'error')
+  
+  if (result.isConfirmed) {
+    try {
+      // 對應 InnerProductController 的 @DeleteMapping("/delete/{id}")
+      await request.delete(`/api/products/delete/${productId.value}`)
+      Swal.fire('已刪除', '商品已成功移除', 'success').then(() => {
+        router.push('/admin/product')
+      })
+    } catch (error) {
+      console.error(error)
+      Swal.fire('失敗', '刪除失敗', 'error')
+    }
   }
 }
 
-// 當圖片載入失敗時，自動替換成一張預設的預覽圖
-const handleImgError = (e) => {
-  e.target.src = 'https://placehold.co/200x200?text=No+Img'
-}
+
+// 當取消勾選專區時，自動取消其下的所有實體分類
+watch(() => [...product.value.categoryIds], (newVal, oldVal) => {
+  if (newVal.length < oldVal.length) {
+    const removedId = oldVal.find(id => !newVal.includes(id))
+    const removedCat = categories.value.find(c => c.categoryId === removedId)
+    
+    // 如果取消的是專區，則取消其所有子項目
+    if (removedCat && removedCat.categoryType === 2) {
+      const childrenIds = categories.value
+        .filter(c => c.parentId === removedId)
+        .map(c => c.categoryId)
+      
+      product.value.categoryIds = product.value.categoryIds.filter(id => !childrenIds.includes(id))
+    }
+  }
+}, { deep: true })
 
 onMounted(() => {
   fetchProduct()
@@ -155,99 +232,174 @@ onMounted(() => {
 
 <template>
   <div class="edit-container">
-    <!-- 頂部導航列 -->
-    <div class="edit-header">
-      <button class="btn-back" @click="goBack">
-        <span class="back-arrow">←</span> 返回商品列表
-      </button>
-      <h2 class="edit-title">{{ productId ? '編輯商品' : '新增商品' }}</h2>
-      <div v-if="productId" class="edit-id-badge">#{{ product.productId }}</div>
-    </div>
-
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>載入商品資料中...</p>
+      <p>正在準備商品資料...</p>
     </div>
 
-    <div v-else class="edit-body">
-      <!-- 左側：圖片區 -->
-      <div class="edit-left">
-        <div class="image-card">
-          <div class="image-preview-box">
-            <img 
-              v-if="previewUrl" 
-              :src="previewUrl" 
-              alt="商品圖片" 
-              class="preview-img"
-              @error="handleImgError"
-            />
-            <div v-else class="no-image">
-              <span class="no-image-icon">🖼️</span>
-              <span>尚未上傳圖片</span>
+    <div v-else class="edit-grid">
+      <!-- Left Column -->
+      <aside class="grid-left">
+        <section class="form-card image-upload-wrapper">
+          <div class="section-title"><i class="fas fa-image"></i> 商品照片 <span class="text-danger ms-2">*</span></div>
+          <div class="image-preview-container">
+            <img v-if="previewUrl" :src="previewUrl" class="preview-img" @error="e => e.target.src = 'https://placehold.co/400x400?text=無圖片'" />
+            <div v-else style="color: #eee5d8; font-size: 3rem;"><i class="fas fa-camera"></i></div>
+          </div>
+          <label class="btn-primary-custom" style="display: block; text-align: center;">
+            <i class="fas fa-cloud-upload-alt me-2"></i> 上傳主圖
+            <input type="file" @change="handleFileChange" hidden />
+          </label>
+        </section>
+
+        <section class="form-card image-upload-wrapper mt-3">
+          <div class="section-title"><i class="fas fa-images"></i> 商品細節圖 (可選多張)</div>
+          
+          <!-- 已存在的細節圖預覽 -->
+          <div class="existing-extras mb-2" v-if="existingExtraImages.length > 0">
+            <label style="font-size: 0.85rem; color: #888;">目前已有的細節圖：</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+              <div v-for="(imgUrl, idx) in existingExtraImages" :key="idx" class="extra-preview-box">
+                <img :src="imgUrl" class="preview-img-small" />
+              </div>
             </div>
           </div>
-          <label class="upload-btn">
-            <span>📁 更換圖片</span>
-            <input type="file" accept="image/*" @change="handleFileChange" hidden />
-          </label>
-        </div>
-      </div>
 
-      <!-- 右側：表單區 -->
-      <div class="edit-right">
-        <div class="form-card">
-          <div class="form-group">
-            <label class="form-label">商品名稱</label>
-            <input v-model="product.productName" type="text" class="form-input" placeholder="請輸入商品名稱" />
+          <!-- 新選擇的細節圖預覽 -->
+          <div class="new-extras mb-3" v-if="extraPreviewUrls.length > 0">
+            <label style="font-size: 0.85rem; color: #e67e22;">新選擇的圖片 (儲存後生效)：</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+              <div v-for="(url, idx) in extraPreviewUrls" :key="idx" class="extra-preview-box">
+                <img :src="url" class="preview-img-small" />
+                <button type="button" class="remove-btn" @click.stop="removeExtraFile(idx)">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
+          <label class="btn-secondary-custom" style="display: block; text-align: center;">
+            <i class="fas fa-plus me-2"></i> 選擇細節圖
+            <input type="file" multiple @change="handleExtraFilesChange" hidden />
+          </label>
+        </section>
+
+        <section class="form-card">
+          <div class="section-title"><i class="fas fa-tasks"></i> 狀態與庫存</div>
+          <div class="form-group">
+            <label class="form-label">銷售狀態</label>
+            <select v-model="product.productStatus" class="form-select">
+              <option :value="1">上架中</option>
+              <option :value="0">已下架</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">儲位編號</label>
+            <input v-model="product.storagePosition" type="text" class="form-control" placeholder="A-01-01" />
+          </div>
+        </section>
+      </aside>
+
+      <!-- Right Column -->
+      <main class="grid-right">
+        <section class="form-card">
+          <div class="section-title"><i class="fas fa-edit"></i> 基本資訊</div>
+          <div class="form-group">
+            <label class="form-label">商品名稱 <span class="text-danger">*</span></label>
+            <input v-model="product.productName" type="text" class="form-control" placeholder="請輸入完整商品名稱" />
+          </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">分類 (可多選)</label>
-              <div class="checkbox-group" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
-                <label v-for="cat in categories" :key="cat.categoryId" class="checkbox-label" style="display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;">
-                  <input type="checkbox" v-model="product.categoryIds" :value="cat.categoryId" style="width: 16px; height: 16px; cursor: pointer;">
-                  <span>{{ cat.categoryName }}</span>
+              <label class="form-label">單價 (NT$) <span class="text-danger">*</span></label>
+              <input v-model.number="product.productPrice" type="number" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">目前庫存量</label>
+              <input v-model.number="product.productStock" type="number" class="form-control" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">低庫存警示值</label>
+            <input v-model.number="product.lowStock" type="number" class="form-control" />
+          </div>
+        </section>
+
+        <!-- 分類選取 (階層化) -->
+        <section class="form-card">
+          <div class="section-title"><i class="fas fa-layer-group"></i> 分類選取 <span class="text-danger ms-2">*</span></div>
+          <div class="category-pills-container">
+            
+            <!-- 1. 第一步：選擇專區 -->
+            <div class="type-section">
+              <span class="type-label" :style="{ color: typeMap[2].color }">
+                <i :class="typeMap[2].icon + ' me-1'"></i> STEP 1. 請先勾選專區
+              </span>
+              <div class="pill-grid">
+                <label v-for="cat in bigCategories" :key="cat.categoryId" 
+                  class="category-pill" :class="{ 'active': product.categoryIds.includes(cat.categoryId) }">
+                  <input type="checkbox" v-model="product.categoryIds" :value="cat.categoryId" />
+                  {{ cat.categoryName }}
                 </label>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">狀態</label>
-              <select v-model="product.productStatus" class="form-input">
-                <option :value="1">上架中</option>
-                <option :value="0">已下架</option>
-              </select>
+            <!-- 2. 第二步：根據選中的專區顯示對應的實體分類 -->
+            <div v-if="selectedBigCatIds.length > 0" class="sub-category-wrapper mt-4">
+               <div v-for="bigId in selectedBigCatIds" :key="bigId" class="parent-group-section mb-3">
+                  <span class="type-label" style="color: #8d6e63; font-size: 0.8rem; opacity: 0.8;">
+                    <i class="fas fa-level-up-alt fa-rotate-90 me-2"></i> 
+                    屬於「{{ categories.find(c => c.categoryId === bigId)?.categoryName }}」的子分類
+                  </span>
+                  <div class="pill-grid">
+                    <label v-for="sub in getChildrenByParent(bigId)" :key="sub.categoryId" 
+                      class="category-pill" :class="{ 'active': product.categoryIds.includes(sub.categoryId) }">
+                      <input type="checkbox" v-model="product.categoryIds" :value="sub.categoryId" />
+                      {{ sub.categoryName }}
+                    </label>
+                    <div v-if="getChildrenByParent(bigId).length === 0" class="no-sub-hint">
+                      (此專區目前無子分類)
+                    </div>
+                  </div>
+               </div>
             </div>
+            <div v-else class="empty-sub-hint mt-3">
+               <i class="fas fa-info-circle me-1"></i> 請先勾選上方專區，以顯示可選的子分類
+            </div>
+
+            <hr class="my-4" style="border: none; border-top: 1px dashed #eee5d8;">
+
+            <!-- 3. 第三步：活動標籤 (獨立選取) -->
+            <div class="type-section">
+              <span class="type-label" :style="{ color: typeMap[3].color }">
+                <i :class="typeMap[3].icon + ' me-1'"></i> 其他活動標籤
+              </span>
+              <div class="pill-grid">
+                <label v-for="cat in activityLabels" :key="cat.categoryId" 
+                  class="category-pill" :class="{ 'active': product.categoryIds.includes(cat.categoryId) }">
+                  <input type="checkbox" v-model="product.categoryIds" :value="cat.categoryId" />
+                  {{ cat.categoryName }}
+                </label>
+              </div>
+            </div>
+
           </div>
+        </section>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">單價 (NT$)</label>
-              <input v-model.number="product.productPrice" type="number" class="form-input" min="0" />
-            </div>
+        <section class="form-card">
+          <div class="section-title"><i class="fas fa-align-left"></i> 商品描述</div>
+          <textarea v-model="product.productDescription" class="form-control" style="min-height: 150px;" placeholder="輸入商品詳細介紹..."></textarea>
+        </section>
 
-            <div class="form-group">
-              <label class="form-label">庫存</label>
-              <input v-model.number="product.productStock" type="number" class="form-input" min="0" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">商品描述</label>
-            <textarea v-model="product.productDescription" class="form-input form-textarea" rows="5" placeholder="請輸入商品描述..."></textarea>
-          </div>
-
-          <div class="form-actions">
-            <button v-if="productId" class="btn-delete" @click="deleteProduct">🗑️ 刪除商品</button>
-            <div v-else></div> <!-- Placeholder to keep right alignment -->
-            <div class="form-actions-right">
-              <button class="btn-cancel" @click="goBack">取消</button>
-              <button class="btn-save" @click="saveProduct">💾 儲存修改</button>
-            </div>
+        <div class="form-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+          <button v-if="productId" class="btn-danger-custom" @click="deleteProduct"><i class="fas fa-trash-alt"></i> 刪除商品資料</button>
+          <div v-else></div>
+          <div style="display: flex; gap: 15px;">
+            <button class="btn-secondary-custom" @click="router.push('/admin/product')">取消返回</button>
+            <button class="btn-primary-custom" @click="saveProduct">確認儲存</button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   </div>
 </template>
+

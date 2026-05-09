@@ -45,7 +45,6 @@ public class InnerProductController {
         }
 
         List<Product> productList = productPage.getContent();
-        // 手動補齊分類名稱 (這段邏輯保留)
         for (Product p : productList) {
             if (p.getCategories() != null && !p.getCategories().isEmpty()) {
                 String names = p.getCategories().stream()
@@ -55,7 +54,6 @@ public class InnerProductController {
             }
         }
 
-        // 把原本丟給 Model 的東西，包成一個 Map 回傳給 Vue
         Map<String, Object> response = new HashMap<>();
         response.put("productList", productList);
         response.put("currentPage", cp);
@@ -66,13 +64,14 @@ public class InnerProductController {
         return ResponseEntity.ok(response);
     }
 
-    //===== 新增商品 ===========================================================================
+    //===== 新增商品 (向下相容：保留 file, 新增 extraFiles) ==========================================================
     @PostMapping("/insert")
     public ResponseEntity<?> insertProduct(
-            @ModelAttribute Product product, // 使用 ModelAttribute 接收 Form Data
-            @RequestParam(value = "file", required = false) MultipartFile file) {
+            @ModelAttribute Product product,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "extraFiles", required = false) MultipartFile[] extraFiles) {
         try {
-            handleImageUpload(product, file, "default_product.jpg");
+            handleMultiImageUpload(product, file, extraFiles);
             productService.addProduct(product);
             return ResponseEntity.ok("success");
         } catch (Exception e) {
@@ -81,28 +80,52 @@ public class InnerProductController {
         }
     }
 
-    //===== 修改商品 ===========================================================================
-    @PutMapping("/update") // 建議用 PUT
+    //===== 修改商品 (向下相容：保留 oldImage, file, 新增 extraFiles) =================================================
+    @PostMapping("/update")
     public ResponseEntity<?> updateProduct(
             @ModelAttribute Product product,
             @RequestParam(value = "oldImage", required = false) String oldImage,
-            @RequestParam(value = "file", required = false) MultipartFile file) {
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "extraFiles", required = false) MultipartFile[] extraFiles) {
         try {
-            handleImageUpload(product, file, oldImage);
+            // 如果沒有新傳主圖，就保留舊主圖路徑
+            if (file == null || file.isEmpty()) {
+                product.setProductImage(oldImage);
+            }
+            handleMultiImageUpload(product, file, extraFiles);
             productService.updateProduct(product);
+            return ResponseEntity.ok("success");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("fail");
+        }
+    }
+
+    //===== 刪除商品 ===========================================================================
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
+        try {
+            productService.deleteProduct(id);
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("fail");
         }
     }
 
-    //===== 刪除商品 ===========================================================================
-    @DeleteMapping("/delete/{id}") // 建議用 DELETE
-    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
+    //===== 批次更新商品狀態 =====================================================================
+    @PostMapping("/batchUpdateStatus")
+    public ResponseEntity<?> batchUpdateStatus(@RequestBody Map<String, Object> payload) {
         try {
-            productService.deleteProduct(id);
-            return ResponseEntity.ok("success");
+            List<Integer> ids = (List<Integer>) payload.get("ids");
+            Integer status = Integer.valueOf(payload.get("status").toString());
+            
+            if (ids != null && !ids.isEmpty() && status != null) {
+                productService.batchUpdateStatus(ids, status);
+                return ResponseEntity.ok("success");
+            }
+            return ResponseEntity.badRequest().body("invalid parameters");
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("fail");
         }
     }
@@ -120,19 +143,59 @@ public class InnerProductController {
         return ResponseEntity.ok(product);
     }
 
-    //===== 圖片處理工具 (邏輯不變) ===============================================================
-    private void handleImageUpload(Product product, MultipartFile file, String defaultImage) throws Exception {
-        String uploadDir = "C:/uploads/images/products/";
+    //===== 圖片處理工具 (支援單主圖 + 多張細節圖) ===============================================================
+    private void handleMultiImageUpload(Product product, MultipartFile mainFile, MultipartFile[] extraFiles) throws Exception {
+        String uploadDir = "C:/PetLife2.0/uploads/images/products/";
         java.io.File directory = new java.io.File(uploadDir);
         if (!directory.exists()) directory.mkdirs();
 
-        if (file != null && !file.isEmpty()) {
-            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename(); // 加上時間戳防檔名重複
+        // 1. 處理主圖 (原本的邏輯)
+        if (mainFile != null && !mainFile.isEmpty()) {
+            String safeFileName = sanitizeFileName(mainFile.getOriginalFilename());
+            String fileName = System.currentTimeMillis() + "_main_" + safeFileName;
             java.io.File saveFile = new java.io.File(directory, fileName);
-            file.transferTo(saveFile);
+            mainFile.transferTo(saveFile);
             product.setProductImage("images/products/" + fileName);
-        } else {
-            product.setProductImage(defaultImage);
         }
+
+        // 2. 處理額外多圖
+        if (extraFiles != null && extraFiles.length > 0) {
+            java.util.List<com.petlife.model.ProductImage> imageList = new java.util.ArrayList<>();
+            
+            for (int i = 0; i < extraFiles.length; i++) {
+                MultipartFile file = extraFiles[i];
+                if (file.isEmpty()) continue;
+
+                String safeFileName = sanitizeFileName(file.getOriginalFilename());
+                String fileName = System.currentTimeMillis() + "_extra_" + i + "_" + safeFileName;
+                java.io.File saveFile = new java.io.File(directory, fileName);
+                file.transferTo(saveFile);
+                
+                String relativePath = "images/products/" + fileName;
+                
+                com.petlife.model.ProductImage pi = new com.petlife.model.ProductImage();
+                pi.setImageUrl(relativePath);
+                pi.setProduct(product);
+                pi.setSortOrder(i);
+                pi.setCreatedAt(java.time.LocalDateTime.now());
+                imageList.add(pi);
+            }
+            
+            if (!imageList.isEmpty()) {
+                product.setImages(imageList);
+            }
+        }
+        
+        // 3. 如果沒有主圖，給予預設圖
+        if (product.getProductImage() == null || product.getProductImage().trim().isEmpty()) {
+            product.setProductImage("images/products/default.jpg");
+        }
+    }
+
+    // 檔名消毒處理，避免特殊字元(例如 %、空白等)導致前端 URL 請求失敗 (Tomcat 400 -> CORB 錯誤)
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null) return "unknown.jpg";
+        // 將非英數字、點、減號的字元(包含中文、空白、特殊符號等)替換為底線
+        return fileName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
     }
 }

@@ -27,6 +27,16 @@ const errorMsg = ref('')
 /** 購買數量 */
 const quantity = ref(1)
 
+/** 當前顯示的大圖路徑 */
+const activeImage = ref('')
+/** 完整的圖片列表 (主圖 + 細節圖) */
+const allImages = ref([])
+
+/** 切換大圖 */
+function setActiveImage(path) {
+  activeImage.value = path
+}
+
 // ── 取得商品詳情 ──────────────────────────────────────────────────────────
 async function fetchProduct() {
   loading.value = true
@@ -35,6 +45,27 @@ async function fetchProduct() {
     const id = route.params.id
     const res = await axios.get(`/products/detail/${id}`)
     product.value = res.data
+    
+    if (product.value) {
+      // 處理圖片列表
+      activeImage.value = product.value.productImage
+      
+      const images = []
+      // 先放主圖
+      if (product.value.productImage) {
+        images.push(product.value.productImage)
+      }
+      // 再放細節圖 (過濾掉跟主圖重複的路徑，避免重複顯示)
+      if (product.value.images && product.value.images.length > 0) {
+        product.value.images.forEach(img => {
+          if (img.imageUrl !== product.value.productImage) {
+            images.push(img.imageUrl)
+          }
+        })
+      }
+      allImages.value = images
+    }
+
     // 若商品不存在或已下架
     if (!product.value || product.value.productStatus !== 1) {
       errorMsg.value = '此商品不存在或已下架'
@@ -162,13 +193,26 @@ onMounted(fetchProduct)
       <div v-else-if="product" class="row g-5">
         <!-- 左側：商品圖片 -->
         <div class="col-md-6">
-          <div class="main-image-wrapper">
+          <div class="main-image-wrapper mb-3 shadow-sm rounded overflow-hidden">
             <img
-              :src="getImageUrl(product.productImage)"
+              :src="getImageUrl(activeImage)"
               :alt="product.productName"
-              class="img-fluid rounded"
+              class="img-fluid main-product-img"
               @error="$event.target.src = `${IMG_BASE}/images/products/default_product.jpg`"
             />
+          </div>
+
+          <!-- 縮圖列表 -->
+          <div class="thumbnail-row d-flex gap-2 pb-2" v-if="allImages.length > 1">
+            <div 
+              v-for="(img, index) in allImages" 
+              :key="index"
+              class="thumb-box rounded overflow-hidden"
+              :class="{ 'active': activeImage === img }"
+              @click="setActiveImage(img)"
+            >
+              <img :src="getImageUrl(img)" class="thumb-img" />
+            </div>
           </div>
         </div>
 
@@ -275,5 +319,57 @@ onMounted(fetchProduct)
 }
 .quantity-control input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* ── 圖片藝廊樣式 ── */
+.main-image-wrapper {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  max-height: 500px;
+}
+.main-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.3s ease;
+}
+
+.thumbnail-row {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+/* 隱藏滾動條 */
+.thumbnail-row::-webkit-scrollbar {
+  height: 4px;
+}
+.thumbnail-row::-webkit-scrollbar-thumb {
+  background: #eee5d8;
+  border-radius: 10px;
+}
+
+.thumb-box {
+  flex: 0 0 80px;
+  height: 80px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  background: #fff;
+  opacity: 0.7;
+}
+.thumb-box:hover {
+  opacity: 1;
+}
+.thumb-box.active {
+  border-color: #e67e22;
+  opacity: 1;
+}
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

@@ -1,332 +1,294 @@
-/* ProductEdit.css - 商品編輯頁面 (暖心奶油風格) */
+/* ProductEdit.css - 暖心奶油專業版 (精緻佈局優化) */
 
-/* 容器 */
 .edit-container {
+    min-height: 100vh;
+    padding: 0;
     font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-    animation: fadeInUp 0.4s ease;
 }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* 頂部導航列 */
+/* 頂部導航 */
 .edit-header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 28px;
-    padding-bottom: 18px;
-    border-bottom: 2px solid #fdf2e9;
-}
-
-.btn-back {
+    justify-content: space-between;
+    margin-bottom: 30px;
     background: #fff;
-    border: 1.5px solid #eee5d8;
-    color: #8d6e63;
-    padding: 8px 18px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-back:hover {
-    background: #fff9f0;
-    border-color: #f39c12;
-    color: #e67e22;
-    transform: translateX(-3px);
-}
-
-.back-arrow {
-    font-size: 1.1rem;
-    transition: transform 0.2s;
-}
-
-.btn-back:hover .back-arrow {
-    transform: translateX(-4px);
+    padding: 20px 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(211, 160, 80, 0.05);
 }
 
 .edit-title {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #5d4037;
     margin: 0;
-    flex: 1;
 }
 
-.edit-id-badge {
-    background: #8d6e63;
-    color: white;
-    font-size: 0.8rem;
+/* 網格系統 */
+.edit-grid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 25px;
+}
+
+/* 卡片通用樣式 */
+.form-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(211, 160, 80, 0.08);
+    border: 1px solid rgba(243, 156, 18, 0.05);
+    margin-bottom: 25px;
+}
+
+.section-title {
+    font-size: 1.05rem;
     font-weight: 700;
-    padding: 4px 14px;
-    border-radius: 10px;
-}
-
-/* Loading 狀態 */
-.loading-state {
+    color: #5d4037;
+    margin-bottom: 20px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 80px 0;
-    color: #a1887f;
+    gap: 10px;
+    border-bottom: 1.5px solid #fdf2e9;
+    padding-bottom: 12px;
 }
 
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid #fdf2e9;
-    border-top: 3px solid #f39c12;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: 16px;
+.section-title i {
+    color: #f39c12;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+/* 圖片上傳區 */
+.image-upload-wrapper {
+    text-align: center;
 }
 
-/* 主內容區域 */
-.edit-body {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
-}
-
-/* 左側：圖片區 */
-.edit-left {
-    flex: 0 0 280px;
-}
-
-.image-card {
-    background: #fff;
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 8px 25px rgba(211, 160, 80, 0.08);
-    border: 1px solid rgba(243, 156, 18, 0.06);
-}
-
-.image-preview-box {
+.image-preview-container {
     width: 100%;
     aspect-ratio: 1;
     border-radius: 16px;
     overflow: hidden;
-    background: #fdf8f2;
+    background: #fffaf5;
     border: 2px dashed #eee5d8;
+    margin-bottom: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
 }
 
 .preview-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
 }
 
-.preview-img:hover {
-    transform: scale(1.05);
-}
-
-.no-image {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: #c4a882;
-    font-size: 0.85rem;
-}
-
-.no-image-icon {
-    font-size: 2rem;
-}
-
-.upload-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, #FFDE95 0%, #FFB347 100%);
-    color: #5d4037;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    border: none;
-    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.2);
-}
-
-.upload-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(243, 156, 18, 0.3);
-}
-
-/* 右側：表單區 */
-.edit-right {
-    flex: 1;
-}
-
-.form-card {
-    background: #fff;
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 8px 25px rgba(211, 160, 80, 0.08);
-    border: 1px solid rgba(243, 156, 18, 0.06);
-}
-
+/* 表單元件 */
 .form-group {
-    margin-bottom: 20px;
-    flex: 1;
+    margin-bottom: 18px;
 }
 
 .form-label {
     display: block;
-    font-size: 0.85rem;
-    font-weight: 600;
     color: #8d6e63;
+    font-weight: 600;
     margin-bottom: 8px;
+    font-size: 0.85rem;
 }
 
-.form-input {
+.form-control,
+.form-select {
     width: 100%;
-    padding: 12px 16px;
-    border: 1.5px solid #eee5d8;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    color: #5d4037;
-    background: #fff;
-    transition: all 0.3s ease;
     box-sizing: border-box;
+    border-radius: 12px;
+    border: 1.5px solid #eee5d8;
+    padding: 11px 15px;
+    transition: all 0.3s;
+    background-color: #fff;
+    color: #5d4037;
+    font-size: 0.95rem;
 }
 
-.form-input:focus {
-    outline: none;
+.form-control:focus,
+.form-select:focus {
     border-color: #f39c12;
     box-shadow: 0 0 0 4px rgba(243, 156, 18, 0.1);
-}
-
-.form-input::placeholder {
-    color: #c9b99a;
-}
-
-.form-textarea {
-    resize: vertical;
-    min-height: 120px;
-    line-height: 1.6;
+    outline: none;
 }
 
 .form-row {
-    display: flex;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
 }
 
-/* 按鈕區 */
-.form-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 2px solid #fdf2e9;
-}
-
-.form-actions-right {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-/* 刪除按鈕 - 危險操作，低調但明確 */
-.btn-delete {
-    padding: 10px 22px;
-    background: #fff5f5;
-    border: 1.5px solid #f5c6cb;
-    color: #c0392b;
+/* 分類選取區 (改為更寬敞的佈局) */
+.category-pills-container {
+    background: #fffaf5;
     border-radius: 12px;
-    font-weight: 600;
+    padding: 20px;
+    border: 1px solid #fdf2e9;
+}
+
+.type-section {
+    margin-bottom: 15px;
+}
+
+.type-section:last-child {
+    margin-bottom: 0;
+}
+
+.type-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.pill-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.category-pill {
+    padding: 6px 14px;
+    background: white;
+    border: 1px solid #eee5d8;
+    border-radius: 50px;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: all 0.25s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-delete:hover {
-    background: #fde8e8;
-    border-color: #e74c3c;
-    color: #e74c3c;
-    box-shadow: 0 4px 14px rgba(231, 76, 60, 0.18);
-    transform: translateY(-1px);
-}
-
-.btn-delete:active {
-    transform: translateY(0);
-}
-
-.btn-cancel {
-    padding: 12px 28px;
-    background: #fff;
-    border: 1.5px solid #eee5d8;
-    color: #a1887f;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.25s ease;
-}
-
-.btn-cancel:hover {
-    background: #fdf8f2;
-    border-color: #d3a060;
+    transition: all 0.2s;
+    user-select: none;
     color: #8d6e63;
 }
 
-.btn-save {
-    padding: 12px 32px;
+.category-pill:hover {
+    border-color: #f39c12;
+    background: #fff9f0;
+}
+
+.category-pill.active {
+    background: #f39c12;
+    color: white;
+    border-color: #f39c12;
+    font-weight: 600;
+}
+
+.category-pill input {
+    display: none;
+}
+
+/* 按鈕樣式 */
+.btn-primary-custom {
     background: linear-gradient(135deg, #FFDE95 0%, #FFB347 100%);
-    border: none;
     color: #5d4037;
-    border-radius: 12px;
     font-weight: 700;
-    font-size: 0.9rem;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 35px;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.2);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.25);
+    transition: all 0.3s;
 }
 
-.btn-save:hover {
+.btn-primary-custom:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.35);
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.3);
 }
 
-.btn-save:active {
-    transform: translateY(0);
+.btn-secondary-custom {
+    background: #fff;
+    border: 1.5px solid #eee5d8;
+    color: #8d6e63;
+    padding: 10px 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-secondary-custom:hover {
+    background: #fff9f0;
+    border-color: #f39c12;
+}
+
+.btn-danger-custom {
+    background: #fff;
+    border: 1.5px solid #ffcccc;
+    color: #e74c3c;
+    padding: 10px 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-danger-custom:hover {
+    background: #ffe6e6;
+    border-color: #e74c3c;
 }
 
 /* 響應式 */
-@media (max-width: 768px) {
-    .edit-body {
-        flex-direction: column;
-    }
-    .edit-left {
-        flex: 1 1 100%;
-        max-width: 100%;
-    }
-    .form-row {
-        flex-direction: column;
-        gap: 0;
+@media (max-width: 992px) {
+    .edit-grid {
+        grid-template-columns: 1fr;
     }
 }
+
+/* ── Vue Scoped CSS 抽離出來的樣式 ── */
+.sub-category-wrapper {
+  padding-left: 15px;
+  border-left: 3px solid #fdf2e9;
+  margin-left: 5px;
+}
+.no-sub-hint, .empty-sub-hint {
+  font-size: 0.85rem;
+  color: #c4a882;
+  font-style: italic;
+}
+.parent-group-section {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 細節圖預覽相關樣式 ── */
+.extra-preview-box {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #ddd;
+}
+.preview-img-small {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.remove-btn:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+

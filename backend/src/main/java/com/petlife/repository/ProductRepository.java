@@ -23,11 +23,17 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	@Query("SELECT p FROM Product p JOIN p.categories c WHERE c.categoryId = :catId OR c.parentId = :catId")
 	Page<Product> findByCategory(@Param("catId") Integer categoryId, Pageable pageable);
 
+	@Query("SELECT p FROM Product p JOIN p.categories c WHERE (c.categoryId = :catId OR c.parentId = :catId) AND p.productStatus = 1")
+	Page<Product> findActiveByCategory(@Param("catId") Integer categoryId, Pageable pageable);
+
     
 //===== 關鍵字查詢 ==============================================================================================
 
 	@Query("SELECT p FROM Product p WHERE p.productName LIKE %:kw%")
     Page<Product> searchByName(@Param("kw") String keyword, Pageable pageable);
+    
+	@Query("SELECT p FROM Product p WHERE p.productName LIKE %:kw% AND p.productStatus = 1")
+    Page<Product> searchActiveByName(@Param("kw") String keyword, Pageable pageable);
     
     
 	

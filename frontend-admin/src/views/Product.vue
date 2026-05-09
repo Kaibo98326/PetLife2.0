@@ -11,7 +11,7 @@ const route = useRoute()
 // 分類類型配色 (與 Category.vue 保持同步)
 const typeMap = {
   1: { label: '實體分類', color: '#795548' }, // 溫暖褐色
-  2: { label: '大專區', color: '#e67e22' },    // 活力橘色
+  2: { label: '專區', color: '#e67e22' },    // 活力橘色
   3: { label: '活動標籤', color: '#d81b60' }     // 質感桃紅
 }
 
@@ -95,7 +95,7 @@ watchEffect(() => {
 
 // 導向商品編輯頁
 const goEdit = (productId) => {
-  router.push({ name: 'ProductEdit', params: { id: productId } })
+  router.push({ name: '編輯商品', params: { id: productId } })
 }
 
 // 當圖片載入失敗時，自動替換成一張預設的預覽圖
