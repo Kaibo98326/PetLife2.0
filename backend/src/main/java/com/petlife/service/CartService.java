@@ -13,31 +13,31 @@ import org.springframework.transaction.annotation.Transactional;
 import com.petlife.model.Cart;
 import com.petlife.model.CartItem;
 import com.petlife.model.Product;
-import com.petlife.repository.ICartDao;
-import com.petlife.repository.ICartItemDao;
+import com.petlife.repository.CartItemRepository;
+import com.petlife.repository.CartRepository;
 import com.petlife.repository.ProductRepository;
 
 @Service
 @Transactional
 public class CartService {
 	@Autowired
-	private ICartDao cartDao;
+	private CartRepository cr;
 
 	@Autowired
-	private ICartItemDao cartItemDao;
+	private CartItemRepository cir;
 
 	@Autowired
 	private ProductRepository pr;
 
 	// 取得或創建購物車
 	public Cart getOrCreateCart(Integer memberId) {
-		Cart cart = cartDao.findByMemberId(memberId);
+		Cart cart = cr.findByMemberId(memberId);
 		if (cart == null) {
 			cart = new Cart();
 			cart.setMemberId(memberId);
 			cart.setCreatedAt(LocalDateTime.now());
 			cart.setUpdatedAt(LocalDateTime.now());
-			cart = cartDao.save(cart);
+			cart = cr.save(cart);
 		}
 		return cart;
 	}
@@ -60,7 +60,7 @@ public class CartService {
 			newItem.setDiscountAmount(BigDecimal.ZERO);
 		}
 
-		List<CartItem> items = cartItemDao.findByCartId(cartId);
+		List<CartItem> items = cir.findByCartId(cartId);
 		Optional<CartItem> existingItem = items.stream().filter(i -> i.getProductId().equals(newItem.getProductId()))
 				.findFirst();
 
@@ -68,17 +68,16 @@ public class CartService {
 			CartItem item = existingItem.get();
 			item.setQuantity(item.getQuantity() + newItem.getQuantity());
 			// 這裡絕對不要寫 setSubtotal
-			cartItemDao.save(item);
+			cir.save(item);
 		} else {
 			newItem.setCartId(cartId);
-			// 這裡絕對不要寫 setSubtotal
-			cartItemDao.save(newItem);
+			cir.save(newItem);
 		}
 	}
 	
 	// +跟-按鈕
 	public void updateCartItemQuantity(Integer itemId, Integer quantity) {
-	    CartItem item = cartItemDao.findById(itemId)
+	    CartItem item = cir.findById(itemId)
 	            .orElseThrow(() -> new RuntimeException("找不到該購物車品項"));
 	    
 	    // 設定新數量
@@ -89,45 +88,45 @@ public class CartService {
 	        item.setDiscountAmount(BigDecimal.ZERO);
 	    }
 	    // 存檔，SQLServer會自動更新subtotal
-	    cartItemDao.save(item);
+	    cir.save(item);
 	}
 
 	// 取得購物車清單
 	public List<CartItem> getCartItems(Integer memberId) {
-		Cart cart = cartDao.findByMemberId(memberId);
+		Cart cart = cr.findByMemberId(memberId);
 		if (cart == null)
 			return new ArrayList<>();
-		return cartItemDao.findByCartId(cart.getCartId());
+		return cir.findByCartId(cart.getCartId());
 	}
 
 	// 結帳清空購物車(軟刪除)
 	public void clearCart(Integer cartId) {
-		cartItemDao.deleteByCartId(cartId);
+		cir.deleteByCartId(cartId);
 	}
 
 	// 真的刪除
 	public void removeItemFromCart(Integer itemId) {
-		cartItemDao.deleteById(itemId);
+		cir.deleteById(itemId);
 	}
 
 	// 取得購物車總商品件數 (加總所有 quantity)
 	public Integer getCartTotalQuantity(Integer memberId) {
-		Cart cart = cartDao.findByMemberId(memberId);
+		Cart cart = cr.findByMemberId(memberId);
 		if (cart == null)
 			return 0;
 
-		List<CartItem> items = cartItemDao.findByCartId(cart.getCartId());
+		List<CartItem> items = cir.findByCartId(cart.getCartId());
 
 		return items.stream().mapToInt(CartItem::getQuantity).sum();
 	}
 
 	// 統計右上角購物車圖案顯示現有購物車商品數量使用的查詢方法
 	public List<CartItem> queryCartItemsByMemberId(Integer memberId) {
-		Cart cart = cartDao.findByMemberId(memberId);
+		Cart cart = cr.findByMemberId(memberId);
 		if (cart == null)
 			return new ArrayList<>();
 
-		List<CartItem> items = cartItemDao.findByCartId(cart.getCartId());
+		List<CartItem> items = cir.findByCartId(cart.getCartId());
 
 		for (CartItem item : items) {
 			// 如果資料庫抓出來的小計是 NULL，現場幫它補算，避免前端噴錯
