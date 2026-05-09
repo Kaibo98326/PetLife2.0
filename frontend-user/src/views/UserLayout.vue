@@ -162,7 +162,7 @@ onMounted(async () => {
                 <!-- 已登入 -->
                 <div v-if="userStore.token" class="d-flex align-items-center">
                   <div class="user-greeting-box me-3 text-end">
-                    <span class="welcome-tag">
+                    <span class="welcome-tag" style="color: orange;">
                       <i class="fas fa-paw"></i>
                       <strong>{{ userStore.user?.memberName }}</strong> 你好！
                     </span>

@@ -92,20 +92,12 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
-		<!-- 備註：之前因為找不到依賴而導致 Maven 編譯失敗，故先註解保留紀錄
-		<dependency>
+
+		<!--<dependency>
 			<groupId>PetLife</groupId>
 			<artifactId>PetLife</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		-->
-		
-		<dependency>
-    	<groupId>org.mindrot</groupId>
-  	  	<artifactId>jbcrypt</artifactId>
-    	<version>0.4</version>
-		</dependency>
+		</dependency> -->
 
 		<dependency>
     			<groupId>io.jsonwebtoken</groupId>
@@ -123,6 +115,15 @@
     			<artifactId>jjwt-jackson</artifactId>
     			<version>0.11.5</version>
     			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+        		<groupId>org.springframework.boot</groupId>
+        		<artifactId>spring-boot-starter-oauth2-client</artifactId>
+    		</dependency>
+    		<dependency>
+    			<groupId>org.mindrot</groupId>
+    			<artifactId>jbcrypt</artifactId>
+    			<version>0.4</version>
 		</dependency>
 	</dependencies>
 

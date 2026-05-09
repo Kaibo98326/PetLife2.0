@@ -5,6 +5,8 @@ import LoginMember from '@/views/LoginMember.vue'
 import MemberCenter from '@/views/MemberCenter.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import ProductDetailView from '@/views/ProductDetailView.vue'
+import PetListView from '@/views/PetListView.vue'
+import AddPetView from '@/views/AddPetView.vue'
 
 const routes = [
   {
@@ -23,15 +25,6 @@ const routes = [
         path: 'product/:id',
         name: 'productDetail',
         component: ProductDetailView
-      },
-      {
-        // 會員中心
-        path: 'member/center',
-        name: 'MemberCenter',
-        component: MemberCenter,
-        children: [
-          { path: 'profile', component: ProfileView }
-        ]
       }
     ]
   },
@@ -40,6 +33,22 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginMember
+  },
+  {
+    path: '/set-password',
+    name: 'SetPassword',
+    component: () => import('@/views/SetPassword.vue'),
+  },
+  {
+        // 會員中心
+        path: '/member/center',
+        name: 'MemberCenter',
+        component: MemberCenter,
+        children: [
+          { path: 'profile' , component: ProfileView   },
+          { path: 'pets'    , component: PetListView   },
+          { path: 'pets/add', component: AddPetView    },
+        ]
   }
 ]
 
