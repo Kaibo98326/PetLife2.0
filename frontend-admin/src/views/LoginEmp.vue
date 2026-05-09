@@ -12,7 +12,7 @@ const password = ref('');
 
 const login = async () => {
     try {
-        const res = await fetch('/api/employee/login', {
+        const res = await fetch('/api/admin/employee/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: username.value, password: password.value })

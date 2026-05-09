@@ -48,6 +48,7 @@ public class MemberService implements IMemberService{
 		member.setPhone(request.getPhone());
 		member.setAddress(request.getAddress());
 		member.setAccountStatus("active");
+		member.setProvider("local");
 		member.setUserImage("/images/member/petlife.jpg");
 		member.setBonusPoints(0);
 		
@@ -56,9 +57,28 @@ public class MemberService implements IMemberService{
 	
 	//登入
 	@Override
-	public Optional<Member> login(LoginRequest request){
-		return memberRepos.findByEmail(request.getEmail())
-				.filter( m -> PasswordUtils.checkPassword(request.getPassword(), m.getPasswordHash()));
+	public Member login(LoginRequest request){
+		
+		Member member = memberRepos.findByEmail(request.getEmail())
+				.orElseThrow(() -> new IllegalArgumentException("帳號或密碼錯誤"));
+		
+		if(!PasswordUtils.checkPassword(request.getPassword(), member.getPasswordHash())) {
+			throw new IllegalArgumentException("帳號或密碼錯誤");
+		}
+		if("disable".equals(member.getAccountStatus())) {
+			throw new IllegalArgumentException("此帳號已停權，請聯繫客服");
+		}
+		if("delete".equals(member.getAccountStatus())) {
+			throw new IllegalArgumentException("此帳號已刪除，無法登入");
+		}
+		
+		if(!"active".equals(member.getAccountStatus())) {
+			throw new IllegalArgumentException("此帳號狀態異常，請聯繫客服");
+		}
+		member.setLastLogin(LocalDateTime.now());
+		
+		return memberRepos.save(member);
+		
 	}
 	
 	
@@ -147,6 +167,17 @@ public class MemberService implements IMemberService{
 	    // 更新資料庫欄位
 	    member.setUserImage(newImagePath);
 	    return memberRepos.save(member);
+	}
+	
+	@Override
+	public Member setPassword(Integer memberId , String newPassword) {
+		Member member = memberRepos.findById(memberId)
+				.orElseThrow( () -> new IllegalArgumentException("會員不存在"));
+		
+		//更改密碼
+		member.setPasswordHash(PasswordUtils.hashPassword(newPassword));
+		
+		return memberRepos.save(member);
 	}
 	
 	

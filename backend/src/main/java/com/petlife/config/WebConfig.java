@@ -12,10 +12,10 @@ public class WebConfig implements WebMvcConfigurer{
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
 		registry.addMapping("/**")
-		.allowedOrigins("http://localhost:5173 , http://localhost:5174")
+		.allowedOrigins("http://localhost:5173", "http://localhost:5174")
 		.allowedMethods("GET","POST","PUT","DELETE","OPTIONS")
 		.allowedHeaders("*")
-		.allowCredentials(true);
+		.allowCredentials(true); 
 	}
 	
 	// 外部資源映射 (讓網址能讀取到 C 槽圖片)
