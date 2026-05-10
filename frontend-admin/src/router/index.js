@@ -54,6 +54,26 @@ const routes = [
         path: 'pet', 
         name: '寵物管理',
         component: () => import('@/views/AdminPetList.vue')
+      },
+      {
+        path: 'beauty/items',
+        name: '美容項目管理',
+        component: () => import('@/views/AdminBeautyItems.vue')
+      },
+      {
+        path: 'beauty/appointments',
+        name: '美容預約管理',
+        component: () => import('@/views/AdminBeautyAppointments.vue')
+      },
+      {
+        path: 'beauty/groomers',
+        name: '美容師管理',
+        component: () => import('@/views/AdminGroomers.vue')
+      },
+      {
+        path: 'beauty/schedules',
+        name: '班表管理',
+        component: () => import('@/views/AdminBeautySchedules.vue')
       }
     ]
   }

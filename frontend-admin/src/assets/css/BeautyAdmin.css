@@ -1,0 +1,168 @@
+.beauty-admin-page {
+  padding: 2rem;
+  min-height: 100%;
+  font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+}
+
+.beauty-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 28px rgba(73, 80, 87, 0.08);
+  border: 1px solid #edf0f3;
+}
+
+.beauty-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.beauty-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.beauty-title {
+  margin: 0;
+  color: #4f4038;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.beauty-subtitle {
+  margin-top: 4px;
+  color: #8a817c;
+  font-size: 0.86rem;
+}
+
+.beauty-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.beauty-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.price-box {
+  border: 1px solid #ece7e1;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffaf3;
+}
+
+.price-box-title {
+  font-weight: 700;
+  color: #7a5b43;
+  margin-bottom: 8px;
+}
+
+.tag-soft {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.beauty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.detail-lines {
+  border: 1px solid #edf0f3;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.detail-line {
+  display: grid;
+  grid-template-columns: 64px 1fr 100px 100px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf0f3;
+  align-items: center;
+}
+
+.detail-line:last-child {
+  border-bottom: none;
+}
+
+.schedule-shell {
+  display: grid;
+  grid-template-columns: minmax(520px, 1.15fr) minmax(360px, 0.85fr);
+  gap: 18px;
+}
+
+.calendar-day {
+  min-height: 92px;
+  padding: 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.calendar-day:hover {
+  background: #fff7ed;
+  box-shadow: inset 0 0 0 1px #ffd8a8;
+}
+
+.calendar-day.selected {
+  background: #fff3df;
+  box-shadow: inset 0 0 0 2px #ff9a44;
+}
+
+.calendar-date {
+  font-weight: 800;
+  color: #53443c;
+  margin-bottom: 5px;
+}
+
+.calendar-metrics {
+  display: grid;
+  gap: 3px;
+  color: #6c757d;
+  font-size: 0.75rem;
+}
+
+.day-panel {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.slot-status {
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .schedule-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .beauty-admin-page {
+    padding: 1rem;
+  }
+
+  .beauty-form-grid,
+  .price-grid {
+    grid-template-columns: 1fr;
+  }
+}
