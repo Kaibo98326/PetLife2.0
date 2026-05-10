@@ -30,15 +30,14 @@ public class AdminBeautyAppointmentService {
     }
 
     public List<AppointmentResponse> findAppointments(LocalDate startDate, LocalDate endDate) {
-        if (startDate != null && endDate != null) {
-            return appointmentRepository
-                    .findByAppointDateBetweenOrderByAppointDateDescAppointmentIdDesc(startDate, endDate)
-                    .stream()
-                    .map(appointmentService::toResponse)
-                    .toList();
-        }
+        return findAppointments(startDate, endDate, null, null);
+    }
 
-        return appointmentRepository.findAllByOrderByAppointDateDescAppointmentIdDesc()
+    public List<AppointmentResponse> findAppointments(LocalDate startDate, LocalDate endDate, String status,
+            Integer groomerId) {
+        validateSearchRequest(startDate, endDate, status);
+
+        return appointmentRepository.searchAdminAppointments(startDate, endDate, normalizeStatus(status), groomerId)
                 .stream()
                 .map(appointmentService::toResponse)
                 .toList();
@@ -52,6 +51,10 @@ public class AdminBeautyAppointmentService {
 
     @Transactional
     public AppointmentResponse updateStatus(Integer id, UpdateAppointmentStatusRequest req) {
+        if (req == null || req.status() == null || req.status().isBlank()) {
+            throw ApiException.badRequest("預約狀態不可為空");
+        }
+
         BeautyAppointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("找不到預約單"));
 
@@ -87,5 +90,32 @@ public class AdminBeautyAppointmentService {
         }
 
         return false;
+    }
+
+    private void validateSearchRequest(LocalDate startDate, LocalDate endDate, String status) {
+        if ((startDate == null) != (endDate == null)) {
+            throw ApiException.badRequest("開始日期與結束日期必須同時提供");
+        }
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw ApiException.badRequest("開始日期不可晚於結束日期");
+        }
+        if (normalizeStatus(status) != null && !isKnownStatus(normalizeStatus(status))) {
+            throw ApiException.badRequest("不合法的預約狀態");
+        }
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        return status.trim();
+    }
+
+    private boolean isKnownStatus(String status) {
+        return BeautyConstants.APPOINTMENT_PENDING.equals(status)
+                || BeautyConstants.APPOINTMENT_CONFIRMED.equals(status)
+                || BeautyConstants.APPOINTMENT_DONE.equals(status)
+                || BeautyConstants.APPOINTMENT_CANCELLED.equals(status)
+                || BeautyConstants.APPOINTMENT_NO_SHOW.equals(status);
     }
 }

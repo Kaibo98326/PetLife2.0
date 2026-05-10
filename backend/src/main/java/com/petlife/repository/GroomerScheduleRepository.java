@@ -9,5 +9,8 @@ import java.util.Optional;
 public interface GroomerScheduleRepository extends JpaRepository<GroomerSchedule, Integer> {
     Optional<GroomerSchedule> findByGroomerIdAndWorkDate(Integer groomerId, LocalDate workDate);
 
+    List<GroomerSchedule> findByGroomerIdAndWorkDateBetweenOrderByWorkDateAsc(Integer groomerId, LocalDate startDate,
+            LocalDate endDate);
+
     List<GroomerSchedule> findByWorkDateBetweenOrderByWorkDateAscGroomerIdAsc(LocalDate startDate, LocalDate endDate);
 }

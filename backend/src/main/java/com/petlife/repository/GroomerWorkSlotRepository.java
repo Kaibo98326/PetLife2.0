@@ -9,6 +9,8 @@ import java.util.List;
 public interface GroomerWorkSlotRepository extends JpaRepository<GroomerWorkSlot, Integer> {
     List<GroomerWorkSlot> findByGroomerIdAndWorkDate(Integer groomerId, LocalDate workDate);
 
+    List<GroomerWorkSlot> findByGroomerIdAndWorkDateBetween(Integer groomerId, LocalDate startDate, LocalDate endDate);
+
     List<GroomerWorkSlot> findByGroomerIdAndWorkDateAndSlotIdIn(Integer groomerId, LocalDate workDate,
             Collection<Integer> slotIds);
 

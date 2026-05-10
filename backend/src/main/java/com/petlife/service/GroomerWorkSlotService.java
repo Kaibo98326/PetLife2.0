@@ -3,6 +3,8 @@ package com.petlife.service;
 import com.petlife.config.ApiException;
 import com.petlife.config.BeautyConstants;
 import com.petlife.repository.BlockWorkSlotRequest;
+import com.petlife.repository.GroomerDaySlotLineResponse;
+import com.petlife.repository.GroomerDaySlotResponse;
 import com.petlife.repository.GroomerWorkSlotResponse;
 import com.petlife.model.BeautyTimeSlot;
 import com.petlife.model.GroomerSchedule;
@@ -15,10 +17,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GroomerWorkSlotService {
+
+    private static final String SCHEDULE_NOT_SET = "未排班";
+    private static final String SLOT_AVAILABLE = "可預約";
+    private static final String SLOT_UNAVAILABLE = "不可預約";
 
     private final GroomerWorkSlotRepository workSlotRepository;
     private final GroomerScheduleRepository scheduleRepository;
@@ -37,6 +46,31 @@ public class GroomerWorkSlotService {
                 .stream()
                 .map(BeautyMapper::workSlot)
                 .toList();
+    }
+
+    public GroomerDaySlotResponse getDaySlotStatus(Integer groomerId, LocalDate workDate) {
+        if (groomerId == null) {
+            throw ApiException.badRequest("美容師編號不可為空");
+        }
+        if (workDate == null) {
+            throw ApiException.badRequest("日期不可為空");
+        }
+
+        String scheduleStatus = scheduleRepository.findByGroomerIdAndWorkDate(groomerId, workDate)
+                .map(GroomerSchedule::getScheduleStatus)
+                .orElse(SCHEDULE_NOT_SET);
+
+        Map<Integer, GroomerWorkSlot> workSlotBySlotId = workSlotRepository.findByGroomerIdAndWorkDate(groomerId,
+                workDate)
+                .stream()
+                .collect(Collectors.toMap(GroomerWorkSlot::getSlotId, Function.identity()));
+
+        List<GroomerDaySlotLineResponse> slots = slotRepository.findAllByOrderBySortOrderAsc()
+                .stream()
+                .map(slot -> toDaySlotLine(slot, scheduleStatus, workSlotBySlotId.get(slot.getSlotId())))
+                .toList();
+
+        return new GroomerDaySlotResponse(groomerId, workDate, scheduleStatus, slots);
     }
 
     @Transactional
@@ -109,5 +143,34 @@ public class GroomerWorkSlotService {
         if (req.slotIds().stream().anyMatch(Objects::isNull)) {
             throw ApiException.badRequest("時段編號不可為空");
         }
+    }
+
+    private GroomerDaySlotLineResponse toDaySlotLine(BeautyTimeSlot slot, String scheduleStatus,
+            GroomerWorkSlot workSlot) {
+        String slotStatus = resolveSlotStatus(slot, scheduleStatus, workSlot);
+
+        return new GroomerDaySlotLineResponse(
+                slot.getSlotId(),
+                slot.getSlotName(),
+                slot.getStartTime().toString(),
+                slot.getEndTime().toString(),
+                slot.getSortOrder(),
+                slotStatus,
+                workSlot == null ? null : workSlot.getAppointmentId(),
+                workSlot == null ? null : workSlot.getWorkSlotId(),
+                workSlot == null ? null : workSlot.getNote());
+    }
+
+    private String resolveSlotStatus(BeautyTimeSlot slot, String scheduleStatus, GroomerWorkSlot workSlot) {
+        if (!Boolean.TRUE.equals(slot.getIsBookable())) {
+            return SLOT_UNAVAILABLE;
+        }
+        if (!BeautyConstants.SCHEDULE_WORK.equals(scheduleStatus)) {
+            return SLOT_UNAVAILABLE;
+        }
+        if (workSlot != null) {
+            return workSlot.getWorkSlotStatus();
+        }
+        return SLOT_AVAILABLE;
     }
 }

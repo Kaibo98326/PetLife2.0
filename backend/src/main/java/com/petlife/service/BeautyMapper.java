@@ -3,8 +3,10 @@ package com.petlife.service;
 import com.petlife.repository.AppointmentDetailLineResponse;
 import com.petlife.repository.AppointmentResponse;
 import com.petlife.repository.AvailableSlotResponse;
+import com.petlife.repository.BeautyItemManageResponse;
 import com.petlife.repository.BeautyItemResponse;
 import com.petlife.repository.BeautyPriceResponse;
+import com.petlife.repository.GroomerManageResponse;
 import com.petlife.repository.GroomerResponse;
 import com.petlife.repository.GroomerScheduleResponse;
 import com.petlife.repository.GroomerServiceResponse;
@@ -51,6 +53,16 @@ public class BeautyMapper {
                 price.getIsActive());
     }
 
+    public static BeautyItemManageResponse itemManage(BeautyItem item, List<BeautyItemPrice> prices) {
+        return new BeautyItemManageResponse(
+                item.getBeautyId(),
+                item.getItemName(),
+                item.getItemDescription(),
+                item.getDurationSlots(),
+                item.getIsActive(),
+                prices.stream().map(BeautyMapper::price).toList());
+    }
+
     public static GroomerResponse groomer(GroomerProfile groomer) {
         return new GroomerResponse(
                 groomer.getGroomerId(),
@@ -67,6 +79,16 @@ public class BeautyMapper {
                 service.getBeautyId(),
                 service.getIsActive(),
                 service.getNote());
+    }
+
+    public static GroomerManageResponse groomerManage(GroomerProfile groomer, List<GroomerServiceResponse> services) {
+        return new GroomerManageResponse(
+                groomer.getGroomerId(),
+                groomer.getDisplayName(),
+                groomer.getIntro(),
+                groomer.getSeniorityYears(),
+                groomer.getIsBookable(),
+                services);
     }
 
     public static GroomerScheduleResponse schedule(GroomerSchedule schedule) {

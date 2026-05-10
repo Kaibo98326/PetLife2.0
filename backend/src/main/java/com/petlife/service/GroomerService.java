@@ -1,6 +1,8 @@
 package com.petlife.service;
 
 import com.petlife.config.ApiException;
+import com.petlife.repository.GroomerManageRequest;
+import com.petlife.repository.GroomerManageResponse;
 import com.petlife.repository.GroomerProfileRequest;
 import com.petlife.repository.GroomerResponse;
 import com.petlife.repository.GroomerServiceResponse;
@@ -45,22 +47,22 @@ public class GroomerService {
 
     @Transactional
     public GroomerResponse upsertGroomer(GroomerProfileRequest req) {
-        if (req == null || req.groomerId() == null) {
-            throw ApiException.badRequest("美容師資料不可為空");
-        }
+        return BeautyMapper.groomer(saveGroomerProfile(req));
+    }
 
-        employeeRepository.findById(req.groomerId())
-                .orElseThrow(() -> ApiException.badRequest("找不到對應員工"));
+    @Transactional
+    public GroomerManageResponse upsertGroomerWithServices(GroomerManageRequest req) {
+        validateManageRequest(req);
 
-        GroomerProfile groomer = groomerRepository.findById(req.groomerId())
-                .orElseGet(GroomerProfile::new);
+        GroomerProfile groomer = saveGroomerProfile(new GroomerProfileRequest(
+                req.groomerId(),
+                req.displayName(),
+                req.intro(),
+                req.seniorityYears(),
+                req.isBookable()));
+        List<GroomerServiceResponse> services = replaceServices(groomer.getGroomerId(), req.beautyIds());
 
-        groomer.setGroomerId(req.groomerId());
-        groomer.setDisplayName(req.displayName());
-        groomer.setIntro(req.intro());
-        groomer.setSeniorityYears(req.seniorityYears());
-        groomer.setIsBookable(req.isBookable() == null ? true : req.isBookable());
-        return BeautyMapper.groomer(groomerRepository.save(groomer));
+        return BeautyMapper.groomerManage(groomer, services);
     }
 
     public List<GroomerServiceResponse> getServices(Integer groomerId) {
@@ -115,5 +117,31 @@ public class GroomerService {
         if (beautyIds.stream().anyMatch(Objects::isNull)) {
             throw ApiException.badRequest("美容項目編號不可為空");
         }
+    }
+
+    private GroomerProfile saveGroomerProfile(GroomerProfileRequest req) {
+        if (req == null || req.groomerId() == null) {
+            throw ApiException.badRequest("美容師資料不可為空");
+        }
+
+        employeeRepository.findById(req.groomerId())
+                .orElseThrow(() -> ApiException.badRequest("找不到對應員工"));
+
+        GroomerProfile groomer = groomerRepository.findById(req.groomerId())
+                .orElseGet(GroomerProfile::new);
+
+        groomer.setGroomerId(req.groomerId());
+        groomer.setDisplayName(req.displayName());
+        groomer.setIntro(req.intro());
+        groomer.setSeniorityYears(req.seniorityYears());
+        groomer.setIsBookable(req.isBookable() == null ? true : req.isBookable());
+        return groomerRepository.save(groomer);
+    }
+
+    private void validateManageRequest(GroomerManageRequest req) {
+        if (req == null) {
+            throw ApiException.badRequest("美容師資料不可為空");
+        }
+        validateReplaceServicesRequest(req.groomerId(), req.beautyIds());
     }
 }

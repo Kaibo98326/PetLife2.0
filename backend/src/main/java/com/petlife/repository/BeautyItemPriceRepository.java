@@ -8,5 +8,7 @@ import java.util.Optional;
 public interface BeautyItemPriceRepository extends JpaRepository<BeautyItemPrice, Integer> {
     Optional<BeautyItemPrice> findByBeautyIdAndPetSizeAndIsActiveTrue(Integer beautyId, String petSize);
 
+    Optional<BeautyItemPrice> findByBeautyIdAndPetSize(Integer beautyId, String petSize);
+
     List<BeautyItemPrice> findByBeautyIdOrderByPriceIdAsc(Integer beautyId);
 }
