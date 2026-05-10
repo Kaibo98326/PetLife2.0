@@ -6,6 +6,20 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * [折扣活動實體]
+ * * 💡 欄位與活動類型 (DiscountType) 對應關係表：
+ * --------------------------------------------------------------------------------------------------
+ * 活動代碼 (Code)       | discount_value | buy_quantity | free_quantity | minimum_purchase_amount
+ * --------------------------------------------------------------------------------------------------
+ * 1. PERCENTAGE         | 折扣率 (如 0.8) | -            | -             | 滿額觸發門檻 (通用)
+ * 2. AMOUNT_OFF         | 折抵金額        | -            | -             | 滿額觸發門檻 (通用)
+ * 3. BUY_N_GET_M        | -              | 買 N 件      | 送 M 件       | 滿額觸發門檻 (通用)
+ * 4. CONDITIONAL_ADDON  | 加購價金額      | 主商品需滿 N 件 | -             | 滿額觸發門檻 (通用)
+ * 5. BUNDLE_PRICE       | 組合總價        | 任選 N 件     | -             | 滿額觸發門檻 (通用)
+ * --------------------------------------------------------------------------------------------------
+ * 註："-" 代表該活動不適用該欄位，存檔時建議帶入 NULL。
+ */
 @Entity
 @Table(name = "Discount")
 @Getter
@@ -21,7 +35,7 @@ public class Discount {
     private String discountName;
 
     @Column(name = "status", length = 20)
-    private String status = "active"; // 預設值
+    private String status = "active";
 
     @Column(name = "start_date")
     private LocalDate startDate;
@@ -32,39 +46,36 @@ public class Discount {
     @Column(name = "discount_description", length = 2000)
     private String discountDescription;
 
-    // 關聯到 DiscountType 實體
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "discount_type_id")
     private DiscountType discountType;
 
     @Column(name = "scope_type", nullable = false)
-    private Byte scopeType;
+    private Byte scopeType; // 1:分類, 2:單品
+
+    /* --- 以下為動態規則欄位 --- */
 
     @Column(name = "discount_value", precision = 10, scale = 2)
-    private BigDecimal discountValue;
+    private BigDecimal discountValue; // 折扣率、折抵金額、加購價、組合價
 
     @Column(name = "buy_quantity")
-    private Integer buyQuantity;
+    private Integer buyQuantity; // 買N送M的N、加購/組合的門檻數量
 
     @Column(name = "free_quantity")
-    private Integer freeQuantity;
+    private Integer freeQuantity; // 買N送M的M (贈送數量)
 
     @Column(name = "minimum_purchase_amount", precision = 10, scale = 2)
-    private BigDecimal minimumPurchaseAmount;
+    private BigDecimal minimumPurchaseAmount; // [全活動適用] 觸發活動的最低消費總額
 
-    // 無參數建構子 (JPA 框架必備)
-    // Hibernate 從資料庫撈取資料轉換成 Java 物件時，必須先呼叫這個空的建構子
+    // JPA 必備無參數建構子
     public Discount() {
     }
 
-    //帶參數建構子 
-    // 注意：這裡不包含 discountId，因為它是 IDENTITY 自動遞增的，由資料庫負責產生
+    // 全欄位建構子
     public Discount(String discountName, String status, LocalDate startDate, LocalDate endDate, 
                     String discountDescription, DiscountType discountType, Byte scopeType, 
                     BigDecimal discountValue, Integer buyQuantity, Integer freeQuantity, 
                     BigDecimal minimumPurchaseAmount) {
-        
-        // 將傳入的參數指派給物件的屬性
         this.discountName = discountName;
         this.status = status;
         this.startDate = startDate;

@@ -4,11 +4,12 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.math.BigDecimal;
-
+/*
 @Entity
 @Table(name = "OrderDiscount")
 @Getter
 @Setter
+
 public class OrderDiscount {
 
     // 建議新增的流水號主鍵，滿足 JPA 規範
@@ -52,3 +53,4 @@ public class OrderDiscount {
         this.discountAmount = discountAmount;
     }
 }
+*/

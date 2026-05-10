@@ -8,10 +8,12 @@ import com.petlife.model.Category;
 import com.petlife.model.Discount;
 import com.petlife.model.DiscountCategory;
 import com.petlife.model.DiscountProduct;
+import com.petlife.model.DiscountType;
 import com.petlife.model.Product;
 import com.petlife.repository.DiscountCategoryRepository;
 import com.petlife.repository.DiscountProductRepository;
 import com.petlife.repository.DiscountRepository;
+import com.petlife.repository.DiscountTypeRepository;
 
 import java.util.List;
 
@@ -29,6 +31,14 @@ public class DiscountService {
     
     @Autowired
     private DiscountProductRepository discountProductRepository;
+    
+    @Autowired
+    private DiscountTypeRepository discountTypeRepository; // ✨ 新增這行
+
+    // ✨ 新增這個方法：取得所有折扣類型供前端選單使用
+    public List<DiscountType> getAllDiscountTypes() {
+        return discountTypeRepository.findAll();
+    }
 
     //  查詢：取得所有活動供前端表格顯示
     public List<Discount> getAllDiscounts() {

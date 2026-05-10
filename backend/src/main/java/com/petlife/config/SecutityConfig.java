@@ -18,6 +18,7 @@ public class SecutityConfig {
 					.requestMatchers("/images/**").permitAll()
 	                .requestMatchers("/api/categories/**").permitAll() 
 	                .requestMatchers("/api/products/**").permitAll()
+	                .requestMatchers("/api/discounts", "/api/discounts/**").permitAll() //活動折扣選擇 //活動折扣選擇
 
 					.anyRequest().authenticated()
 					);

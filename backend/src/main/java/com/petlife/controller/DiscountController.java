@@ -1,10 +1,14 @@
 package com.petlife.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.petlife.dto.DiscountRequestDTO;
+import com.petlife.model.Discount;
+import com.petlife.model.DiscountType;
 import com.petlife.service.DiscountService;
 
 
@@ -17,6 +21,20 @@ public class DiscountController {
     @Autowired
     private DiscountService discountService;
 
+
+  
+
+    //  新增這支 API：讓 Vue 來拿折扣類型選單
+    @GetMapping("/types")
+    public ResponseEntity<List<DiscountType>> getDiscountTypes() {
+        try {
+            List<DiscountType> types = discountService.getAllDiscountTypes();
+            return ResponseEntity.ok(types);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
     /**
      * 接收前端 Vue 傳來的新增活動請求
      */
