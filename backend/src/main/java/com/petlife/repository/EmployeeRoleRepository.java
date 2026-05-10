@@ -20,5 +20,10 @@ public interface EmployeeRoleRepository extends JpaRepository<EmployeeRole, Empl
     // 或者用 empId 查角色
     @Query("SELECT er.role FROM EmployeeRole er WHERE er.employee.empId = :empId")
     List<Role> findRolesByEmployeeId(@Param("empId") Integer empId);
+    
+    
+    void deleteByEmployee(Employee employee);
+    
+    boolean existsByRole(Role role);
 	
 }

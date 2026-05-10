@@ -33,6 +33,9 @@ public class CategoryService {
 
 //===== 新增分類 ============================================================================================
     public Category addCategory(Category category) {
+        if (category.getSortOrder() == null) {
+            category.setSortOrder(0);
+        }
         return categoryRepository.save(category);
     }
 

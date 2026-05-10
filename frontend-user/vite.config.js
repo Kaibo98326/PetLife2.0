@@ -17,7 +17,18 @@ export default defineConfig({
   },
   server:{
     proxy:{
-      '/api': 'http://localhost:8082'
+      '/api': {
+        target:'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/images': {
+        target:'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/callback': {
+        target:'http://localhost:8082',
+        changeOrigin: true,
+      }
     }
   }
 })

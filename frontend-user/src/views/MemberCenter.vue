@@ -151,17 +151,16 @@ const handleLogout = () => {
                 <h2>會員中心</h2>
                 <p>會員編號：{{ userStore.user?.memberId }}</p>
                 <p>會員名稱：{{ userStore.user?.memberName }}</p>
-                <p>目前紅利點數：{{ userStore.user?.currentPoints }}</p>
+                <p>目前紅利點數：{{ userStore.user?.bonusPoints }}</p>
             </div>
         </section>
 
         <!-- Menu Grid -->
         <div class="menu-grid">
-            <div class="menu-item" @click="router.push('/member/center/orders')">📦 訂單紀錄</div>
+            <div class="menu-item" @click="router.push('/orderhistory')">📦 訂單紀錄</div>
             <div class="menu-item" @click="router.push('/member/center/profile')">👤 個人資料</div>
-            <div class="menu-item" @click="router.push('/member/center/address')">🏠 收件資訊</div>
             <div class="menu-item" @click="router.push('/member/center/favorites')">❤️ 我的收藏</div>
-            <div class="menu-item" @click="router.push(`/pets/list/${userStore.memberId}`)">🐕 寵物管理</div>
+            <div class="menu-item" @click="router.push('/member/center/pets')">🐕 寵物管理</div>
             <div class="menu-item" @click="router.push('/member/points')">💎 紅利點數</div>
             <div class="menu-item" @click="handleLogout">🔒 登出</div>
         </div>
