@@ -66,7 +66,8 @@ public class AdminBeautyAppointmentService {
 
         if (BeautyConstants.APPOINTMENT_CANCELLED.equals(targetStatus)) {
             appointment.setCancelReason(req.cancelReason());
-            workSlotRepository.deleteByAppointmentId(appointment.getAppointmentId());
+            workSlotRepository.deleteByAppointmentIdAndWorkSlotStatus(appointment.getAppointmentId(),
+                    BeautyConstants.WORK_SLOT_APPOINTMENT);
         }
 
         appointmentRepository.save(appointment);

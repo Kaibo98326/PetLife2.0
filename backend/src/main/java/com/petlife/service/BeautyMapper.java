@@ -4,14 +4,21 @@ import com.petlife.repository.AppointmentDetailLineResponse;
 import com.petlife.repository.AppointmentResponse;
 import com.petlife.repository.AvailableSlotResponse;
 import com.petlife.repository.BeautyItemResponse;
+import com.petlife.repository.BeautyPriceResponse;
 import com.petlife.repository.GroomerResponse;
+import com.petlife.repository.GroomerScheduleResponse;
+import com.petlife.repository.GroomerServiceResponse;
+import com.petlife.repository.GroomerWorkSlotResponse;
 import com.petlife.model.BeautyAppointment;
 import com.petlife.model.BeautyAppointmentDetail;
 import com.petlife.model.BeautyItem;
 import com.petlife.model.BeautyItemPrice;
 import com.petlife.model.BeautyTimeSlot;
+import com.petlife.model.GroomerBeautyItem;
 import com.petlife.model.GroomerProfile;
-import com.petlife.beauty.entity.Pet;
+import com.petlife.model.GroomerSchedule;
+import com.petlife.model.GroomerWorkSlot;
+import com.petlife.model.Pet;
 
 import java.util.List;
 
@@ -31,6 +38,19 @@ public class BeautyMapper {
                 price == null ? null : price.getPetSize());
     }
 
+    public static BeautyItemResponse item(BeautyItem item) {
+        return item(item, null);
+    }
+
+    public static BeautyPriceResponse price(BeautyItemPrice price) {
+        return new BeautyPriceResponse(
+                price.getPriceId(),
+                price.getBeautyId(),
+                price.getPetSize(),
+                price.getItemPrice(),
+                price.getIsActive());
+    }
+
     public static GroomerResponse groomer(GroomerProfile groomer) {
         return new GroomerResponse(
                 groomer.getGroomerId(),
@@ -38,6 +58,35 @@ public class BeautyMapper {
                 groomer.getIntro(),
                 groomer.getSeniorityYears(),
                 groomer.getIsBookable());
+    }
+
+    public static GroomerServiceResponse groomerService(GroomerBeautyItem service) {
+        return new GroomerServiceResponse(
+                service.getGroomerBeautyItemId(),
+                service.getGroomerId(),
+                service.getBeautyId(),
+                service.getIsActive(),
+                service.getNote());
+    }
+
+    public static GroomerScheduleResponse schedule(GroomerSchedule schedule) {
+        return new GroomerScheduleResponse(
+                schedule.getScheduleId(),
+                schedule.getGroomerId(),
+                schedule.getWorkDate(),
+                schedule.getScheduleStatus(),
+                schedule.getNote());
+    }
+
+    public static GroomerWorkSlotResponse workSlot(GroomerWorkSlot workSlot) {
+        return new GroomerWorkSlotResponse(
+                workSlot.getWorkSlotId(),
+                workSlot.getGroomerId(),
+                workSlot.getWorkDate(),
+                workSlot.getSlotId(),
+                workSlot.getAppointmentId(),
+                workSlot.getWorkSlotStatus(),
+                workSlot.getNote());
     }
 
     public static AvailableSlotResponse slot(BeautyTimeSlot slot) {

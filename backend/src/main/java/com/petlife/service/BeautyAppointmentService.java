@@ -22,6 +22,7 @@ import com.petlife.repository.GroomerBeautyItemRepository;
 import com.petlife.repository.GroomerProfileRepository;
 import com.petlife.repository.GroomerWorkSlotRepository;
 import com.petlife.repository.PetRepository;
+import com.petlife.repository.RescheduleAppointmentRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,10 +74,12 @@ public class BeautyAppointmentService {
 
     @Transactional
     public AppointmentResponse createAppointment(Integer memberId, CreateBeautyAppointmentRequest req) {
+        validateCreateRequest(memberId, req);
+
         Pet pet = petRepository.findById(req.petId())
                 .orElseThrow(() -> ApiException.notFound("找不到寵物"));
 
-        if (!Objects.equals(pet.getMemberId(), memberId)) {
+        if (pet.getMember() == null || !Objects.equals(pet.getMember().getMemberId(), memberId)) {
             throw ApiException.forbidden("不可替其他會員的寵物預約");
         }
 
@@ -104,6 +107,7 @@ public class BeautyAppointmentService {
         Map<Integer, BeautyItemPrice> priceMap = new HashMap<>();
         int totalSlots = 0;
         BigDecimal totalAmount = BigDecimal.ZERO;
+        String petSize = resolvePetSize(pet);
 
         for (Integer beautyId : beautyIds) {
             BeautyItem item = itemMap.get(beautyId);
@@ -113,31 +117,23 @@ public class BeautyAppointmentService {
             }
 
             BeautyItemPrice price = priceRepository
-                    .findByBeautyIdAndPetSizeAndIsActiveTrue(beautyId, pet.getPetSize())
+                    .findByBeautyIdAndPetSizeAndIsActiveTrue(beautyId, petSize)
                     .orElseThrow(() -> ApiException.badRequest("找不到項目價格：" + item.getItemName()));
+
+            if (item.getDurationSlots() == null || item.getDurationSlots() <= 0) {
+                throw ApiException.badRequest("美容項目時長設定不正確：" + item.getItemName());
+            }
+            if (price.getItemPrice() == null) {
+                throw ApiException.badRequest("美容項目價格不可為空：" + item.getItemName());
+            }
 
             priceMap.put(beautyId, price);
             totalSlots += item.getDurationSlots();
             totalAmount = totalAmount.add(price.getItemPrice());
         }
 
-        List<BeautyTimeSlot> occupiedSlots = availabilityService.resolveContinuousSlots(req.startSlotId(), totalSlots);
-        List<Integer> occupiedSlotIds = occupiedSlots.stream()
-                .map(BeautyTimeSlot::getSlotId)
-                .toList();
-
-        if (!workSlotRepository
-                .findByGroomerIdAndWorkDateAndSlotIdIn(req.groomerId(), req.appointDate(), occupiedSlotIds).isEmpty()) {
-            throw ApiException.badRequest("選取時段已被預約或封鎖");
-        }
-
-        boolean available = availabilityService.findAvailableStartSlots(req.groomerId(), req.appointDate(), totalSlots)
-                .stream()
-                .anyMatch(slot -> Objects.equals(slot.slotId(), req.startSlotId()));
-
-        if (!available) {
-            throw ApiException.badRequest("此起始時段不可預約");
-        }
+        List<BeautyTimeSlot> occupiedSlots = validateAvailableSlots(req.groomerId(), req.appointDate(),
+                req.startSlotId(), totalSlots);
 
         BeautyAppointment appointment = new BeautyAppointment();
         appointment.setMemberId(memberId);
@@ -145,7 +141,7 @@ public class BeautyAppointmentService {
         appointment.setGroomerId(req.groomerId());
         appointment.setAppointDate(req.appointDate());
         appointment.setStartSlotId(req.startSlotId());
-        appointment.setPetSizeSnapshot(pet.getPetSize());
+        appointment.setPetSizeSnapshot(petSize);
         appointment.setTotalSlots(totalSlots);
         appointment.setTotalAmount(totalAmount);
         appointment.setAppointmentStatus(BeautyConstants.APPOINTMENT_PENDING);
@@ -172,8 +168,9 @@ public class BeautyAppointmentService {
 
         detailRepository.saveAll(details);
 
+        assertSlotsStillAvailable(req.groomerId(), req.appointDate(), occupiedSlots);
         BeautyAppointment savedAppointment = appointment;
-        workSlotRepository.saveAll(occupiedSlots.stream().map(slot -> {
+        workSlotRepository.saveAllAndFlush(occupiedSlots.stream().map(slot -> {
             GroomerWorkSlot workSlot = new GroomerWorkSlot();
             workSlot.setGroomerId(req.groomerId());
             workSlot.setWorkDate(req.appointDate());
@@ -206,6 +203,13 @@ public class BeautyAppointmentService {
 
     @Transactional
     public AppointmentResponse cancelByMember(Integer memberId, Integer id, CancelAppointmentRequest req) {
+        if (memberId == null) {
+            throw ApiException.badRequest("會員編號不可為空");
+        }
+        if (id == null) {
+            throw ApiException.badRequest("預約單編號不可為空");
+        }
+
         BeautyAppointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("找不到預約單"));
 
@@ -218,7 +222,55 @@ public class BeautyAppointmentService {
     }
 
     @Transactional
+    public AppointmentResponse rescheduleByMember(Integer memberId, Integer id, RescheduleAppointmentRequest req) {
+        validateRescheduleRequest(memberId, id, req);
+
+        BeautyAppointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> ApiException.notFound("找不到預約單"));
+
+        if (!Objects.equals(appointment.getMemberId(), memberId)) {
+            throw ApiException.forbidden("不可改期其他會員預約單");
+        }
+
+        validateReschedulableStatus(appointment.getAppointmentStatus());
+
+        if (Objects.equals(appointment.getAppointDate(), req.appointDate())
+                && Objects.equals(appointment.getStartSlotId(), req.startSlotId())) {
+            return toResponse(appointment);
+        }
+
+        workSlotRepository.deleteByAppointmentIdAndWorkSlotStatus(appointment.getAppointmentId(),
+                BeautyConstants.WORK_SLOT_APPOINTMENT);
+        workSlotRepository.flush();
+
+        List<BeautyTimeSlot> occupiedSlots = validateAvailableSlots(appointment.getGroomerId(), req.appointDate(),
+                req.startSlotId(), appointment.getTotalSlots());
+
+        assertSlotsStillAvailable(appointment.getGroomerId(), req.appointDate(), occupiedSlots);
+
+        appointment.setAppointDate(req.appointDate());
+        appointment.setStartSlotId(req.startSlotId());
+        BeautyAppointment savedAppointment = appointmentRepository.save(appointment);
+
+        workSlotRepository.saveAllAndFlush(occupiedSlots.stream().map(slot -> {
+            GroomerWorkSlot workSlot = new GroomerWorkSlot();
+            workSlot.setGroomerId(savedAppointment.getGroomerId());
+            workSlot.setWorkDate(savedAppointment.getAppointDate());
+            workSlot.setSlotId(slot.getSlotId());
+            workSlot.setAppointmentId(savedAppointment.getAppointmentId());
+            workSlot.setWorkSlotStatus(BeautyConstants.WORK_SLOT_APPOINTMENT);
+            return workSlot;
+        }).toList());
+
+        return toResponse(savedAppointment);
+    }
+
+    @Transactional
     public void cancel(BeautyAppointment appointment, String reason) {
+        if (appointment == null || appointment.getAppointmentId() == null) {
+            throw ApiException.badRequest("預約單資料不可為空");
+        }
+
         String status = appointment.getAppointmentStatus();
 
         if (BeautyConstants.APPOINTMENT_DONE.equals(status)
@@ -230,7 +282,8 @@ public class BeautyAppointmentService {
         appointment.setAppointmentStatus(BeautyConstants.APPOINTMENT_CANCELLED);
         appointment.setCancelReason(reason);
         appointmentRepository.save(appointment);
-        workSlotRepository.deleteByAppointmentId(appointment.getAppointmentId());
+        workSlotRepository.deleteByAppointmentIdAndWorkSlotStatus(appointment.getAppointmentId(),
+                BeautyConstants.WORK_SLOT_APPOINTMENT);
     }
 
     public AppointmentResponse toResponse(BeautyAppointment appointment) {
@@ -241,5 +294,108 @@ public class BeautyAppointmentService {
                 .findByAppointmentIdOrderByLineNoAsc(appointment.getAppointmentId());
 
         return BeautyMapper.appointment(appointment, pet, groomer, slot, details);
+    }
+
+    private String resolvePetSize(Pet pet) {
+        Double weight = pet.getWeight();
+        if (weight == null) {
+            throw ApiException.badRequest("寵物體重不可為空，無法判斷美容價格級距");
+        }
+        if (weight <= 10) {
+            return "小型";
+        }
+        if (weight <= 20) {
+            return "中型";
+        }
+        return "大型";
+    }
+
+    private void validateCreateRequest(Integer memberId, CreateBeautyAppointmentRequest req) {
+        if (memberId == null) {
+            throw ApiException.badRequest("會員編號不可為空");
+        }
+        if (req == null) {
+            throw ApiException.badRequest("預約資料不可為空");
+        }
+        if (req.petId() == null) {
+            throw ApiException.badRequest("寵物編號不可為空");
+        }
+        if (req.groomerId() == null) {
+            throw ApiException.badRequest("美容師編號不可為空");
+        }
+        if (req.appointDate() == null) {
+            throw ApiException.badRequest("預約日期不可為空");
+        }
+        if (req.startSlotId() == null) {
+            throw ApiException.badRequest("起始時段不可為空");
+        }
+        if (req.beautyIds() == null || req.beautyIds().isEmpty()) {
+            throw ApiException.badRequest("至少需選擇一個美容項目");
+        }
+        if (req.beautyIds().stream().anyMatch(Objects::isNull)) {
+            throw ApiException.badRequest("美容項目編號不可為空");
+        }
+    }
+
+    private void validateRescheduleRequest(Integer memberId, Integer id, RescheduleAppointmentRequest req) {
+        if (memberId == null) {
+            throw ApiException.badRequest("會員編號不可為空");
+        }
+        if (id == null) {
+            throw ApiException.badRequest("預約單編號不可為空");
+        }
+        if (req == null) {
+            throw ApiException.badRequest("改期資料不可為空");
+        }
+        if (req.appointDate() == null) {
+            throw ApiException.badRequest("新預約日期不可為空");
+        }
+        if (req.startSlotId() == null) {
+            throw ApiException.badRequest("新起始時段不可為空");
+        }
+    }
+
+    private void validateReschedulableStatus(String status) {
+        if (!BeautyConstants.APPOINTMENT_PENDING.equals(status)
+                && !BeautyConstants.APPOINTMENT_CONFIRMED.equals(status)) {
+            throw ApiException.badRequest("目前狀態不可改期");
+        }
+    }
+
+    private List<BeautyTimeSlot> validateAvailableSlots(Integer groomerId, java.time.LocalDate appointDate,
+            Integer startSlotId, Integer totalSlots) {
+        if (totalSlots == null || totalSlots <= 0) {
+            throw ApiException.badRequest("預約占用時段數不正確");
+        }
+
+        List<BeautyTimeSlot> occupiedSlots = availabilityService.resolveContinuousSlots(startSlotId, totalSlots);
+        List<Integer> occupiedSlotIds = occupiedSlots.stream()
+                .map(BeautyTimeSlot::getSlotId)
+                .toList();
+
+        if (workSlotRepository.existsByGroomerIdAndWorkDateAndSlotIdIn(groomerId, appointDate, occupiedSlotIds)) {
+            throw ApiException.badRequest("選取時段已被預約或封鎖");
+        }
+
+        boolean available = availabilityService.findAvailableStartSlots(groomerId, appointDate, totalSlots)
+                .stream()
+                .anyMatch(slot -> Objects.equals(slot.slotId(), startSlotId));
+
+        if (!available) {
+            throw ApiException.badRequest("此起始時段不可預約");
+        }
+
+        return occupiedSlots;
+    }
+
+    private void assertSlotsStillAvailable(Integer groomerId, java.time.LocalDate appointDate,
+            List<BeautyTimeSlot> occupiedSlots) {
+        List<Integer> occupiedSlotIds = occupiedSlots.stream()
+                .map(BeautyTimeSlot::getSlotId)
+                .toList();
+
+        if (workSlotRepository.existsByGroomerIdAndWorkDateAndSlotIdIn(groomerId, appointDate, occupiedSlotIds)) {
+            throw ApiException.badRequest("選取時段已被預約或封鎖");
+        }
     }
 }

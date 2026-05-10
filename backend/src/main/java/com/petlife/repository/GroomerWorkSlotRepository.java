@@ -12,5 +12,7 @@ public interface GroomerWorkSlotRepository extends JpaRepository<GroomerWorkSlot
     List<GroomerWorkSlot> findByGroomerIdAndWorkDateAndSlotIdIn(Integer groomerId, LocalDate workDate,
             Collection<Integer> slotIds);
 
-    void deleteByAppointmentId(Integer appointmentId);
+    boolean existsByGroomerIdAndWorkDateAndSlotIdIn(Integer groomerId, LocalDate workDate, Collection<Integer> slotIds);
+
+    void deleteByAppointmentIdAndWorkSlotStatus(Integer appointmentId, String workSlotStatus);
 }

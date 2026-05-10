@@ -4,6 +4,7 @@ import com.petlife.config.ApiException;
 import com.petlife.repository.BeautyItemRequest;
 import com.petlife.repository.BeautyPriceRequest;
 import com.petlife.repository.BeautyItemResponse;
+import com.petlife.repository.BeautyPriceResponse;
 import com.petlife.model.BeautyItem;
 import com.petlife.model.BeautyItemPrice;
 import com.petlife.repository.BeautyItemPriceRepository;
@@ -37,22 +38,25 @@ public class BeautyItemService {
                 .toList();
     }
 
-    public List<BeautyItem> getAllItems() {
-        return itemRepository.findAllByOrderByBeautyIdAsc();
+    public List<BeautyItemResponse> getAllItems() {
+        return itemRepository.findAllByOrderByBeautyIdAsc()
+                .stream()
+                .map(BeautyMapper::item)
+                .toList();
     }
 
     @Transactional
-    public BeautyItem createItem(BeautyItemRequest req) {
+    public BeautyItemResponse createItem(BeautyItemRequest req) {
         BeautyItem item = new BeautyItem();
         item.setItemName(req.itemName());
         item.setItemDescription(req.itemDescription());
         item.setDurationSlots(req.durationSlots());
         item.setIsActive(req.isActive() == null ? true : req.isActive());
-        return itemRepository.save(item);
+        return BeautyMapper.item(itemRepository.save(item));
     }
 
     @Transactional
-    public BeautyItem updateItem(Integer id, BeautyItemRequest req) {
+    public BeautyItemResponse updateItem(Integer id, BeautyItemRequest req) {
         BeautyItem item = itemRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("找不到美容項目"));
 
@@ -60,15 +64,18 @@ public class BeautyItemService {
         item.setItemDescription(req.itemDescription());
         item.setDurationSlots(req.durationSlots());
         item.setIsActive(req.isActive() == null ? item.getIsActive() : req.isActive());
-        return itemRepository.save(item);
+        return BeautyMapper.item(itemRepository.save(item));
     }
 
-    public List<BeautyItemPrice> getPrices(Integer beautyId) {
-        return priceRepository.findByBeautyIdOrderByPriceIdAsc(beautyId);
+    public List<BeautyPriceResponse> getPrices(Integer beautyId) {
+        return priceRepository.findByBeautyIdOrderByPriceIdAsc(beautyId)
+                .stream()
+                .map(BeautyMapper::price)
+                .toList();
     }
 
     @Transactional
-    public BeautyItemPrice createPrice(Integer beautyId, BeautyPriceRequest req) {
+    public BeautyPriceResponse createPrice(Integer beautyId, BeautyPriceRequest req) {
         itemRepository.findById(beautyId)
                 .orElseThrow(() -> ApiException.notFound("找不到美容項目"));
 
@@ -77,17 +84,17 @@ public class BeautyItemService {
         price.setPetSize(req.petSize());
         price.setItemPrice(req.itemPrice());
         price.setIsActive(req.isActive() == null ? true : req.isActive());
-        return priceRepository.save(price);
+        return BeautyMapper.price(priceRepository.save(price));
     }
 
     @Transactional
-    public BeautyItemPrice updatePrice(Integer priceId, BeautyPriceRequest req) {
+    public BeautyPriceResponse updatePrice(Integer priceId, BeautyPriceRequest req) {
         BeautyItemPrice price = priceRepository.findById(priceId)
                 .orElseThrow(() -> ApiException.notFound("找不到價格"));
 
         price.setPetSize(req.petSize());
         price.setItemPrice(req.itemPrice());
         price.setIsActive(req.isActive() == null ? price.getIsActive() : req.isActive());
-        return priceRepository.save(price);
+        return BeautyMapper.price(priceRepository.save(price));
     }
 }

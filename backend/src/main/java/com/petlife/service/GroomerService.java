@@ -3,8 +3,11 @@ package com.petlife.service;
 import com.petlife.config.ApiException;
 import com.petlife.repository.GroomerProfileRequest;
 import com.petlife.repository.GroomerResponse;
+import com.petlife.repository.GroomerServiceResponse;
+import com.petlife.model.BeautyItem;
 import com.petlife.model.GroomerBeautyItem;
 import com.petlife.model.GroomerProfile;
+import com.petlife.repository.BeautyItemRepository;
 import com.petlife.repository.GroomerBeautyItemRepository;
 import com.petlife.repository.GroomerProfileRepository;
 import com.petlife.repository.EmployeeRepository;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class GroomerService {
@@ -19,14 +23,17 @@ public class GroomerService {
     private final GroomerProfileRepository groomerRepository;
     private final GroomerBeautyItemRepository serviceRepository;
     private final EmployeeRepository employeeRepository;
+    private final BeautyItemRepository itemRepository;
 
     public GroomerService(
             GroomerProfileRepository groomerRepository,
             GroomerBeautyItemRepository serviceRepository,
-            EmployeeRepository employeeRepository) {
+            EmployeeRepository employeeRepository,
+            BeautyItemRepository itemRepository) {
         this.groomerRepository = groomerRepository;
         this.serviceRepository = serviceRepository;
         this.employeeRepository = employeeRepository;
+        this.itemRepository = itemRepository;
     }
 
     public List<GroomerResponse> getAllGroomers() {
@@ -37,7 +44,11 @@ public class GroomerService {
     }
 
     @Transactional
-    public GroomerProfile upsertGroomer(GroomerProfileRequest req) {
+    public GroomerResponse upsertGroomer(GroomerProfileRequest req) {
+        if (req == null || req.groomerId() == null) {
+            throw ApiException.badRequest("美容師資料不可為空");
+        }
+
         employeeRepository.findById(req.groomerId())
                 .orElseThrow(() -> ApiException.badRequest("找不到對應員工"));
 
@@ -49,26 +60,60 @@ public class GroomerService {
         groomer.setIntro(req.intro());
         groomer.setSeniorityYears(req.seniorityYears());
         groomer.setIsBookable(req.isBookable() == null ? true : req.isBookable());
-        return groomerRepository.save(groomer);
+        return BeautyMapper.groomer(groomerRepository.save(groomer));
     }
 
-    public List<GroomerBeautyItem> getServices(Integer groomerId) {
-        return serviceRepository.findByGroomerIdOrderByBeautyIdAsc(groomerId);
+    public List<GroomerServiceResponse> getServices(Integer groomerId) {
+        return serviceRepository.findByGroomerIdOrderByBeautyIdAsc(groomerId)
+                .stream()
+                .map(BeautyMapper::groomerService)
+                .toList();
     }
 
     @Transactional
-    public List<GroomerBeautyItem> replaceServices(Integer groomerId, List<Integer> beautyIds) {
+    public List<GroomerServiceResponse> replaceServices(Integer groomerId, List<Integer> beautyIds) {
+        validateReplaceServicesRequest(groomerId, beautyIds);
+
         groomerRepository.findById(groomerId)
                 .orElseThrow(() -> ApiException.notFound("找不到美容師"));
 
+        List<Integer> distinctBeautyIds = beautyIds.stream().distinct().toList();
+        List<BeautyItem> items = itemRepository.findAllById(distinctBeautyIds);
+
+        if (items.size() != distinctBeautyIds.size()) {
+            throw ApiException.badRequest("部分美容項目不存在");
+        }
+
+        items.stream()
+                .filter(item -> !Boolean.TRUE.equals(item.getIsActive()))
+                .findFirst()
+                .ifPresent(item -> {
+                    throw ApiException.badRequest("美容項目已停用：" + item.getItemName());
+                });
+
         serviceRepository.deleteByGroomerId(groomerId);
 
-        return serviceRepository.saveAll(beautyIds.stream().distinct().map(beautyId -> {
-            GroomerBeautyItem row = new GroomerBeautyItem();
-            row.setGroomerId(groomerId);
-            row.setBeautyId(beautyId);
-            row.setIsActive(true);
-            return row;
-        }).toList());
+        return serviceRepository.saveAll(distinctBeautyIds.stream().map(beautyId -> {
+                    GroomerBeautyItem row = new GroomerBeautyItem();
+                    row.setGroomerId(groomerId);
+                    row.setBeautyId(beautyId);
+                    row.setIsActive(true);
+                    return row;
+                }).toList())
+                .stream()
+                .map(BeautyMapper::groomerService)
+                .toList();
+    }
+
+    private void validateReplaceServicesRequest(Integer groomerId, List<Integer> beautyIds) {
+        if (groomerId == null) {
+            throw ApiException.badRequest("美容師編號不可為空");
+        }
+        if (beautyIds == null || beautyIds.isEmpty()) {
+            throw ApiException.badRequest("至少需選擇一個美容項目");
+        }
+        if (beautyIds.stream().anyMatch(Objects::isNull)) {
+            throw ApiException.badRequest("美容項目編號不可為空");
+        }
     }
 }
