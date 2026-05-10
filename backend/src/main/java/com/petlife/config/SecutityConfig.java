@@ -29,6 +29,7 @@ public class SecutityConfig {
 	                .requestMatchers("/api/checkout/**").permitAll()
 	                .requestMatchers("/api/checkoutsuccess/**").permitAll()
 	                .requestMatchers("/api/productorders/**").permitAll()
+	                .requestMatchers("/api/order/**").permitAll()
 	                
 					.anyRequest().authenticated()
 					);

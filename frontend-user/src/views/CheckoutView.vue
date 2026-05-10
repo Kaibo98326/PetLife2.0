@@ -67,7 +67,7 @@ const submitOrder = async () => {
   // 三種支付方式都跳出確認框
   const result = await Swal.fire({
     title: '確認下單',
-    text: `您選擇了 ${orderForm.value.paymentMethod}，是否要送出訂單？`,
+    text: `您選擇了 ${orderForm.value.paymentMethod}付款，是否要送出訂單？`,
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: '確定',

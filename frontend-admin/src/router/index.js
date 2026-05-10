@@ -52,7 +52,7 @@ const routes = [
         component: () => import('@/views/ProductEdit.vue'),
       },
       {
-        path: '/order',
+        path: 'order',
         name: '訂單管理',
         component: OrderAdminView,
       },

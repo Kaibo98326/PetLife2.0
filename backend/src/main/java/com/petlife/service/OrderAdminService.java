@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,9 +24,8 @@ public class OrderAdminService {
     public List<Order> findActiveOrders(String search) {
         if (search != null && !search.trim().isEmpty()) {
             return orderRepository.findByOrderNameContainingAndIsDeletedFalseOrderByOrderDateAsc(search);
-        } else {
-            return orderRepository.findByIsDeletedFalseOrderByOrderDateDesc();
         }
+        return orderRepository.findByIsDeletedFalseOrderByOrderDateDesc();
     }
 
     // 取得訂單詳細明細

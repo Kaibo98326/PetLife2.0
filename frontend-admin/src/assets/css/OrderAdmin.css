@@ -208,17 +208,24 @@
 .action-btns {
   display: flex;
   gap: 8px;
+  min-width: 150px; /* 給予足夠的最小寬度 */
 }
+
 .btn-icon {
-  width: 35px;
-  height: 35px;
+  width: auto; /* 從 35px 改為自動，以容納文字 */
+  height: 36px;
+  padding: 0 12px; /* 加上左右內距 */
   border-radius: 10px;
   border: none;
-  display: flex;
+  display: inline-flex; /* 改為 inline-flex 讓文字圖示並排 */
   align-items: center;
   justify-content: center;
+  gap: 6px; /* 文字與圖示的間距 */
   cursor: pointer;
   transition: 0.3s;
+  font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap; /* 防止文字換行 */
 }
 .btn-icon.edit {
   background: #e3f2fd;
@@ -233,7 +240,8 @@
   color: #c62828;
 }
 .btn-icon:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  filter: brightness(0.95);
 }
 
 .edit-select select {
@@ -344,4 +352,75 @@
 .custom-table td {
   padding: 1rem 0.8rem; /* 稍微縮小內距 */
   white-space: nowrap; /* 防止點數換行 */
+}
+/* --- Pagination Bar --- */
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: #fff;
+  border-top: 1px solid #f1f1f1;
+}
+
+.page-info {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.p-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #ffe0b2;
+  background: white;
+  color: #e65100;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: 0.2s;
+}
+
+.p-btn:hover:not(:disabled) {
+  background: #fff3e0;
+  border-color: #ff9800;
+}
+
+.p-btn:disabled {
+  background: #fafafa;
+  color: #ccc;
+  border-color: #eee;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 5px;
+}
+
+.num-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.num-btn:hover {
+  background: #f5f5f5;
+}
+
+.num-btn.active {
+  background: #ff9800;
+  color: white;
+  border-color: #ff9800;
 }

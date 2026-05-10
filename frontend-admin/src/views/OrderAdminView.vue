@@ -1,6 +1,5 @@
 <template>
   <div class="admin-container">
-    <!-- 頂部標題與搜尋區塊 -->
     <header class="dashboard-header">
       <div class="header-content">
         <h2 class="title">
@@ -20,7 +19,6 @@
       </div>
     </header>
 
-    <!-- 錯誤訊息提示 -->
     <Transition name="fade">
       <div v-if="errorMessage" class="error-banner">
         <i class="bi bi-exclamation-triangle-fill"></i>
@@ -29,36 +27,34 @@
       </div>
     </Transition>
 
-    <!-- 數據概覽區 -->
     <div class="stats-row">
       <div class="stat-mini orange-solid">
         <div class="mini-content">
           <span class="mini-label">訂單總量</span>
-          <span class="mini-value">{{ orders?.length || 0 }}</span>
+          <span class="mini-value">{{ orders?.length || 0 }} 筆</span>
         </div>
         <i class="bi bi-collection-fill"></i>
       </div>
       <div class="stat-mini status-working">
         <div class="mini-content">
-          <span class="mini-label">待處理</span>
+          <span class="mini-label">處理中</span>
           <span class="mini-value">{{
             (orders || []).filter((o) => o.orderStatus === '處理中').length
-          }}</span>
+          }} 筆</span>
         </div>
         <i class="bi bi-clock-history"></i>
       </div>
       <div class="stat-mini status-done">
         <div class="mini-content">
-          <span class="mini-label">已結案</span>
+          <span class="mini-label">已完成</span>
           <span class="mini-value">{{
             (orders || []).filter((o) => o.orderStatus === '已完成').length
-          }}</span>
+          }} 筆</span>
         </div>
         <i class="bi bi-check2-circle"></i>
       </div>
     </div>
 
-    <!-- 主要表格區塊 -->
     <div class="main-card shadow-lg">
       <div class="table-responsive">
         <table class="custom-table">
@@ -79,11 +75,10 @@
           <tbody>
             <TransitionGroup name="list">
               <tr
-                v-for="order in orders"
+                v-for="order in paginatedOrders"
                 :key="order.orderId"
                 :class="{ 'is-editing': order.isEditing }"
               >
-                <!-- 以下為唯讀 -->
                 <td>
                   <span class="order-id" @click="openDetail(order.orderId)">
                     #{{ order.orderId }}
@@ -109,14 +104,12 @@
                   <span class="price-tag">${{ order.orderTotal }}</span>
                 </td>
 
-                <!-- 以下為可編輯 -->
                 <td>
                   <div v-if="order.isEditing" class="edit-select">
                     <select v-model="order.orderStatus">
                       <option value="處理中">處理中</option>
-                      <option value="已完成">已完成</option>
                       <option value="已取消">已取消</option>
-                      <option value="已退款">已退款</option>
+                      <option value="已完成">已完成</option>
                     </select>
                   </div>
                   <span v-else :class="['status-pill', getStatusType(order.orderStatus)]">
@@ -126,41 +119,36 @@
                 <td>
                   <div v-if="order.isEditing" class="edit-select">
                     <select v-model="order.orderPayment">
-                      <option value="金融卡付款">金融卡付款</option>
-                      <option value="信用卡付款">信用卡付款</option>
+                      <option value="金融卡">金融卡</option>
+                      <option value="信用卡">信用卡</option>
                       <option value="LinePay">LinePay</option>
                     </select>
                   </div>
                   <span v-else class="payment-text">{{ order.orderPayment }}</span>
                 </td>
-
-                <!-- 編輯區 -->
                 <td>
-                  <div class="action-btns">
-                    <!-- 非編輯狀態：修改、刪除 -->
-                    <template v-if="!order.isEditing">
-                      <button class="btn-icon edit" @click="order.isEditing = true">
-                        修改 <i class="bi bi-pencil-square"></i>
-                      </button>
-                      <button class="btn-icon delete" @click="deleteOrder(order.orderId)">
-                        刪除 <i class="bi bi-trash3"></i>
-                      </button>
-                    </template>
-
-                    <!-- 編輯狀態：儲存、取消 -->
-                    <template v-else>
-                      <button class="btn-icon save" @click="saveOrder(order)">
-                        儲存 <i class="bi bi-check-lg"></i>
-                      </button>
-                      <button
-                        class="btn-icon cancel"
-                        @click="order.isEditing = false"
-                        style="background: #eee"
-                      >
-                        取消 <i class="bi bi-x-lg"></i>
-                      </button>
-                    </template>
-                  </div>
+                 <div class="action-btns">
+                  <template v-if="!order.isEditing">
+                    <button class="btn-icon edit" @click="order.isEditing = true">
+                      修改 <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn-icon delete" @click="deleteOrder(order.orderId)">
+                      刪除 <i class="bi bi-trash3"></i>
+                    </button>
+                  </template>
+                                  <template v-else>
+                    <button class="btn-icon save" @click="saveOrder(order)">
+                      儲存 <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button
+                      class="btn-icon cancel"
+                      @click="order.isEditing = false"
+                      style="background: #eee; color: #666;"
+                    >
+                      取消 <i class="bi bi-x-lg"></i>
+                    </button>
+                  </template>
+                </div>
                 </td>
               </tr>
             </TransitionGroup>
@@ -168,9 +156,54 @@
         </table>
         <div v-if="!orders.length && !errorMessage" class="empty-state">目前沒有符合條件的訂單</div>
       </div>
+
+      <div class="pagination-bar" v-if="orders.length > 0">
+        <div class="page-info">
+          共 {{ orders.length }} 筆訂單，第 {{ currentPage }} / {{ totalPages }} 頁
+        </div>
+        <div class="page-controls">
+          <button 
+            class="p-btn" 
+            :disabled="currentPage === 1" 
+            @click="currentPage = 1"
+          >« 
+          </button>
+          <button 
+            class="p-btn" 
+            :disabled="currentPage === 1" 
+            @click="currentPage--"
+          >上一頁
+          </button>
+          
+          <div class="page-numbers">
+            <button 
+              v-for="p in totalPages" 
+              :key="p" 
+              class="num-btn"
+              :class="{ active: currentPage === p }"
+              @click="currentPage = p"
+              v-show="Math.abs(p - currentPage) < 3"
+            >
+              {{ p }}
+            </button>
+          </div>
+
+          <button 
+            class="p-btn" 
+            :disabled="currentPage === totalPages" 
+            @click="currentPage++"
+          >下一頁
+          </button>
+          <button 
+            class="p-btn" 
+            :disabled="currentPage === totalPages" 
+            @click="currentPage = totalPages"
+          > »
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- 明細彈窗 (Modal) -->
     <Transition name="zoom">
       <div v-if="selectedOrderId" class="glass-overlay" @click.self="selectedOrderId = null">
         <div class="glass-modal large">
@@ -188,7 +221,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import OrderDetailAdminView from './OrderDetailAdminView.vue'
 import { useEmployeeStore } from '@/stores/employee'
 
@@ -198,6 +231,27 @@ const orders = ref([])
 const searchQuery = ref('')
 const errorMessage = ref('')
 const selectedOrderId = ref(null)
+
+// --- 分頁邏輯變數 ---
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+// 計算總頁數
+const totalPages = computed(() => {
+  return Math.ceil(orders.value.length / itemsPerPage) || 1
+})
+
+// 計算當前頁面要顯示的數據
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return orders.value.slice(start, end)
+})
+
+// 當搜尋時，自動回到第一頁
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
 
 // 取得所有訂單
 const fetchOrders = async () => {
@@ -215,6 +269,7 @@ const fetchOrders = async () => {
 
     const data = await res.json()
     orders.value = Array.isArray(data) ? data.map((o) => ({ ...o, isEditing: false })) : []
+    currentPage.value = 1 // 重新讀取數據後回到第一頁
   } catch (err) {
     errorMessage.value = err.message
   }
@@ -245,14 +300,14 @@ const saveOrder = async (order) => {
 
     order.isEditing = false
     alert('訂單更新成功！')
-    fetchOrders() // 重新刷新列表
+    fetchOrders() 
   } catch (err) {
     errorMessage.value = err.message
     alert('錯誤: ' + err.message)
   }
 }
 
-// 刪除訂單(軟刪)
+// 刪除訂單
 const deleteOrder = async (id) => {
   if (!confirm(`確定要永久刪除訂單 #${id} 嗎？此操作將無法從清單中撤銷。`)) return
 
@@ -267,7 +322,6 @@ const deleteOrder = async (id) => {
 
     if (!response.ok) throw new Error('伺服器處理失敗')
 
-    // 從前端移除或重新抓取
     orders.value = orders.value.filter((o) => o.orderId !== id)
     alert('訂單已刪除成功。')
   } catch (err) {
@@ -279,7 +333,7 @@ const deleteOrder = async (id) => {
 const formatDate = (s) => (s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '-')
 
 const getStatusType = (status) => {
-  const map = { 已完成: 'success', 已取消: 'danger', 已退款: 'danger' }
+  const map = { 已完成: 'success', 已取消: 'danger', 處理中: 'warning' }
   return map[status] || 'warning'
 }
 
