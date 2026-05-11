@@ -1,4 +1,4 @@
-package com.petlife.dto;
+package com.petlife.repository;
 
 
 import lombok.Getter;

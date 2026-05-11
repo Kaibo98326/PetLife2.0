@@ -31,6 +31,6 @@ public class DiscountType {
         this.discountCode = discountCode;
     }
 
-    // 原本這裡一堆的 getDiscountTypeId() 和 setDiscountTypeId() 等方法，
+    // 這裡一堆的 getDiscountTypeId() 和 setDiscountTypeId() 等方法，
     // 現在全部都可以刪除不寫了，因為頂部的註解已經幫我們處理好了！
 }

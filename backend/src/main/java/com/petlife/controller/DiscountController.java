@@ -6,9 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.petlife.dto.DiscountRequestDTO;
+
 import com.petlife.model.Discount;
 import com.petlife.model.DiscountType;
+import com.petlife.repository.DiscountRequestDTO;
 import com.petlife.service.DiscountService;
 
 
@@ -50,7 +51,7 @@ public class DiscountController {
     @PostMapping("/save")
     public ResponseEntity<String> saveDiscount(@RequestBody DiscountRequestDTO request) {
         try {
-            // ✨ 修正：把第 5 個參數 (addonCategoryIds) 傳遞給 Service
+            // 第 5 個參數 (addonCategoryIds) 傳遞給 Service
             discountService.saveDiscountWithDetails(
                 request.getDiscount(), 
                 request.getCategoryIds(), 
@@ -62,6 +63,43 @@ public class DiscountController {
             return ResponseEntity.ok("活動儲存成功！");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("活動儲存失敗：" + e.getMessage());
+        }
+    }
+    
+    
+    /**
+     * 接收前端 Vue 傳來的修改活動請求
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateDiscount(@PathVariable Integer id, @RequestBody DiscountRequestDTO request) {
+        try {
+            // ✨ 關鍵：把網址上的 ID 塞入 discount 物件中
+            // 這樣 Spring Data JPA 存檔時，才會知道這是「更新舊資料」而不是「新增一筆」
+            request.getDiscount().setDiscountId(id);
+            
+            discountService.saveDiscountWithDetails(
+                request.getDiscount(), 
+                request.getCategoryIds(), 
+                request.getMainProductIds(), 
+                request.getAddonProductIds(),
+                request.getAddonCategoryIds() 
+            );
+            
+            return ResponseEntity.ok("活動修改成功！");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("活動修改失敗：" + e.getMessage());
+        }
+    }
+    /**
+     * 接收前端 Vue 傳來的刪除活動請求 (硬刪除備用)
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteDiscount(@PathVariable Integer id) {
+        try {
+            discountService.deleteDiscount(id);
+            return ResponseEntity.ok("活動刪除成功！");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("活動刪除失敗：" + e.getMessage());
         }
     }
 }

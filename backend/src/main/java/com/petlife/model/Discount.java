@@ -5,7 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
+import java.util.Set;
+import java.util.HashSet;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
  * [折扣活動實體]
  * * 💡 欄位與活動類型 (DiscountType) 對應關係表：
@@ -66,6 +68,15 @@ public class Discount {
 
     @Column(name = "minimum_purchase_amount", precision = 10, scale = 2)
     private BigDecimal minimumPurchaseAmount; // [全活動適用] 觸發活動的最低消費總額
+    
+ // 使用 Set 可避免 Hibernate 多重 List 抓取的 Exception
+    @OneToMany(mappedBy = "discount", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties("discount") // 防止 JSON 無限迴圈
+    private Set<DiscountCategory> discountCategories = new HashSet<>();
+
+    @OneToMany(mappedBy = "discount", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties("discount") // 防止 JSON 無限迴圈
+    private Set<DiscountProduct> discountProducts = new HashSet<>();
 
     // JPA 必備無參數建構子
     public Discount() {
