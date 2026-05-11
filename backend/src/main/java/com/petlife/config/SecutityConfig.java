@@ -9,7 +9,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecutityConfig {
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http)throws Exception {
-		http.cors(cors ->{})
+		http.cors(org.springframework.security.config.Customizer.withDefaults())
 			.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
 					.requestMatchers("/api/member/**").permitAll() //會員API開放
@@ -24,8 +24,16 @@ public class SecutityConfig {
 	                .requestMatchers("/api/products", "/api/products/**").permitAll()
 	                .requestMatchers("/api/shop", "/api/shop/**").permitAll()
 					.requestMatchers("/error").permitAll()
+					.requestMatchers("/api/cart/**").permitAll()
+	                .requestMatchers("/api/orders/**").permitAll()
+	                .requestMatchers("/api/checkout/**").permitAll()
+	                .requestMatchers("/api/checkoutsuccess/**").permitAll()
+	                .requestMatchers("/api/productorders/**").permitAll()
+	                .requestMatchers("/api/order/**").permitAll()
+	                
 					.anyRequest().authenticated()
 					);
 		return http.build();
 	}
 }
+

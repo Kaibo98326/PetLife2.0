@@ -1,6 +1,13 @@
 <template>
-  <el-menu class="sidebar-menu" background-color="#2c3e50" text-color="#adb5bd" active-text-color="#ff7a00"
-    :default-active="$route.path" unique-opened router>
+  <el-menu
+    class="sidebar-menu"
+    background-color="#2c3e50"
+    text-color="#adb5bd"
+    active-text-color="#ff7a00"
+    :default-active="$route.path"
+    unique-opened
+    router
+  >
     <el-menu-item index="/admin/dashboard">
       <span>首頁</span>
     </el-menu-item>
@@ -42,9 +49,7 @@
     </el-sub-menu>
 
     <el-menu-item index="/admin/order">
-      <el-icon>
-        <ShoppingCart />
-      </el-icon>
+      <el-icon><ShoppingCart /></el-icon>
       <span>訂單管理</span>
     </el-menu-item>
 

@@ -25,27 +25,25 @@ const carouselImages = ref([
   { src: ad03, alt: '廣告輪播03' },
   { src: ad04, alt: '廣告輪播04' },
   { src: ad05, alt: '廣告輪播05' },
-  { src: ad06, alt: '廣告輪播06' }
+  { src: ad06, alt: '廣告輪播06' },
 ])
 
 // ── 後端資料狀態 ──────────────────────────────────────────────────────────
-const products = ref([])         // 商品列表（原始資料）
-const categories = ref([])       // 分類列表
+const products = ref([]) // 商品列表（原始資料）
+const categories = ref([]) // 分類列表
 const selectedCategoryId = ref(null) // 選中的分類 ID
-const searchKeyword = ref('')    // 搜尋關鍵字
-const currentPage = ref(1)       // 目前頁碼
-const totalPages = ref(1)        // 總頁數
-const totalElements = ref(0)     // 商品總數
-const loading = ref(false)       // 載入狀態
-const errorMsg = ref('')         // 錯誤訊息
+const searchKeyword = ref('') // 搜尋關鍵字
+const currentPage = ref(1) // 目前頁碼
+const totalPages = ref(1) // 總頁數
+const totalElements = ref(0) // 商品總數
+const loading = ref(false) // 載入狀態
+const errorMsg = ref('') // 錯誤訊息
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
-const sortBy = ref('newest')     // 預設：最新上架
-const pageSize = ref(25)         // 每頁顯示筆數
-const viewMode = ref('grid')     // 檢視模式
+const sortBy = ref('newest') // 預設：最新上架
+const pageSize = ref(25) // 每頁顯示筆數
+const viewMode = ref('grid') // 檢視模式
 const priceDirection = ref('asc') // 價格排序方向
-
-
 
 /** 切換排序（價格按鈕會 toggle 方向） */
 function setSort(key) {
@@ -75,18 +73,18 @@ const top10Products = computed(() => {
 /** 麵包屑導覽路徑 */
 const breadcrumbs = computed(() => {
   const crumbs = [{ label: '', id: null }]
-  
+
   if (searchKeyword.value) {
     crumbs.push({ label: `搜尋關鍵字：「${searchKeyword.value}」`, id: 'search' })
     return crumbs
   }
-  
+
   if (selectedCategoryId.value) {
-    const current = categories.value.find(c => c.categoryId === selectedCategoryId.value)
+    const current = categories.value.find((c) => c.categoryId === selectedCategoryId.value)
     if (current) {
       // 如果有父分類 (大專區)，先放進去
       if (current.parentId) {
-        const parent = categories.value.find(c => c.categoryId === current.parentId)
+        const parent = categories.value.find((c) => c.categoryId === current.parentId)
         if (parent) {
           crumbs.push({ label: parent.categoryName, id: parent.categoryId })
         }
@@ -95,11 +93,11 @@ const breadcrumbs = computed(() => {
     }
     return crumbs
   }
-  
+
   if (route.query.view === 'all') {
     crumbs.push({ label: '全部商品', id: 'all' })
   }
-  
+
   return crumbs
 })
 
@@ -120,7 +118,6 @@ function getImageUrl(imagePath) {
   return `${IMG_BASE}/${imagePath}`
 }
 
-
 // ── 取得分類列表 ──────────────────────────────────────────────────────────
 async function fetchCategories() {
   try {
@@ -132,32 +129,32 @@ async function fetchCategories() {
   }
 }
 
-/** 
+/**
  * 核心：將扁平分類轉換為樹狀結構 (同步後台排序)
  * 結構：[ { ...area, children: [ ...physical ] }, ...activityTags ]
  */
 const categoryTree = computed(() => {
   const all = categories.value
   const tree = []
-  
+
   // 1. 先找出所有「大專區」(Type 2)
-  const mainAreas = all.filter(c => c.categoryType === 2)
-  
-  mainAreas.forEach(area => {
+  const mainAreas = all.filter((c) => c.categoryType === 2)
+
+  mainAreas.forEach((area) => {
     // 2. 找出屬於該專區的「實體分類」(Type 1)
-    const children = all.filter(c => c.parentId === area.categoryId && c.categoryType === 1)
+    const children = all.filter((c) => c.parentId === area.categoryId && c.categoryType === 1)
     tree.push({
       ...area,
-      children: children
+      children: children,
     })
   })
-  
+
   // 3. 處理「活動標籤」(Type 3) - 獨立成一個區塊
-  const activityTags = all.filter(c => c.categoryType === 3)
-  
+  const activityTags = all.filter((c) => c.categoryType === 3)
+
   return {
     shopTree: tree,
-    activityTags: activityTags
+    activityTags: activityTags,
   }
 })
 
@@ -169,7 +166,7 @@ async function fetchProducts(page = 1) {
     const params = {
       cp: page,
       pageSize: pageSize.value,
-      sort: sortBy.value // 將排序方式傳給後端
+      sort: sortBy.value, // 將排序方式傳給後端
     }
     if (searchKeyword.value) {
       params.searchKeyword = searchKeyword.value
@@ -181,7 +178,7 @@ async function fetchProducts(page = 1) {
     const res = await axios.get('/shop/products', { params })
     const data = res.data
     // 只顯示上架商品 (productStatus === 1)
-    products.value = (data.productList || []).filter(p => p.productStatus === 1)
+    products.value = (data.productList || []).filter((p) => p.productStatus === 1)
     currentPage.value = data.currentPage || 1
     totalPages.value = data.totalPages || 1
     totalElements.value = data.totalElements || 0
@@ -204,9 +201,12 @@ function selectCategory(categoryId) {
   }
 }
 
-watch(() => [selectedCategoryId.value, searchKeyword.value, sortBy.value], () => {
-  fetchProducts(1)
-})
+watch(
+  () => [selectedCategoryId.value, searchKeyword.value, sortBy.value],
+  () => {
+    fetchProducts(1)
+  },
+)
 
 // ── 搜尋（由 Header 觸發，透過 route.query） ──────────────────────────────
 function handleSearch() {
@@ -239,38 +239,46 @@ const pageRange = computed(() => {
 
 // ── 加入購物車 ────────────────────────────────────────────────────────────
 async function addToCart(product) {
-  // 未登入：彈出提示
+  // 未登入彈出提示
   if (!userStore.token) {
     await Swal.fire({
       icon: 'warning',
       title: '請先登入',
       text: '登入後才能將毛孩好物加入購物車喔！',
       confirmButtonText: '前往登入',
-      confirmButtonColor: '#e67e22'
+      confirmButtonColor: '#e67e22',
     })
     window.location.href = '/login'
     return
   }
-
   try {
-    await axios.post(`/api/cart/add/${userStore.memberId}`, {
+    const cartData = {
       productId: product.productId,
-      quantity: 1
-    })
+      quantity: 1,
+    }
+
+    await axios.post(`/cart/add/${userStore.memberId}`, cartData)
+    userStore.updateCartCount()
+
     Swal.fire({
       icon: 'success',
       title: '加入成功！',
       text: `已將「${product.productName}」放進購物車`,
       timer: 1500,
-      showConfirmButton: false
+      showConfirmButton: false,
     })
+    if (userStore.updateCartCount) {
+      userStore.updateCartCount()
+    }
   } catch (e) {
     console.error('加入購物車失敗', e)
+    const errorText = e.response?.data || '請稍後再試'
+    console.log(errorText)
     Swal.fire({
       icon: 'error',
       title: '加入失敗',
       text: '請稍後再試',
-      confirmButtonColor: '#e67e22'
+      confirmButtonColor: '#e67e22',
     })
   }
 }
@@ -297,7 +305,7 @@ watch(
       searchKeyword.value = ''
       fetchProducts(1)
     }
-  }
+  },
 )
 
 // ── 初始化 ────────────────────────────────────────────────────────────────
@@ -311,6 +319,9 @@ onMounted(async () => {
   if (route.query.catId) {
     selectedCategoryId.value = parseInt(route.query.catId)
   }
+  if (userStore.token && userStore.memberId) {
+    userStore.updateCartCount()
+  }
 
   await fetchProducts(1)
 })
@@ -323,26 +334,34 @@ onMounted(async () => {
       <aside class="col-lg-2">
         <div class="sticky-sidebar">
           <div class="category-sidebar">
-            
-            
             <nav class="sidebar-nav">
               <!-- 全部商品 -->
-              <a href="#" class="nav-item all-products-link" :class="{ 'active': route.query.view === 'all' }" @click.prevent="selectCategory(null)">
+              <a
+                href="#"
+                class="nav-item all-products-link"
+                :class="{ active: route.query.view === 'all' }"
+                @click.prevent="selectCategory(null)"
+              >
                 全部商品
               </a>
 
               <!-- 商城分類結構 (大專區 + 實體分類) -->
               <div v-for="area in categoryTree.shopTree" :key="area.categoryId" class="nav-group">
-                <div class="group-title" :class="{ 'active': selectedCategoryId === area.categoryId }" @click="selectCategory(area.categoryId)">
+                <div
+                  class="group-title"
+                  :class="{ active: selectedCategoryId === area.categoryId }"
+                  @click="selectCategory(area.categoryId)"
+                >
                   {{ area.categoryName }}
                 </div>
                 <div class="group-content">
-                  <a v-for="sub in area.children" 
-                     :key="sub.categoryId" 
-                     href="#" 
-                     class="sub-item"
-                     :class="{ 'active': selectedCategoryId === sub.categoryId }"
-                     @click.prevent="selectCategory(sub.categoryId)"
+                  <a
+                    v-for="sub in area.children"
+                    :key="sub.categoryId"
+                    href="#"
+                    class="sub-item"
+                    :class="{ active: selectedCategoryId === sub.categoryId }"
+                    @click.prevent="selectCategory(sub.categoryId)"
                   >
                     {{ sub.categoryName }}
                   </a>
@@ -381,14 +400,20 @@ onMounted(async () => {
         <!-- 麵包屑 -->
         <nav v-if="!showCarousel" aria-label="breadcrumb" class="mb-3">
           <ol class="breadcrumb">
-            <li v-for="(crumb, index) in breadcrumbs" 
-                :key="index" 
-                class="breadcrumb-item" 
-                :class="{ active: index === breadcrumbs.length - 1 }">
-              <a v-if="index < breadcrumbs.length - 1" 
-                 href="#" 
-                 class="text-decoration-none text-muted" 
-                 @click.prevent="selectCategory(crumb.id === 'search' || crumb.id === 'all' ? null : crumb.id)">
+            <li
+              v-for="(crumb, index) in breadcrumbs"
+              :key="index"
+              class="breadcrumb-item"
+              :class="{ active: index === breadcrumbs.length - 1 }"
+            >
+              <a
+                v-if="index < breadcrumbs.length - 1"
+                href="#"
+                class="text-decoration-none text-muted"
+                @click.prevent="
+                  selectCategory(crumb.id === 'search' || crumb.id === 'all' ? null : crumb.id)
+                "
+              >
                 {{ crumb.label }}
               </a>
               <span v-else>{{ crumb.label }}</span>
@@ -424,28 +449,39 @@ onMounted(async () => {
               <img :src="img.src" :alt="img.alt" class="d-block w-100 img-fluid" />
             </div>
           </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#shopCarousel" data-bs-slide="prev">
+          <button
+            class="carousel-control-prev"
+            type="button"
+            data-bs-target="#shopCarousel"
+            data-bs-slide="prev"
+          >
             <span class="carousel-control-prev-icon"></span>
           </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#shopCarousel" data-bs-slide="next">
+          <button
+            class="carousel-control-next"
+            type="button"
+            data-bs-target="#shopCarousel"
+            data-bs-slide="next"
+          >
             <span class="carousel-control-next-icon"></span>
           </button>
         </div>
 
         <!-- TOP10 熱銷排行 -->
-        <section v-if="!loading && top10Products.length > 0 && showCarousel" class="top10-section mb-4">
-          <h4 class="section-title">
-            <i class="fas fa-fire text-danger me-2"></i>TOP10 熱銷排行
-          </h4>
+        <section
+          v-if="!loading && top10Products.length > 0 && showCarousel"
+          class="top10-section mb-4"
+        >
+          <h4 class="section-title"><i class="fas fa-fire text-danger me-2"></i>TOP10 熱銷排行</h4>
           <div class="top10-scroll-wrapper">
             <div class="top10-track">
-              <div
-                v-for="(p, idx) in top10Products"
-                :key="'a-' + p.productId"
-                class="top10-card"
-              >
+              <div v-for="(p, idx) in top10Products" :key="'a-' + p.productId" class="top10-card">
                 <div class="rank-badge"><i class="fas fa-fire"></i></div>
-                <router-link :to="`/product/${p.productId}`" class="text-decoration-none" style="color: inherit;">
+                <router-link
+                  :to="`/product/${p.productId}`"
+                  class="text-decoration-none"
+                  style="color: inherit"
+                >
                   <div class="top10-img">
                     <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
                   </div>
@@ -468,7 +504,12 @@ onMounted(async () => {
                 aria-hidden="true"
               >
                 <div class="rank-badge"><i class="fas fa-fire"></i></div>
-                <router-link :to="`/product/${p.productId}`" class="text-decoration-none" style="color: inherit;" tabindex="-1">
+                <router-link
+                  :to="`/product/${p.productId}`"
+                  class="text-decoration-none"
+                  style="color: inherit"
+                  tabindex="-1"
+                >
                   <div class="top10-img">
                     <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
                   </div>
@@ -498,16 +539,37 @@ onMounted(async () => {
           <!-- 排序工具列 -->
           <div class="sort-toolbar">
             <div class="sort-left">
-              <button class="sort-btn" :class="{ active: sortBy === 'default' }" @click="setSort('default')">推薦</button>
-              <button class="sort-btn" :class="{ active: sortBy === 'sales' }" @click="setSort('sales')">熱銷</button>
-              <button class="sort-btn" :class="{ active: sortBy === 'newest' }" @click="setSort('newest')">最新</button>
-              <button class="sort-btn" :class="{ active: sortBy.startsWith('price') }" @click="setSort('price')">
-                價格 
+              <button
+                class="sort-btn"
+                :class="{ active: sortBy === 'default' }"
+                @click="setSort('default')"
+              >
+                推薦
+              </button>
+              <button
+                class="sort-btn"
+                :class="{ active: sortBy === 'sales' }"
+                @click="setSort('sales')"
+              >
+                熱銷
+              </button>
+              <button
+                class="sort-btn"
+                :class="{ active: sortBy === 'newest' }"
+                @click="setSort('newest')"
+              >
+                最新
+              </button>
+              <button
+                class="sort-btn"
+                :class="{ active: sortBy.startsWith('price') }"
+                @click="setSort('price')"
+              >
+                價格
                 <i class="fas fa-sort" v-if="!sortBy.startsWith('price')"></i>
                 <i class="fas fa-sort-up" v-else-if="priceDirection === 'asc'"></i>
                 <i class="fas fa-sort-down" v-else></i>
               </button>
-
             </div>
             <div class="sort-right">
               <select v-model.number="pageSize" class="page-size-select" @change="fetchProducts(1)">
@@ -516,8 +578,20 @@ onMounted(async () => {
                 <option :value="50">顯示50筆/頁</option>
               </select>
               <div class="view-toggle ms-2">
-                <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'"><i class="fas fa-th"></i></button>
-                <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'"><i class="fas fa-th-list"></i></button>
+                <button
+                  class="view-btn"
+                  :class="{ active: viewMode === 'grid' }"
+                  @click="viewMode = 'grid'"
+                >
+                  <i class="fas fa-th"></i>
+                </button>
+                <button
+                  class="view-btn"
+                  :class="{ active: viewMode === 'list' }"
+                  @click="viewMode = 'list'"
+                >
+                  <i class="fas fa-th-list"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -529,14 +603,26 @@ onMounted(async () => {
           <div v-else-if="products.length === 0" class="text-center py-5">
             <p class="text-muted">查無商品</p>
           </div>
-          <div v-else class="row g-2" :class="viewMode === 'grid' ? 'row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5' : 'row-cols-1 list-mode'">
+          <div
+            v-else
+            class="row g-2"
+            :class="
+              viewMode === 'grid'
+                ? 'row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5'
+                : 'row-cols-1 list-mode'
+            "
+          >
             <!-- 使用 products.value 渲染，因為後端已經排好序了 -->
             <div v-for="p in products" :key="p.productId" class="col">
               <article class="product-card shadow-sm">
                 <div class="product-category-badge">{{ p.categoryName || '寵物好物' }}</div>
-                
+
                 <!-- 主要連結：包含圖片與名稱 -->
-                <router-link :to="`/product/${p.productId}`" class="product-main-area text-decoration-none" style="color: inherit;">
+                <router-link
+                  :to="`/product/${p.productId}`"
+                  class="product-main-area text-decoration-none"
+                  style="color: inherit"
+                >
                   <div class="product-img-wrapper">
                     <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
                   </div>
@@ -548,8 +634,12 @@ onMounted(async () => {
                 <!-- 側邊或下方區域：包含價格與按鈕 -->
                 <div class="product-info product-action-area pt-0">
                   <div class="product-footer">
-                    <span class="product-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
-                    <button class="btn add-to-cart-btn" @click="addToCart(p)"><i class="fas fa-shopping-basket"></i></button>
+                    <span class="product-price"
+                      >$ {{ Number(p.productPrice).toLocaleString() }}</span
+                    >
+                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                      <i class="fas fa-shopping-basket"></i>
+                    </button>
                   </div>
                 </div>
               </article>
@@ -560,13 +650,22 @@ onMounted(async () => {
           <nav v-if="totalPages > 1" class="mt-5 d-flex justify-content-center">
             <ul class="pagination pagination-shop">
               <li class="page-item" :class="{ disabled: currentPage <= 1 }">
-                <button class="page-link" @click="goToPage(currentPage - 1)"><i class="fas fa-chevron-left"></i></button>
+                <button class="page-link" @click="goToPage(currentPage - 1)">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
               </li>
-              <li v-for="page in pageRange" :key="page" class="page-item" :class="{ active: page === currentPage }">
+              <li
+                v-for="page in pageRange"
+                :key="page"
+                class="page-item"
+                :class="{ active: page === currentPage }"
+              >
                 <button class="page-link" @click="goToPage(page)">{{ page }}</button>
               </li>
               <li class="page-item" :class="{ disabled: currentPage >= totalPages }">
-                <button class="page-link" @click="goToPage(currentPage + 1)"><i class="fas fa-chevron-right"></i></button>
+                <button class="page-link" @click="goToPage(currentPage + 1)">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
               </li>
             </ul>
           </nav>
@@ -575,5 +674,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-
