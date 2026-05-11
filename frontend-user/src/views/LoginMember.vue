@@ -5,6 +5,8 @@ import Swal from 'sweetalert2'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { jwtDecode } from 'jwt-decode'
+import { has } from 'vuetify/lib/util/helpers.mjs'
+import { fa } from 'vuetify/locale'
 
 
 
@@ -45,17 +47,75 @@ const registerFields = [
     { name: 'password', type: 'password' },
     { name: 'address', type: 'text' }
 ]
+const emailRuleMsg = ref('')
+
 
 const validateField = (name) => {
-    if (!registerForm[name].trim()) {
-        errors[name] = true
-        placeholders[name] = `請輸入${placeholders[name]}`
-    } else {
-        errors[name] = false
+    
+  const value = registerForm[name]?.trim()
+
+  //空白檢查
+  if(!value){
+    errors[name] = true
+
+    Swal.fire({
+      icon: 'warning',
+      title: '欄位未填寫',
+      text: `請輸入${placeholders[name]}`
+    })
+    return false
+  }
+  //Email 檢查
+  if(name === 'email'){
+    const emailRegex =  /^[A-Za-z0-9._%+-]+@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}$/
+
+    if(!emailRegex.test(value)){
+      errors.email = true
+      Swal.fire({
+        icon: 'warning',
+        title: 'Email 格式錯誤',
+        text: '請輸入完整Eamil，例如 test@example.com'
+      })
+
+      return false
     }
+  }
+
+  if(name === 'address'){
+    const addressRegex = 
+    /^[\u4e00-\u9fa5A-Za-z0-9號樓層段巷弄街路縣市區鎮鄉里村\-之\s]{5,100}$/
+
+    if(!addressRegex.test(value)){
+      errors.address = true
+
+      Swal.fire({
+        icon: 'warning',
+        title: '地址格式錯誤',
+        text: '請輸入完整地址，至少包含縣市、區、街道等資訊'
+      })
+      return false
+    }
+  }
+
+  errors[name] = false
+  return true
+
+  
+  
+
+
 }
 
 const handleRegister = async () => {
+
+  for (const field of registerFields) {
+    const valid = validateField(field.name)
+
+    if(!valid){
+      return
+    }
+
+  }
   try {
     await axios.post('/api/member/register', registerForm)
 
@@ -189,6 +249,7 @@ const goShop = () => {
                 <div class="input-wrapper" v-for="field in registerFields" :key="field.name">
                     <input :type="field.type" v-model="registerForm[field.name]" :placeholder="placeholders[field.name]"
                         :class="{ 'input-error': errors[field.name] }" @blur="validateField(field.name)" />
+                        
                 </div>
                 <button type="submit">註冊</button>
             </form>
