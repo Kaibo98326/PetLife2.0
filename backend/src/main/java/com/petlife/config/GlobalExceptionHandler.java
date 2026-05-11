@@ -9,7 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackages = "com.petlife.beauty")
+@RestControllerAdvice(basePackages = "com.petlife")
 public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApi(ApiException ex) {

@@ -64,6 +64,46 @@ public class BeautyItemService {
                 .toList();
     }
 
+    public List<BeautyItemManageResponse> getActiveItemsWithPrices() {
+        return itemRepository.findByIsActiveTrueOrderByBeautyIdAsc()
+                .stream()
+                .map(item -> BeautyMapper.itemManage(item,
+                        priceRepository.findByBeautyIdOrderByPriceIdAsc(item.getBeautyId())
+                                .stream()
+                                .filter(price -> Boolean.TRUE.equals(price.getIsActive()))
+                                .toList()))
+                .toList();
+    }
+
+    public int calculateTotalSlots(List<Integer> beautyIds) {
+        if (beautyIds == null || beautyIds.isEmpty()) {
+            throw ApiException.badRequest("請至少選擇一個美容項目");
+        }
+        if (beautyIds.stream().anyMatch(Objects::isNull)) {
+            throw ApiException.badRequest("美容項目代號不可為空");
+        }
+
+        List<Integer> distinctIds = beautyIds.stream().distinct().toList();
+        List<BeautyItem> items = itemRepository.findAllById(distinctIds);
+
+        if (items.size() != distinctIds.size()) {
+            throw ApiException.badRequest("美容項目資料不存在");
+        }
+
+        int totalSlots = 0;
+        for (BeautyItem item : items) {
+            if (!Boolean.TRUE.equals(item.getIsActive())) {
+                throw ApiException.badRequest("美容項目目前未啟用：" + item.getItemName());
+            }
+            if (item.getDurationSlots() == null || item.getDurationSlots() <= 0) {
+                throw ApiException.badRequest("美容項目時長設定錯誤：" + item.getItemName());
+            }
+            totalSlots += item.getDurationSlots();
+        }
+
+        return totalSlots;
+    }
+
     @Transactional
     public BeautyItemResponse createItem(BeautyItemRequest req) {
         BeautyItem item = new BeautyItem();
