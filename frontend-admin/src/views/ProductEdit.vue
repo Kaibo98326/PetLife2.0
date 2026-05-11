@@ -3,10 +3,12 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
+import { useProductStore } from '@/stores/product'
 import '@/assets/css/ProductEdit.css'
 
 const route = useRoute()
 const router = useRouter()
+const productStore = useProductStore()
 
 const productId = computed(() => route.params.id)
 const categories = ref([])
@@ -38,6 +40,7 @@ const extraPreviewUrls = ref([])
 const existingExtraImages = ref([])
 
 const loading = ref(true)
+const isIgnoreWarning = ref(false)
 
 // 過濾分類
 const bigCategories = computed(() => categories.value.filter(c => c.categoryType === 2))
@@ -68,6 +71,11 @@ const fetchProduct = async () => {
       product.value.categoryIds = product.value.categories.map(c => c.categoryId)
     } else if (!product.value.categoryIds) {
       product.value.categoryIds = []
+    }
+    
+    // 處理忽略預警的 UI 狀態
+    if (product.value.lowStock === -1) {
+      isIgnoreWarning.value = true
     }
     if (product.value.productImage) {
       previewUrl.value = `http://localhost:8082/${product.value.productImage}`
@@ -153,7 +161,8 @@ const saveProduct = async () => {
   }
   formData.append('productPrice', product.value.productPrice || 0)
   formData.append('productStock', product.value.productStock || 0)
-  formData.append('lowStock', product.value.lowStock || 10)
+  // 如果勾選忽略預警，傳送 -1 給後端
+  formData.append('lowStock', isIgnoreWarning.value ? -1 : (product.value.lowStock || 10))
   formData.append('storagePosition', product.value.storagePosition || '')
   formData.append('productStatus', product.value.productStatus ?? 1)
   formData.append('productDescription', product.value.productDescription || '')
@@ -171,6 +180,7 @@ const saveProduct = async () => {
     const url = productId.value ? '/api/products/update' : '/api/products/insert'
     const res = await request.post(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     if (res.data === 'success') {
+      productStore.fetchLowStockCount()
       Swal.fire('成功', '商品資料已儲存', 'success').then(() => router.push('/admin/product'))
     } else {
       throw new Error(res.data)
@@ -319,8 +329,16 @@ onMounted(() => {
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">低庫存警示值</label>
-            <input v-model.number="product.lowStock" type="number" class="form-control" />
+            <label class="form-label">庫存預警設定</label>
+            <div class="warning-setting-box">
+              <el-checkbox v-model="isIgnoreWarning" class="me-3">不需預警提醒</el-checkbox>
+              <div v-if="!isIgnoreWarning" class="input-with-label animate__animated animate__fadeIn">
+                <span class="sub-label">低於</span>
+                <input v-model.number="product.lowStock" type="number" class="form-control small-input" />
+                <span class="sub-label">件時提醒</span>
+              </div>
+              <span v-else class="text-muted" style="font-size: 0.9rem;">(已關閉此商品的預警功能)</span>
+            </div>
           </div>
         </section>
 

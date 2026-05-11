@@ -30,19 +30,17 @@ public class InnerProductController {
     public ResponseEntity<?> list(
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
             @RequestParam(value = "searchKeyword", defaultValue = "") String keyword,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "minPrice", required = false) Double minPrice,
+            @RequestParam(value = "maxPrice", required = false) Double maxPrice,
+            @RequestParam(value = "minStock", required = false) Integer minStock,
+            @RequestParam(value = "maxStock", required = false) Integer maxStock,
             @RequestParam(value = "cp", defaultValue = "1") int cp,
+            @RequestParam(value = "ps", defaultValue = "10") int ps,
             @RequestParam(value = "lowStock", defaultValue = "false") boolean lowStock) {
         
-        int pageSize = 10;
-        Page<Product> productPage;
-
-        if (lowStock) {
-            productPage = productService.getLowStockProducts(cp, pageSize);
-        } else if (categoryId != null && categoryId != 0) {
-            productPage = productService.getProductsByCategory(categoryId, cp, pageSize);
-        } else {
-            productPage = productService.searchProducts(keyword, cp, pageSize);
-        }
+        Page<Product> productPage = productService.getCompositeProducts(
+                keyword, categoryId, status, minPrice, maxPrice, minStock, maxStock, lowStock, cp, ps);
 
         List<Product> productList = productPage.getContent();
         for (Product p : productList) {
@@ -64,13 +62,23 @@ public class InnerProductController {
         return ResponseEntity.ok(response);
     }
 
+    //===== 取得低庫存預警總數 (專供 Store 刷新使用) ===================================================
+    @GetMapping("/low-stock-count")
+    public ResponseEntity<?> getLowStockCount() {
+        return ResponseEntity.ok(productService.getLowStockCount());
+    }
+
     //===== 新增商品 (向下相容：保留 file, 新增 extraFiles) ==========================================================
     @PostMapping("/insert")
     public ResponseEntity<?> insertProduct(
             @ModelAttribute Product product,
+            @RequestParam(value = "categoryIds", required = false) List<Integer> categoryIds,
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "extraFiles", required = false) MultipartFile[] extraFiles) {
         try {
+            if (categoryIds != null) {
+                product.setCategoryIds(categoryIds);
+            }
             handleMultiImageUpload(product, file, extraFiles);
             productService.addProduct(product);
             return ResponseEntity.ok("success");
@@ -84,20 +92,46 @@ public class InnerProductController {
     @PostMapping("/update")
     public ResponseEntity<?> updateProduct(
             @ModelAttribute Product product,
+            @RequestParam(value = "categoryIds", required = false) List<Integer> categoryIds,
             @RequestParam(value = "oldImage", required = false) String oldImage,
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "extraFiles", required = false) MultipartFile[] extraFiles) {
         try {
-            // 如果沒有新傳主圖，就保留舊主圖路徑
-            if (file == null || file.isEmpty()) {
-                product.setProductImage(oldImage);
+            // 先從資料庫取出原始物件
+            Product existingProduct = productService.getProductById(product.getProductId());
+            if (existingProduct == null) {
+                return ResponseEntity.status(404).body("Product not found");
             }
-            handleMultiImageUpload(product, file, extraFiles);
-            productService.updateProduct(product);
+
+            // 處理分類：只有在真的有傳送新的 categoryIds 時才更新關聯
+            if (categoryIds != null) {
+                existingProduct.setCategoryIds(categoryIds);
+            } else {
+                // 如果前端沒傳 categoryIds，我們絕對不準動到現有的 categories
+                // 這裡什麼都不做，保留 existingProduct 原本的 categories
+            }
+
+            // 更新其他基本欄位
+            existingProduct.setProductName(product.getProductName());
+            existingProduct.setProductPrice(product.getProductPrice());
+            existingProduct.setProductStock(product.getProductStock());
+            existingProduct.setLowStock(product.getLowStock()); // 補上這行
+            existingProduct.setStoragePosition(product.getStoragePosition()); // 補上這行
+            existingProduct.setProductDescription(product.getProductDescription());
+            existingProduct.setProductStatus(product.getProductStatus());
+
+            // 處理圖片
+            if (file == null || file.isEmpty()) {
+                existingProduct.setProductImage(oldImage);
+            } else {
+                handleMultiImageUpload(existingProduct, file, extraFiles);
+            }
+
+            productService.updateProduct(existingProduct);
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("fail");
+            return ResponseEntity.status(500).body("fail: " + e.getMessage());
         }
     }
 
@@ -196,6 +230,25 @@ public class InnerProductController {
     private String sanitizeFileName(String fileName) {
         if (fileName == null) return "unknown.jpg";
         // 將非英數字、點、減號的字元(包含中文、空白、特殊符號等)替換為底線
-        return fileName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
+        return fileName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");}
+    //===== 快速更新庫存 (用於列表內嵌編輯) ===========================================================================
+    @PutMapping("/update-stock/{id}")
+    public ResponseEntity<?> updateStock(@PathVariable Integer id, @RequestParam("stock") Integer stock) {
+        try {
+            Product product = productService.getProductById(id);
+            if (product != null) {
+                // 確保分類資訊被載入，避免更新時遺失關聯 (強制觸發 Lazy Load)
+                if (product.getCategories() != null) {
+                    product.getCategories().size(); 
+                }
+                
+                product.setProductStock(stock);
+                productService.updateProduct(product);
+                return ResponseEntity.ok("success");
+            }
+            return ResponseEntity.status(404).body("Product not found");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
     }
 }

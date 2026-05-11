@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +16,7 @@ import com.petlife.model.Product;
 
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Integer> {
+public interface ProductRepository extends JpaRepository<Product, Integer>, JpaSpecificationExecutor<Product> {
 
 	
 //===== 分類查詢 ================================================================================================
@@ -48,10 +49,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
 //===== 庫存預警查詢 ======================================================================================
     
-    @Query("SELECT p FROM Product p WHERE p.productStock <= p.lowStock ORDER BY p.productId DESC")
+    @Query("SELECT p FROM Product p WHERE p.productStock <= COALESCE(p.lowStock, 10) ORDER BY p.productId DESC")
     Page<Product> findLowStock(Pageable pageable);
 
-    @Query("SELECT COUNT(p) FROM Product p WHERE p.productStock <= p.lowStock")
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.productStock <= COALESCE(p.lowStock, 10)")
     long countLowStock();
     
 //===== 後台商品 批次上下架處理 ======================================================================================

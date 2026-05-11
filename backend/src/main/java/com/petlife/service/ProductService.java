@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,7 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.petlife.model.Product;
+import com.petlife.model.Category;
 import com.petlife.repository.ProductRepository;
+
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional 
@@ -45,6 +52,11 @@ public class ProductService {
 
 //===== 新增&更新商品 ========================================================================================
     public Product addProduct(Product product) {
+        // 自動下架邏輯：庫存為 0 時自動設為下架 (0)
+        if (product.getProductStock() != null && product.getProductStock() <= 0) {
+            product.setProductStatus(0);
+        }
+        
         if (product.getCategoryIds() != null) {
             java.util.List<Integer> validIds = product.getCategoryIds().stream()
                     .filter(id -> id != null)
@@ -59,41 +71,49 @@ public class ProductService {
 
     public Product updateProduct(Product product) {
         Product existing = productRepository.findById(product.getProductId()).orElse(null);
-        if (existing != null) {
-            // 處理分類關聯
-            if (product.getCategoryIds() != null) {
-                java.util.List<Integer> validIds = product.getCategoryIds().stream()
-                        .filter(id -> id != null)
-                        .collect(java.util.stream.Collectors.toList());
-                if (!validIds.isEmpty()) {
-                    List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
-                    product.setCategories(cats);
-                } else {
-                    product.setCategories(new java.util.ArrayList<>());
-                }
-            } else {
-                product.setCategories(existing.getCategories());
-            }
+        if (existing == null) return null;
 
-            // 處理多圖關聯：合併舊有的圖片與新上傳的圖片
-            List<com.petlife.model.ProductImage> existingImages = existing.getImages();
-            List<com.petlife.model.ProductImage> newImages = product.getImages();
-            
-            // 建立一個新的列表來裝載合併後的結果
-            List<com.petlife.model.ProductImage> mergedImages = new java.util.ArrayList<>();
-            if (existingImages != null) {
-                mergedImages.addAll(existingImages);
-            }
-            if (newImages != null) {
-                for (com.petlife.model.ProductImage img : newImages) {
-                    img.setProduct(product);
-                    mergedImages.add(img);
-                }
-            }
-            product.setImages(mergedImages);
+        // 1. 基本欄位更新
+        existing.setProductName(product.getProductName());
+        existing.setProductPrice(product.getProductPrice());
+        existing.setProductStock(product.getProductStock());
+        existing.setLowStock(product.getLowStock());
+        existing.setStoragePosition(product.getStoragePosition());
+        existing.setProductDescription(product.getProductDescription());
+        existing.setProductStatus(product.getProductStatus());
+
+        // 自動下架邏輯：如果更新後庫存為 0，強制設為下架 (0)
+        if (existing.getProductStock() != null && existing.getProductStock() <= 0) {
+            existing.setProductStatus(0);
+        }
+        
+        // 只有在有傳入新圖片時才更新圖片路徑
+        if (product.getProductImage() != null && !product.getProductImage().isEmpty()) {
+            existing.setProductImage(product.getProductImage());
         }
 
-        return productRepository.save(product);
+        // 2. 處理分類關聯
+        if (product.getCategoryIds() != null) {
+            java.util.List<Integer> validIds = product.getCategoryIds().stream()
+                    .filter(id -> id != null)
+                    .collect(java.util.stream.Collectors.toList());
+            if (!validIds.isEmpty()) {
+                List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
+                existing.setCategories(cats);
+            } else {
+                existing.setCategories(new java.util.ArrayList<>());
+            }
+        }
+
+        // 3. 處理多圖關聯 (如果傳入的圖片列表不為空，則進行合併或替換)
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            for (com.petlife.model.ProductImage img : product.getImages()) {
+                img.setProduct(existing);
+                existing.getImages().add(img);
+            }
+        }
+
+        return productRepository.save(existing);
     }
 
 //===== 刪除商品 ============================================================================================
@@ -159,6 +179,68 @@ public class ProductService {
     
     public void batchUpdateStatus(List<Integer> ids, Integer status) {
         productRepository.batchUpdateStatus(ids, status);
+    }
+
+    //===== 複合式篩選 (Specification) =========================================================================
+    @Transactional(readOnly = true)
+    public Page<Product> getCompositeProducts(
+            String keyword, 
+            Integer categoryId, 
+            Integer status, 
+            Double minPrice, 
+            Double maxPrice, 
+            Integer minStock, 
+            Integer maxStock, 
+            Boolean lowStock,
+            int page, 
+            int size) {
+        
+        Specification<Product> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                predicates.add(cb.like(root.get("productName"), "%" + keyword + "%"));
+            }
+
+            if (categoryId != null && categoryId != 0) {
+                Join<Product, Category> categoryJoin = root.join("categories");
+                predicates.add(cb.or(
+                    cb.equal(categoryJoin.get("categoryId"), categoryId),
+                    cb.equal(categoryJoin.get("parentId"), categoryId)
+                ));
+                query.distinct(true);
+            }
+
+            if (status != null && status != -1) {
+                predicates.add(cb.equal(root.get("productStatus"), status));
+            }
+
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("productPrice"), minPrice));
+            }
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("productPrice"), maxPrice));
+            }
+
+            if (minStock != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("productStock"), minStock));
+            }
+            if (maxStock != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("productStock"), maxStock));
+            }
+
+            if (lowStock != null && lowStock) {
+                predicates.add(cb.lessThanOrEqualTo(
+                    root.get("productStock"), 
+                    cb.coalesce(root.get("lowStock"), 10)
+                ));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Pageable pageable = PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by("productId").descending());
+        return productRepository.findAll(spec, pageable);
     }
     
 }

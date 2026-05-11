@@ -24,8 +24,16 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Header from './Header.vue'
+import { useProductStore } from '@/stores/product'
+
+const productStore = useProductStore()
+
+onMounted(() => {
+  productStore.fetchLowStockCount()
+})
 </script>
 
 <style scoped></style>

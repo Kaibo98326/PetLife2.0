@@ -43,9 +43,20 @@
           <Box />
         </el-icon>
         <span>商品管理</span>
+        <!-- 父目錄：顯示驚嘆號圖示 -->
+        <i v-if="productStore.lowStockCount > 0" class="fas fa-exclamation-triangle parent-warning-icon"></i>
       </template>
       <el-menu-item index="/admin/category">商品類別管理</el-menu-item>
-      <el-menu-item index="/admin/product">商品管理</el-menu-item>
+      <el-menu-item index="/admin/product" class="product-menu-item">
+        <span>商品管理</span>
+        <!-- 子目錄：顯示紅色小數字徽章 -->
+        <el-badge 
+          v-if="productStore.lowStockCount > 0" 
+          :value="productStore.lowStockCount" 
+          :max="99" 
+          class="sub-stock-badge"
+        />
+      </el-menu-item>
     </el-sub-menu>
 
     <el-menu-item index="/admin/order">
@@ -94,6 +105,9 @@ import {
   UserFilled,
   MagicStick,
 } from '@element-plus/icons-vue'
+import { useProductStore } from '@/stores/product'
+
+const productStore = useProductStore()
 </script>
 
 <style scoped>
@@ -101,5 +115,41 @@ import {
 .sidebar-menu {
   height: 100vh;
   border-right: none;
+}
+
+/* 父目錄驚嘆號圖示 */
+.parent-warning-icon {
+  color: #ff4d4f;
+  font-size: 14px;
+  margin-left: 8px;
+  animation: pulse 2s infinite;
+}
+
+/* 子目錄徽章平行且垂直置中排列 */
+.product-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+:deep(.sub-stock-badge) {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+:deep(.sub-stock-badge .el-badge__content) {
+  position: static;
+  transform: scale(0.8);
+  background-color: #ff4d4f;
+  border: none;
+  line-height: 18px; /* 確保圓圈高度一致 */
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 </style>
