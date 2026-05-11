@@ -66,6 +66,11 @@ const routes = [
         name: '寵物管理',
         component: () => import('@/views/AdminPetList.vue'),
       },
+      {
+  path: '/admin/discount',  // 或是 /admin/discounts
+  name: 'DiscountManagement',
+  component: () => import('../views/DiscountView.vue')// 確保組件路徑正確
+}
     ],
   },
 ]

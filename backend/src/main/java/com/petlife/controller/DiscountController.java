@@ -21,7 +21,16 @@ public class DiscountController {
     @Autowired
     private DiscountService discountService;
 
-
+    //這支 API：讓 Vue 取得所有的「折扣活動列表」
+    @GetMapping
+    public ResponseEntity<List<Discount>> getAllDiscounts() {
+        try {
+            List<Discount> discounts = discountService.getAllDiscounts();
+            return ResponseEntity.ok(discounts);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
   
 
     //  新增這支 API：讓 Vue 來拿折扣類型選單
@@ -41,19 +50,17 @@ public class DiscountController {
     @PostMapping("/save")
     public ResponseEntity<String> saveDiscount(@RequestBody DiscountRequestDTO request) {
         try {
-            // 將 DTO 包裹裡的資料拆解，並呼叫我們上一回合寫好的 Service
+            // ✨ 修正：把第 5 個參數 (addonCategoryIds) 傳遞給 Service
             discountService.saveDiscountWithDetails(
                 request.getDiscount(), 
                 request.getCategoryIds(), 
                 request.getMainProductIds(), 
-                request.getAddonProductIds()
+                request.getAddonProductIds(),
+                request.getAddonCategoryIds() 
             );
             
-            // 成功儲存後回傳 200 OK 與成功訊息
             return ResponseEntity.ok("活動儲存成功！");
-            
         } catch (Exception e) {
-            // 若發生錯誤，回傳 400 錯誤與錯誤訊息
             return ResponseEntity.badRequest().body("活動儲存失敗：" + e.getMessage());
         }
     }

@@ -26,14 +26,20 @@ public class DiscountCategory {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @Column(name = "category_role")
+    private String categoryRole = "Main";
+
+    
+    
     // 無參數建構子 (JPA 框架必備) 
     public DiscountCategory() {
     }
 
     // 帶參數建構子
     // 日後綁定分類時，只需 new DiscountCategory(活動物件, 分類物件);
-    public DiscountCategory(Discount discount, Category category) {
+    public DiscountCategory(Discount discount, Category category, String categoryRole) {
         this.discount = discount;
         this.category = category;
+        this.categoryRole = categoryRole;
     }
 }

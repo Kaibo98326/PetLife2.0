@@ -59,7 +59,6 @@ export function useDiscount() {
         } catch (error) { console.error("無法取得類型:", error); }
     };
 
-    // ✨ 軟刪除邏輯移到大腦統一管理
     const deleteActivity = async (item) => {
         if (item.status === 'active') {
             alert("無法刪除進行中的活動！請先將狀態改為停用。");

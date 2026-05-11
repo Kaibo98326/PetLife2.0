@@ -22,4 +22,15 @@ public class DiscountRequestDTO {
     
     // 勾選的加購品/贈品 ID 清單 (當 scope_type = 2 且有加購品時使用)
     private List<Integer> addonProductIds;
+    
+ // 補上這個新欄位來接收前端的「加購分類」
+    private List<Integer> addonCategoryIds;
+
+    // 補上對應的 Getter 與 Setter (如果沒用 @Data 的話)
+    public List<Integer> getAddonCategoryIds() {
+        return addonCategoryIds;
+    }
+    public void setAddonCategoryIds(List<Integer> addonCategoryIds) {
+        this.addonCategoryIds = addonCategoryIds;
+    }
 }
