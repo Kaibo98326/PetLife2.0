@@ -11,6 +11,7 @@ node_modules/
 # ========================
 **/target/
 *.log
+backend/src/main/resources/application.yml
 
 # ========================
 # IDE
