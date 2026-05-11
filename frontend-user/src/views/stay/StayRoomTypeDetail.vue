@@ -3,12 +3,80 @@ import axios from '@/axios.js'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { Modal } from 'bootstrap'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+let loginModal = null
+
 const route = useRoute()
 console.log('params:', route.params)
 const router = useRouter()
 
 const roomType = ref(null)
 const loading = ref(true)
+
+// 住宿流程
+const flowSteps = [
+  {
+    icon: '📅',
+    title: '選擇住宿時間',
+    desc: '選擇入住與退房日期，系統顯示可預約房型與數量',
+  },
+  {
+    icon: '💳',
+    title: '確認付款方式',
+    desc: '提供線上刷卡與現金預約兩種方式',
+  },
+  {
+    icon: '✅',
+    title: '預約成立',
+    desc: '完成確認後收到預約確認信或簡訊，內含預約編號與住宿資訊',
+  },
+  {
+    icon: '📞',
+    title: '專員聯繫確認',
+    desc: '選擇現金預約者，專員將透過簡訊或電話再次確認預約細節',
+  },
+  {
+    icon: '🐾',
+    title: '準時送毛孩來',
+    desc: '入住當天請攜帶狂犬病疫苗證明等健康文件辦理入住',
+  },
+]
+// 住宿公約
+const rules = [
+  {
+    icon: '🕒',
+    title: '入住與退房時間',
+    desc: '入住時間：下午 3:00 後。退房時間：中午 12:00 前。逾時將加收費用。',
+  },
+  {
+    icon: '💉',
+    title: '健康證明必備',
+    desc: '所有毛孩需提供一年內有效之狂犬病疫苗及必要疫苗證明，無法提供者恕不接受入住。',
+  },
+  {
+    icon: '🍖',
+    title: '飲食與個人用品',
+    desc: '建議自備毛孩慣用飼料、零食、玩具及睡墊，以減少適應新環境的不安。',
+  },
+  {
+    icon: '🐕',
+    title: '行為管理責任',
+    desc: '請確保毛孩無攻擊性或過度吠叫行為，若造成困擾或傷害，飼主需負全責。',
+  },
+  {
+    icon: '🌿',
+    title: '環境維護',
+    desc: '外出散步請繫牽繩並清理排泄物。若毛孩造成設施損壞，飼主需照價賠償。',
+  },
+  {
+    icon: '⚠️',
+    title: '責任歸屬',
+    desc: '非因旅館疏失所致之財物損失或意外傷害，旅館不負賠償責任，請飼主知悉。',
+  },
+]
 
 const fetchRoomType = async () => {
   try {
@@ -21,7 +89,6 @@ const fetchRoomType = async () => {
   }
 }
 
-// 旅館照片
 const envImages = computed(() => {
   if (!roomType.value) return []
 
@@ -32,10 +99,18 @@ const envImages = computed(() => {
 
 //日歷邏輯
 const goToCalendar = () => {
+  userStore.initFromLocalStorage()
+  if (!userStore.token) {
+    loginModal = new Modal(document.getElementById('loginModal'))
+    loginModal.show()
+    return
+  }
   router.push(`/stay/${route.params.roomTypeId}/calendar`)
 }
 
-onMounted(() => fetchRoomType())
+onMounted(() => {
+  fetchRoomType()
+})
 </script>
 <template>
   <div class="detail-wrap" v-if="!loading && roomType">
@@ -43,7 +118,7 @@ onMounted(() => fetchRoomType())
     <section
       class="banner"
       :style="{
-        backgroundImage: `url('/src/assets/images/stay_room${roomType.stayRoomTypeId}.jpg')`,
+        backgroundImage: `url('/src/assets/images/stay_room${roomType.roomTypeId}.jpg')`,
       }"
     >
       <div class="banner-overlay"></div>
@@ -136,6 +211,30 @@ onMounted(() => fetchRoomType())
     <section class="cta-section">
       <button class="btn-book" @click="goToCalendar">立即預約 ››</button>
     </section>
+
+    <div class="modal fade" id="loginModal" tabindex="-1" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+          <div class="modal-body">
+            <div class="mb-3" style="font-size: 3rem">🔒</div>
+            <h5 class="fw-bold mb-2">尚未登入</h5>
+            <p class="text-muted">需要登入才能預約，請問要前往登入嗎？</p>
+          </div>
+          <div class="modal-footer justify-content-center border-0 pt-0">
+            <button type="button" class="btn btn-outline-secondary px-4" @click="loginModal.hide()">
+              留在此頁
+            </button>
+            <button
+              type="button"
+              class="btn btn-warning px-4 text-white fw-bold"
+              @click="goToLogin"
+            >
+              登入去
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div v-else-if="loading" class="loading-wrap">載入中...</div>

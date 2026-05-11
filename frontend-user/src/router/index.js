@@ -31,11 +31,17 @@ const routes = [
         component: MemberCenter,
         children: [{ path: 'profile', component: ProfileView }],
       },
-      // 5/8 路徑stay/:房間ID 要有UserLayout
+      // 5/8 路徑stay/:房型ID  要有UserLayout
       {
         path: 'stay/:roomTypeId',
         name: 'StayRoomTypeDetail',
         component: () => import('@/views/stay/StayRoomTypeDetail.vue'),
+      },
+      // 5/9 路徑stay/:房型ID/calendar  要有UserLayout
+      {
+        path: 'stay/:roomTypeId/calendar',
+        name: 'StayCalendar',
+        component: () => import('@/views/stay/StayCalendar.vue'),
       },
     ],
   },
