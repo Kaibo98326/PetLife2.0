@@ -18,39 +18,20 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  web:
-    cors:
-     allowed-origins: "http://localhost:5173,http://localhost:5174"
-     allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
-     allowed-headers: "*"
-     allow-credentials: true
-
 
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
-  # 🔐 Spring Security（先預留，之後一定會用）
-  security:
-    # 未來 JWT / OAuth2 會用到
-    oauth2:
-      client:
-        # Google / Line Login 會填在這裡
-        registration:
-          google:
-            client-id: your-client-id
-            client-secret: your-client-secret
-            scope:
-              - email
-              - profile
-      
-
 server:
   port: 8082
 
-# JWT
 jwt:
   secret: MySuperSecretKeyForJwtGeneration1234567890
-  expiration: 3600000 # 1小時 (毫秒)
+  expiration: 3600000
 
+google:
+  client-id: 70410001365-t87v8nd57cf2s3qa1mipfpftqsppr3hd.apps.googleusercontent.com
+  client-secret: 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
+  redirect-uri: http://localhost:5173/login

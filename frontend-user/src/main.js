@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
-import 'bootstrap/dist/js/bootstrap.bundle.js'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import './assets/main.css'
 
 import { createApp } from 'vue'
@@ -16,7 +16,8 @@ app.use(pinia)
 // 初始化 userStore
 import { useUserStore } from './stores/user'
 const userStore = useUserStore()
-userStore.initFromLocalStorage()
+
+await userStore.initFromLocalStorage()
 
 
 app.use(router)

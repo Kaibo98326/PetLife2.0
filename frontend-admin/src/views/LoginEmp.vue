@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import Swal from 'sweetalert2'
 import { useEmployeeStore } from '@/stores/employee'
 import { useRouter } from 'vue-router'
+import '@/assets/css/LoginEmp.css'
+
 
 const employeeStore = useEmployeeStore();
 const router = useRouter();
@@ -12,7 +14,7 @@ const password = ref('');
 
 const login = async () => {
     try {
-        const res = await fetch('/api/employee/login', {
+        const res = await fetch('/api/admin/employee/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: username.value, password: password.value })
@@ -45,7 +47,7 @@ const login = async () => {
             <form @submit.prevent="login">
                 <div class="input-box">
                     <input type="text" v-model="username" placeholder="帳號" required />
-                    <i class="fas fa-user"></i>
+                    <i class="fa-solid fa-user"></i>
                 </div>
                 <div class="input-box">
                     <input type="password" v-model="password" placeholder="密碼" required />
