@@ -97,18 +97,35 @@ const envImages = computed(() => {
   return [0, 1, 2, 3].map((i) => `/src/assets/images/stay_room_env${start + i}.jpg`)
 })
 
+// 回首頁
+const goToStayList = () => {
+  router.push({ name: 'StayRoomTypeList' })
+}
+
 //日歷邏輯
+// goToCalendar 改成用 memberId 判斷，不需要再呼叫 initFromLocalStorage
 const goToCalendar = () => {
-  userStore.initFromLocalStorage()
-  if (!userStore.token) {
-    loginModal = new Modal(document.getElementById('loginModal'))
+  if (!userStore.memberId) {
+    // 第一次進來才 new Modal，之後重複用同一個實例
+    if (!loginModal) {
+      loginModal = new Modal(document.getElementById('loginModal'))
+    }
     loginModal.show()
     return
   }
   router.push(`/stay/${route.params.roomTypeId}/calendar`)
 }
 
+// 跳轉登入
+const goToLogin = () => {
+  loginModal.hide()
+  setTimeout(() => {
+    router.push('/login')
+  }, 300)
+}
+
 onMounted(() => {
+  userStore.initFromLocalStorage() // 頁面載入時就還原登入狀態
   fetchRoomType()
 })
 </script>
@@ -209,6 +226,7 @@ onMounted(() => {
 
     <!-- 立即預約按鈕 -->
     <section class="cta-section">
+      <button class="btn-back" @click="goToStayList">返回房型列表 ‹‹</button>
       <button class="btn-book" @click="goToCalendar">立即預約 ››</button>
     </section>
 
@@ -514,6 +532,30 @@ onMounted(() => {
 }
 .btn-book:hover {
   background: var(--gold);
+  transform: translateY(-2px);
+}
+
+.btn-back {
+  background: transparent;
+  color: var(--brown);
+  border: 2px solid var(--brown);
+  padding: 18px 48px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition:
+    background 0.2s,
+    transform 0.15s,
+    color 0.2s;
+  font-family: inherit;
+  margin-right: 20px; /* 與右邊按鈕保持間距 */
+}
+
+.btn-back:hover {
+  background: var(--brown);
+  color: white;
   transform: translateY(-2px);
 }
 

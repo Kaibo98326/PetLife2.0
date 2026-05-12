@@ -46,12 +46,12 @@ async function fetchCategories() {
 
 // 動態大專區 (Type 2)
 const mainAreas = computed(() => {
-  return categories.value.filter(c => c.categoryType === 2)
+  return categories.value.filter((c) => c.categoryType === 2)
 })
 
 // 動態活動標籤 (Type 3)
 const activityTags = computed(() => {
-  return categories.value.filter(c => c.categoryType === 3)
+  return categories.value.filter((c) => c.categoryType === 3)
 })
 
 const handleLogout = () => {
@@ -62,7 +62,7 @@ const handleLogout = () => {
     showCancelButton: true,
     confirmButtonText: '是的，登出',
     cancelButtonText: '取消',
-    confirmButtonColor: '#e67e22'
+    confirmButtonColor: '#e67e22',
   }).then((result) => {
     if (result.isConfirmed) {
       userStore.logout()
@@ -71,7 +71,7 @@ const handleLogout = () => {
         title: '已登出',
         text: '期待您再次回來！',
         confirmButtonText: '回首頁',
-        confirmButtonColor: '#e67e22'
+        confirmButtonColor: '#e67e22',
       }).then(() => {
         router.push('/')
       })
@@ -127,12 +127,13 @@ onMounted(async () => {
                 class="nav-icon-item position-relative d-flex flex-column align-items-center text-decoration-none"
               >
                 <i class="fas fa-shopping-cart"></i>
-                <span style="font-size: 13px; color: #5a4a42;">購物車</span>
+                <span style="font-size: 13px; color: #5a4a42">購物車</span>
                 <span
                   v-if="userStore.cartCount > 0"
                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                  style="font-size: 0.7rem;"
-                >{{ userStore.cartCount }}</span>
+                  style="font-size: 0.7rem"
+                  >{{ userStore.cartCount }}</span
+                >
               </router-link>
 
               <!-- 聊聊 -->
@@ -140,8 +141,8 @@ onMounted(async () => {
                 href="#"
                 class="nav-icon-item d-flex flex-column align-items-center text-decoration-none"
               >
-                <i class="far fa-comment-dots" style="font-size: 1.2rem; color: #666;"></i>
-                <span style="font-size: 13px; color: #5a4a42;">聊聊</span>
+                <i class="far fa-comment-dots" style="font-size: 1.2rem; color: #666"></i>
+                <span style="font-size: 13px; color: #5a4a42">聊聊</span>
               </a>
 
               <!-- 登入判斷 -->
@@ -149,7 +150,7 @@ onMounted(async () => {
                 <!-- 已登入 -->
                 <div v-if="userStore.token" class="d-flex align-items-center">
                   <div class="user-greeting-box me-3 text-end">
-                    <span class="welcome-tag" style="color: orange;">
+                    <span class="welcome-tag" style="color: orange">
                       <i class="fas fa-paw"></i>
                       <strong>{{ userStore.user?.memberName }}</strong> 你好！
                     </span>
@@ -160,8 +161,8 @@ onMounted(async () => {
                     class="nav-icon-item d-flex flex-column align-items-center text-decoration-none text-danger"
                     @click.prevent="handleLogout"
                   >
-                    <i class="fas fa-sign-out-alt" style="font-size: 1.2rem;"></i>
-                    <span style="font-size: 13px;">登出</span>
+                    <i class="fas fa-sign-out-alt" style="font-size: 1.2rem"></i>
+                    <span style="font-size: 13px">登出</span>
                   </a>
                 </div>
                 <!-- 尚未登入 -->
@@ -170,8 +171,8 @@ onMounted(async () => {
                     to="/login"
                     class="nav-icon-item d-flex flex-column align-items-center text-decoration-none"
                   >
-                    <i class="far fa-user-circle" style="font-size: 1.2rem; color: #666;"></i>
-                    <span style="font-size: 13px; color: #5a4a42;">登入 / 註冊</span>
+                    <i class="far fa-user-circle" style="font-size: 1.2rem; color: #666"></i>
+                    <span style="font-size: 13px; color: #5a4a42">登入 / 註冊</span>
                   </router-link>
                 </div>
               </div>
@@ -185,21 +186,29 @@ onMounted(async () => {
             <ul class="nav-menu-list">
               <!-- 動態大專區 (從後台分類自動抓取) -->
               <li v-for="area in mainAreas" :key="area.categoryId">
-                <router-link :to="{ path: '/', query: { catId: area.categoryId } }" class="nav-menu-link">
+                <router-link
+                  :to="{ path: '/', query: { catId: area.categoryId } }"
+                  class="nav-menu-link"
+                >
                   {{ area.categoryName }}
                 </router-link>
               </li>
 
               <!-- 動態活動標籤 (Type 3) -->
               <li v-for="tag in activityTags" :key="tag.categoryId">
-                <router-link :to="{ path: '/', query: { catId: tag.categoryId } }" class="nav-menu-link">
+                <router-link
+                  :to="{ path: '/', query: { catId: tag.categoryId } }"
+                  class="nav-menu-link"
+                >
                   {{ tag.categoryName }}
                 </router-link>
               </li>
 
               <!-- 靜態連結 (確保固定在最後面) -->
-              <li><router-link to="/beauty-booking" class="nav-menu-link">🛁 寵物美容</router-link></li>
-              <li><router-link to="/hotel" class="nav-menu-link">🏠 寵物旅館</router-link></li>
+              <li>
+                <router-link to="/beauty-booking" class="nav-menu-link">🛁 寵物美容</router-link>
+              </li>
+              <li><router-link to="/stay" class="nav-menu-link">🏠 寵物旅館</router-link></li>
             </ul>
           </div>
         </nav>

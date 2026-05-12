@@ -43,6 +43,12 @@ const routes = [
         name: 'StayCalendar',
         component: () => import('@/views/stay/StayCalendar.vue'),
       },
+      // 5/9 路徑stay/:房型ID/booking
+      {
+        path: 'stay/:roomTypeId/booking',
+        name: 'StayBooking',
+        component: () => import('@/views/stay/StayBooking.vue'),
+      },
     ],
   },
   // 5/8 stay 路徑 不希望有UserLayout

@@ -1,7 +1,21 @@
 <script setup>
 import axios from '@/axios.js'
-import { computed, onMounted, ref } from 'vue'
+import { useUserStore } from '@/stores/user'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+const userStore = useUserStore()
+
+// 寵物資料
+const userPets = ref([])
+const selectedPets = ref([])
+
+// Modal 相關
+let warningModal = null
+const modalTitle = ref('')
+const modalMessage = ref('')
+const showWarningModal = ref(false)
+const currentWarningAction = ref(null)
 
 const route = useRoute()
 const router = useRouter()
@@ -75,6 +89,7 @@ const prevMonth = () => {
   checkIn.value = null
   checkOut.value = null
   fetchCalendar()
+  selectedPets.value = []
 }
 
 // 下個月
@@ -88,6 +103,7 @@ const nextMonth = () => {
   checkIn.value = null
   checkOut.value = null
   fetchCalendar()
+  selectedPets.value = []
 }
 
 // 這個月第一天是星期幾（0=日, 1=一 ... 6=六）
@@ -126,20 +142,23 @@ const isInRange = (dateStr) => {
 
 // 點擊日期的邏輯
 const selectDate = (dateStr, dayData) => {
-  // 沒有空房的日期不能點
   if (!dayData || !dayData.isAvailable) return
-  // 今天以前的日期不能點
   if (dateStr < today()) return
 
   if (!checkIn.value) {
-    // 第一次點 → 設為入住日
     checkIn.value = dateStr
     checkOut.value = null
   } else if (!checkOut.value && dateStr > checkIn.value) {
-    // 第二次點，且比入住日晚 → 設為退房日
     checkOut.value = dateStr
+
+    // ✨ 修改：選完日期後自動 scroll 到寵物區
+    nextTick(() => {
+      const petSection = document.querySelector('.pet-section')
+      if (petSection) {
+        petSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
   } else {
-    // 其他情況（點了比入住日早、或已選完要重選）→ 重新選入住日
     checkIn.value = dateStr
     checkOut.value = null
   }
@@ -165,21 +184,170 @@ const totalPrice = computed(() => {
   return roomType.value.roomPrice * stayNights.value
 })
 
+// 房型對應規則
+const roomTypePolicies = {
+  // 狗狗專用房
+  1: { type: 'dog', label: '狗狗專用' },
+  2: { type: 'dog', label: '狗狗專用' },
+  // 貓貓專用房
+  3: { type: 'cat', label: '貓貓專用' },
+  4: { type: 'cat', label: '貓貓專用' },
+  // 混合房
+  5: { type: 'mixed', label: '貓狗混和' },
+}
+
+// 獲取已選寵物的類型
+const getSelectedPetTypes = () => {
+  const types = new Set()
+  selectedPets.value.forEach((petId) => {
+    const pet = userPets.value.find((p) => p.petId === petId)
+    if (pet) {
+      types.add(pet.species) // species 直接是「狗」或「貓」
+    }
+  })
+  return types
+}
+
+// 顯示警告 Modal
+const showPetWarning = (title, message, actionType) => {
+  modalTitle.value = title
+  modalMessage.value = message
+  currentWarningAction.value = actionType
+  showWarningModal.value = true
+}
+
+// 處理 Modal 的三個選項
+const handleContinue = () => {
+  showWarningModal.value = false
+  goToBooking()
+}
+
+const handleRethink = () => {
+  showWarningModal.value = false
+}
+
+const handleChangeRoom = () => {
+  showWarningModal.value = false
+
+  if (currentWarningAction.value?.includes('mixed')) {
+    // 前往混合房日曆頁
+    router.push(`/stay/5/`)
+  } else {
+    // 返回選擇房型頁面
+    router.push('/stay')
+  }
+}
+
+// 檢查寵物類型是否符合房型
+const validatePetTypeForRoom = () => {
+  const currentRoomTypeId = parseInt(route.params.roomTypeId)
+  const roomPolicy = roomTypePolicies[currentRoomTypeId]
+
+  // 房型 5 是混合房，不需要檢查
+  if (currentRoomTypeId === 5) return true
+
+  const selectedTypes = getSelectedPetTypes()
+
+  // 狗狗專用房 (1, 2)
+  if (roomPolicy.type === 'dog') {
+    if (selectedTypes.has('貓') && selectedTypes.size === 1) {
+      // 只選貓貓
+      showPetWarning(
+        '目前房型為設計為給狗狗專用',
+        '此房型專為狗狗設計，您選擇了貓貓。確定要繼續嗎？',
+        'dog-only-cat',
+      )
+      return false
+    } else if (selectedTypes.has('狗') && selectedTypes.has('貓')) {
+      // 同時選狗和貓
+      showPetWarning(
+        '建議選擇貓狗混和房型',
+        '您同時選擇了貓貓和狗狗，我們建議選擇貓狗混和房型會更適合喔！',
+        'dog-only-mixed',
+      )
+      return false
+    }
+  }
+
+  // 貓貓專用房 (3, 4)
+  if (roomPolicy.type === 'cat') {
+    if (selectedTypes.has('狗') && selectedTypes.size === 1) {
+      // 只選狗狗
+      showPetWarning(
+        '目前房型為設計為給貓貓專用',
+        '此房型專為貓貓設計，您選擇了狗狗。確定要繼續嗎？',
+        'cat-only-dog',
+      )
+      return false
+    } else if (selectedTypes.has('狗') && selectedTypes.has('貓')) {
+      // 同時選狗和貓
+      showPetWarning(
+        '建議選擇貓狗混和房型',
+        '您同時選擇了貓貓和狗狗，我們建議選擇貓狗混和房型會更適合喔！',
+        'cat-only-mixed',
+      )
+      return false
+    }
+  }
+
+  return true
+}
+
 // 前往預約表單（帶入住退房日期）
 const goToBooking = () => {
+  // 檢查是否有選擇寵物
+  if (selectedPets.value.length === 0) {
+    showPetWarning('請選擇寵物', '請選擇至少一隻寵物才能繼續預約', 'no-pet')
+    return
+  }
+
   if (!checkIn.value || !checkOut.value) return
+
+  // 檢查寵物類型是否符合房型
+  if (!validatePetTypeForRoom()) {
+    return // 不符合，顯示警告，停止
+  }
+
   router.push({
     path: `/stay/${route.params.roomTypeId}/booking`,
     query: {
       checkIn: checkIn.value,
       checkOut: checkOut.value,
+      pets: selectedPets.value.join(','),
     },
   })
+}
+
+// 拿用戶的寵物列表
+const fetchUserPets = async () => {
+  try {
+    const res = await axios.get(`/pets/member/${userStore.memberId}`)
+    userPets.value = res.data
+  } catch (e) {
+    console.error('寵物載入失敗', e)
+  }
+}
+
+// 切換寵物選取
+const togglePet = (petId) => {
+  const index = selectedPets.value.indexOf(petId)
+  if (index > -1) {
+    selectedPets.value.splice(index, 1)
+  } else {
+    selectedPets.value.push(petId)
+  }
+}
+
+// 判斷寵物是否被選中
+const isPetSelected = (petId) => {
+  return selectedPets.value.includes(petId)
 }
 
 onMounted(() => {
   fetchRoomType()
   fetchCalendar()
+  fetchUserPets()
+  console.log(userStore.user)
 })
 </script>
 
@@ -276,9 +444,92 @@ onMounted(() => {
         </div>
       </div>
       <!-- 入住和退房都選了才能點 -->
-      <button class="btn-next" :disabled="!checkIn || !checkOut" @click="goToBooking">
+      <button
+        class="btn-next"
+        :disabled="!checkIn || !checkOut || selectedPets.length === 0"
+        @click="goToBooking"
+      >
         前往預約 ››
       </button>
+    </div>
+  </div>
+
+  <!-- 寵物選擇區域（只有選好日期才顯示） -->
+  <div class="pet-section" v-if="checkIn && checkOut">
+    <div class="section-divider"></div>
+
+    <h3 class="section-title">選擇寵物</h3>
+
+    <div class="container-fluid">
+      <div class="row justify-content-center" v-if="userPets.length > 0">
+        <div v-for="pet in userPets" :key="pet.petId" class="col-auto mb-3">
+          <div
+            class="pet-card"
+            :class="{ selected: isPetSelected(pet.petId) }"
+            @click="togglePet(pet.petId)"
+          >
+            <!-- 寵物照片 -->
+            <div class="pet-photo-wrapper">
+              <img v-if="pet.petPhoto" :src="pet.petPhoto" :alt="pet.petName" class="pet-photo" />
+              <div v-else class="pet-photo-placeholder">🐾</div>
+            </div>
+
+            <!-- 勾選符號 -->
+            <div class="pet-check">✓</div>
+
+            <!-- 寵物資訊 -->
+            <div class="pet-info">
+              <span class="pet-name">{{ pet.petName }}</span>
+              <span class="pet-type">{{ pet.species }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" v-else>
+        <div class="col-12 text-center">
+          <p class="no-pets">沒有寵物資料</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-3" v-if="selectedPets.length > 0">
+      <span class="pet-selected-count"> 已選擇 {{ selectedPets.length }} 隻寵物 </span>
+    </div>
+  </div>
+
+  <!-- 自訂樣式 Modal -->
+  <div v-if="showWarningModal" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <!-- 警告圖示 -->
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" width="60" height="60">
+          <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="2" />
+          <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" />
+          <circle cx="12" cy="16" r="1" fill="currentColor" />
+        </svg>
+      </div>
+
+      <!-- 標題 -->
+      <h3 class="modal-title">{{ modalTitle }}</h3>
+
+      <!-- 訊息 -->
+      <p class="modal-message">{{ modalMessage }}</p>
+
+      <!-- 按鈕區 -->
+      <div class="modal-buttons">
+        <button class="btn-cancel" @click="handleRethink">取消</button>
+        <button
+          class="btn-change"
+          @click="handleChangeRoom"
+          v-if="currentWarningAction !== 'no-pet'"
+        >
+          {{ currentWarningAction?.includes('mixed') ? '去混和房型' : '返回選擇房型' }}
+        </button>
+        <button class="btn-confirm" @click="handleContinue">
+          {{ currentWarningAction === 'no-pet' ? '我知道了' : '是的，繼續' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -528,5 +779,254 @@ onMounted(() => {
 .btn-next:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+.pet-section {
+  margin-top: 32px;
+}
+
+.section-divider {
+  height: 1px;
+  background: #ecdfd0;
+  margin: 24px 0;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--brown);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.pet-card {
+  border: 2px solid #ecdfd0;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  background: white;
+  width: 140px;
+  text-align: center;
+}
+
+.pet-card:hover {
+  border-color: var(--gold);
+  background: #fdf6ee;
+  transform: translateY(-2px);
+}
+
+.pet-card.selected {
+  border-color: var(--brown);
+  background: var(--light);
+  box-shadow: 0 4px 12px rgba(107, 76, 42, 0.15);
+}
+
+/* 寵物照片 */
+.pet-photo-wrapper {
+  width: 100%;
+  height: 100px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f6f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pet-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pet-photo-placeholder {
+  font-size: 2.5rem;
+  color: #d4b896;
+}
+
+/* 勾選符號 */
+.pet-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: var(--brown);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.pet-card.selected .pet-check {
+  opacity: 1;
+}
+
+/* 寵物資訊 */
+.pet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pet-name {
+  display: block;
+  font-weight: 700;
+  color: var(--brown);
+  font-size: 0.95rem;
+}
+
+.pet-type {
+  display: block;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.no-pets {
+  color: #999;
+  padding: 20px;
+  margin: 0;
+}
+
+.pet-selected-count {
+  font-size: 0.95rem;
+  color: #3a8c5c;
+  font-weight: 600;
+}
+
+/* 警告按鈕樣式 */
+/* 自訂 Modal 樣式 */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.custom-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 32px;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  color: #f4a76f;
+}
+
+.modal-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--brown);
+  margin: 0 0 12px;
+  font-family: 'Noto Serif TC', serif;
+}
+
+.modal-message {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0 0 28px;
+  line-height: 1.6;
+  font-family: 'Noto Serif TC', serif;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.modal-buttons button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Noto Serif TC', serif;
+  flex: 1;
+  min-width: 100px;
+}
+
+/* 取消按鈕 */
+.btn-cancel {
+  background: #e0e0e0;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #d0d0d0;
+}
+
+/* 返回選擇房型按鈕 */
+.btn-change {
+  background: #a0a0a0;
+  color: white;
+  flex: 0 1 auto;
+  min-width: 120px;
+}
+
+.btn-change:hover {
+  background: #909090;
+}
+
+/* 確認按鈕 */
+.btn-confirm {
+  background: #7366d9;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #6355c8;
+}
+
+/* 當只有兩個按鈕時 */
+@media (max-width: 480px) {
+  .modal-buttons {
+    flex-direction: column;
+  }
+
+  .modal-buttons button {
+    width: 100%;
+  }
 }
 </style>
