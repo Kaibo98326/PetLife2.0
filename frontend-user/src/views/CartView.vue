@@ -9,6 +9,11 @@ const userStore = useUserStore()
 const router = useRouter()
 const cartItems = ref([])
 
+//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
+const discountAmount = ref(0)
+const finalAmount = ref(0)
+
+
 // 取得購物車資料
 const fetchCart = async () => {
   const mId = userStore.memberId
@@ -21,6 +26,8 @@ const fetchCart = async () => {
     const res = await axios.get(`/cart/${mId}`)
     // console.log('購物車 API 回傳結果:', res.data)
     cartItems.value = res.data
+  //  資料抓完後，立刻呼叫計算折扣的 API                   --->活動新增
+    await calculateDiscount() 
   } catch (error) {
     console.error('獲取購物車失敗', error)
   }
@@ -30,6 +37,46 @@ const fetchCart = async () => {
 const totalAmount = computed(() => {
   return cartItems.value.reduce((sum, item) => sum + (item.subtotal || 0), 0)
 })
+
+
+
+
+// 後端 API 計算最新折扣                 --->活動新增
+const calculateDiscount = async () => {
+  if (cartItems.value.length === 0) {
+    discountAmount.value = 0
+    finalAmount.value = 0
+    return
+  }
+
+  //防呆：先把應付金額預設為原價，避免 API 失敗時變成 0
+  finalAmount.value = totalAmount.value
+
+
+  try {
+    // 將前端的 cartItems 轉成後端需要的 DTO 格式
+    // ⚠️ 注意：請確保你的 res.data 裡面有 productId 和 categoryId，如果沒有，後端分類折扣會算不出來！
+    const requestData = {
+      cartItems: cartItems.value.map(item => ({
+        productId: item.productId,
+        categoryId: item.categoryId, 
+        price: item.productPrice,
+        quantity: item.quantity
+      }))
+    }
+console.log("傳給後端的購物車資料：", requestData);
+    const res = await axios.post('/cart/calculate', requestData)
+    
+    // 將後端算好的金額存進變數
+    discountAmount.value = res.data.discountAmount
+    finalAmount.value = res.data.finalAmount
+  } catch (error) {
+    console.error('計算折扣失敗:', error)
+  }
+}
+
+
+
 
 // 修改數量
 const changeQty = async (item, delta) => {
@@ -42,7 +89,8 @@ const changeQty = async (item, delta) => {
     await axios.put(`/cart/update/${item.itemId}`, null, {
       params: { quantity: newQty },
     })
-    fetchCart()
+    await fetchCart()  //  觸發自動算前----->活動新增
+//    fetchCart()  --->原本的
   } catch {
     Swal.fire('錯誤', '更新數量失敗', 'error')
   }
@@ -136,12 +184,12 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <!-- 總計區塊 -->
+      <!-- 總計區塊                                 我先註解保留，下面測試活動算帳
       <div class="total-section" v-if="cartItems.length > 0">
         總計金額：<span class="price-text">$ {{ totalAmount }}</span>
       </div>
 
-      <!-- 按鈕區塊 -->
+       按鈕區塊 
       <div class="action-buttons">
         <router-link to="/" class="btn-orange no-underline">
           <i class="fa-solid fa-house me-1"></i>返回首頁
@@ -150,7 +198,35 @@ onMounted(() => {
         <button v-if="cartItems.length > 0" class="btn-orange" @click="goToCheckout">
           <i class="fa-solid fa-credit-card me-1"></i>前往結帳
         </button>
-      </div>
+      </div> -->
+
+      <!-- 因應活動新增 -->
+
+
+      <div class="total-section" v-if="cartItems.length > 0">
+  <div v-if="discountAmount > 0" style="font-size: 0.9em; color: #666;">
+    商品總計：$ {{ totalAmount.toLocaleString() }} <br>
+    <span style="color: #ff4d4f;">活動折抵：- $ {{ discountAmount.toLocaleString() }}</span>
+  </div>
+  <div style="margin-top: 5px;">
+    總計金額：<span class="price-text">$ {{ finalAmount.toLocaleString() }}</span>
+  </div>
+</div>
+
+<div class="action-buttons">
+  <router-link to="/" class="btn-orange no-underline">
+    <i class="fa-solid fa-house me-1"></i>返回首頁
+  </router-link>
+
+  <button v-if="cartItems.length > 0" class="btn-orange" @click="goToCheckout">
+    <i class="fa-solid fa-credit-card me-1"></i>前往結帳
+  </button>
+</div>
+
+
+
+
+
     </div>
   </div>
 </template>

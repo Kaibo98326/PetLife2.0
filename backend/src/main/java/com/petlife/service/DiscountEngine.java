@@ -69,13 +69,14 @@ public class DiscountEngine {
                 return calculationService.calculatePercentageDiscount(eligibleItems, discount);
             case 2: // 滿額折扣 (定額)
                 return calculationService.calculateFixedDiscount(eligibleItems, discount);
-            case 3: // 買 N 送 M
-                return calculationService.calculateBuyNGetMDiscount(eligibleItems, discount);
-                List<CartItemDTO> addonItems = filterEligibleItems(cartItems, discount, "Addon");
-            case 4: // 條件加購價
-                // 加購價需要另外篩選出「副商品」
+            case 3: { // 買 N 送 M 
+                List<CartItemDTO> freeItems = filterEligibleItems(cartItems, discount, "Addon");
+                return calculationService.calculateBuyNGetMDiscount(eligibleItems, freeItems, discount);
+            }
+            case 4: { // 條件加購價 
                 List<CartItemDTO> addonItems = filterEligibleItems(cartItems, discount, "Addon");
                 return calculationService.calculateAddOnDiscount(eligibleItems, addonItems, discount);
+            }
             case 5: // 組合條件價
                 return calculationService.calculateBundleDiscount(eligibleItems, discount);
             default:

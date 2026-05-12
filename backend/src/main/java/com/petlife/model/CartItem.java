@@ -30,6 +30,10 @@ public class CartItem implements Serializable {
 	
     @Transient
 	private Product product; // 這樣一條購物車明細就能直接帶出所有商品資訊
+    
+    //處理活動分類
+    @Transient 
+    private Integer categoryId;
  	
 	@Id @Column(name="item_id")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,4 +60,6 @@ public class CartItem implements Serializable {
 	@Column(name = "subtotal", insertable = false, updatable = false)
 	@org.hibernate.annotations.Generated
 	private BigDecimal subtotal;
+	
+	
 }

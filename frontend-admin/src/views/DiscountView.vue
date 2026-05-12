@@ -2,6 +2,23 @@
 import { onMounted, ref, computed, watch } from 'vue';
 import { useDiscount } from '@/stores/useDiscount';
 import DiscountFormModal from '@/components/DiscountFormModal.vue';
+// 建立的明細彈窗組件
+import OrderDiscountModal from '@/components/OrderDiscountModal.vue';
+// 入員工 Store 來拿 Token
+import { useEmployeeStore } from '@/stores/employee';
+const employeeStore = useEmployeeStore();
+
+
+import axios from 'axios';
+import Swal from 'sweetalert2';
+
+// 建立一個 ref 來綁定子組件實例
+const discountModalRef = ref(null);
+
+// 定義點擊函數，透過 ref 呼叫子組件內部的 openModal 方法
+const viewOrderDiscountDetails = (orderId) => {
+    discountModalRef.value.openModal(orderId);
+};
 
 const { 
     API_BASE_URL, discounts, discountTypesList, 
@@ -21,6 +38,81 @@ const paginatedDiscounts = computed(() => {
 });
 
 watch([searchActivityName, statusFilter, scopeFilter, typeFilter], () => { currentPage.value = 1; });
+
+
+// ✨ 新增：明細變數與功能
+const discountDetails = ref([]);
+
+const viewDiscountDetails = async (discountId) => {
+  try {
+    // 呼叫後端寫好的 API (加上 headers 帶入 Token)
+    const res = await axios.get(`http://localhost:8082/api/order-discounts/discount/${discountId}`, {
+      headers: {
+        Authorization: `Bearer ${employeeStore.token}`
+      }
+    });
+    
+    discountDetails.value = res.data;
+
+    // 防呆：如果沒有人使用過這個活動
+    if (discountDetails.value.length === 0) {
+      Swal.fire('提示', '目前還沒有訂單使用此活動喔！', 'info');
+      return;
+    }
+
+    // 組合要顯示在彈跳視窗內的 HTML 表格字串
+    let tableHtml = `
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd;">
+            <th style="padding: 8px;">訂單編號</th>
+            <th style="padding: 8px;">商品編號</th>
+            <th style="padding: 8px;">數量</th>
+            <th style="padding: 8px;">折扣金額</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    let totalDiscountAmount = 0;
+
+    discountDetails.value.forEach(detail => {
+      tableHtml += `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px;">#${detail.orderId}</td>
+          <td style="padding: 8px;">${detail.productId}</td>
+          <td style="padding: 8px;">${detail.quantity}</td>
+          <td style="padding: 8px; color: red;">- $${detail.discountAmount}</td>
+        </tr>
+      `;
+      totalDiscountAmount += detail.discountAmount;
+    });
+
+    tableHtml += `
+        </tbody>
+      </table>
+      <div style="text-align: right; margin-top: 15px; font-weight: bold;">
+        累計折抵總額：<span style="color: red;">$${totalDiscountAmount}</span>
+      </div>
+    `;
+
+    // 使用 SweetAlert2 顯示明細
+    Swal.fire({
+      title: '活動使用明細',
+      html: tableHtml,
+      width: '600px',
+      confirmButtonColor: '#198754', // 使用你的綠色主題
+      confirmButtonText: '關閉'
+    });
+
+  } catch (error) {
+    console.error('獲取活動明細失敗:', error);
+    Swal.fire('錯誤', '無法獲取明細資料，請檢查網路連線', 'error');
+  }
+};
+
+
+
+
 
 onMounted(() => {
     fetchDiscounts();
@@ -104,6 +196,8 @@ onMounted(() => {
                             <td>
                                 <button class="btn btn-link text-primary text-decoration-none p-0 me-3 fw-bold" @click="formModalRef.openEdit(item)">查看/修改</button>
                                 <button class="btn btn-link text-danger text-decoration-none p-0 fw-bold" @click="deleteActivity(item)">刪除</button>
+
+                                <button class="btn btn-link text-info text-decoration-none p-0 fw-bold" @click="viewDiscountDetails(item.discountId)">明細</button>
                             </td>
                         </tr>
                     </tbody>

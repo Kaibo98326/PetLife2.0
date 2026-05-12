@@ -18,6 +18,7 @@ public class DiscountCalculationService {
     /**
      * Type 1: 百分比折扣 (例如：打 85 折)
      */
+	
     public BigDecimal calculatePercentageDiscount(List<CartItemDTO> validItems, Discount discount) {
         BigDecimal totalAmount = calculateTotalAmount(validItems);
         BigDecimal minAmount = getMinAmount(discount);
@@ -52,30 +53,39 @@ public class DiscountCalculationService {
      * Type 3: 買 N 送 M (例如：買 3 送 1)
      * ✨ 修正：自動扣掉最便宜的 M 件商品金額
      */
-    public BigDecimal calculateBuyNGetMDiscount(List<CartItemDTO> validItems, Discount discount) {
-        // 1. 將所有商品按數量展開成單價清單 (例如 3 件 $100 會變成 [100, 100, 100])
-        List<BigDecimal> allUnitPrices = flattenItemsToUnitPrices(validItems);
+    
+ // 對應 Engine 傳進來的內容
+    public BigDecimal calculateBuyNGetMDiscount(List<CartItemDTO> mainItems, List<CartItemDTO> freeItems, Discount discount) {
         
+        // 2. 核心：計算「買 N」的門檻是看 mainItems (主商品)
+        List<BigDecimal> mainUnitPrices = flattenItemsToUnitPrices(mainItems);
         int buyN = discount.getBuyQuantity();
         int freeM = discount.getFreeQuantity();
-        int setSize = buyN + freeM; // 一組需要多少件
         
-        // 2. 計算總共符合幾組
-        int sets = allUnitPrices.size() / setSize;
-        if (sets == 0) return BigDecimal.ZERO;
+        // 算出符合幾組活動 (例如買 3 送 1，看主商品湊到幾個 3)
+        int sets = mainUnitPrices.size() / buyN; 
+        if (sets == 0 || freeItems.isEmpty()) return BigDecimal.ZERO;
 
-        // 3. 排序單價 (從低到高)
-        Collections.sort(allUnitPrices);
+        // 3. 核心：要「送 M」的東西是從 freeItems (副商品) 裡面挑
+        List<BigDecimal> freeUnitPrices = flattenItemsToUnitPrices(freeItems);
+        
+        // 排序副商品單價 (從低到高)，確保扣掉的是最便宜的贈品
+        Collections.sort(freeUnitPrices);
 
-        // 4. ✨ 核心邏輯：從最便宜的開始挑選 (sets * freeM) 件作為折扣金額
+        // 4. 計算折扣金額：最多能送幾件？ (組數 * 每組送幾件)
+        // 但不能超過消費者實際買的副商品數量
+        int maxItemsToFree = sets * freeM;
+        int actualItemsToFree = Math.min(maxItemsToFree, freeUnitPrices.size());
+        
         BigDecimal discountAmount = BigDecimal.ZERO;
-        int itemsToFree = sets * freeM;
-        
-        for (int i = 0; i < itemsToFree; i++) {
-            discountAmount = discountAmount.add(allUnitPrices.get(i));
+        for (int i = 0; i < actualItemsToFree; i++) {
+            discountAmount = discountAmount.add(freeUnitPrices.get(i));
         }
 
-        markItemsAsProcessed(validItems);
+        // 5. 重要：把主副商品都標記為已處理，防止重複打折
+        markItemsAsProcessed(mainItems);
+        markItemsAsProcessed(freeItems);
+
         return discountAmount.setScale(0, RoundingMode.HALF_UP);
     }
 
@@ -106,6 +116,7 @@ public class DiscountCalculationService {
      * Type 5: 組合條件價 (例如：任選 3 件 50 元)
      * ✨ 修正：以最便宜的 N 件為一組計算原價差額
      */
+   
     public BigDecimal calculateBundleDiscount(List<CartItemDTO> validItems, Discount discount) {
         List<BigDecimal> allUnitPrices = flattenItemsToUnitPrices(validItems);
         int requiredQty = discount.getBuyQuantity();
@@ -159,10 +170,12 @@ public class DiscountCalculationService {
         return total;
     }
 
+   
     private BigDecimal getMinAmount(Discount discount) {
-        return discount.getMinimumPurchaseAmount() != null 
-                ? new BigDecimal(discount.getMinimumPurchaseAmount()) 
-                : BigDecimal.ZERO;
+        return discount.getMinimumPurchaseAmount() != null
+ // new BigDecimal(discount.getMinimumPurchaseAmount())  直接回傳，把外面的 new BigDecimal() 拿掉
+            ? discount.getMinimumPurchaseAmount() 
+            : BigDecimal.ZERO;
     }
 
     private void markItemsAsProcessed(List<CartItemDTO> items) {

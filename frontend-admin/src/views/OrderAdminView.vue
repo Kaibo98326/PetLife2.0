@@ -129,6 +129,11 @@
                 <td>
                  <div class="action-btns">
                   <template v-if="!order.isEditing">
+<!-- 因應活動新增 -->
+                    <button class="btn-icon" style="color: #dc3545;" @click="viewOrderDiscountDetails(order.orderId)">
+                      明細 <i class="bi bi-tags"></i>
+                    </button>
+<!-- 因應活動新增 -->
                     <button class="btn-icon edit" @click="order.isEditing = true">
                       修改 <i class="bi bi-pencil-square"></i>
                     </button>
@@ -225,12 +230,23 @@ import { ref, onMounted, computed, watch } from 'vue'
 import OrderDetailAdminView from './OrderDetailAdminView.vue'
 import { useEmployeeStore } from '@/stores/employee'
 
+
+// 建立的明細彈窗組件              --------------------->活動需要
+import OrderDiscountModal from '@/components/OrderDiscountModal.vue'
+
 const employeeStore = useEmployeeStore()
 
 const orders = ref([])
 const searchQuery = ref('')
 const errorMessage = ref('')
 const selectedOrderId = ref(null)
+
+//  建立 ref 與開啟彈窗的方法       --------------------->活動需要
+const discountModalRef = ref(null)
+const viewOrderDiscountDetails = (orderId) => {
+    discountModalRef.value.openModal(orderId)
+}
+
 
 // --- 分頁邏輯變數 ---
 const currentPage = ref(1)

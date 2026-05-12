@@ -30,7 +30,9 @@ public class SecutityConfig {
 	                .requestMatchers("/api/checkoutsuccess/**").permitAll()
 	                .requestMatchers("/api/productorders/**").permitAll()
 	                .requestMatchers("/api/order/**").permitAll()
-	                .requestMatchers("/api/discounts", "/api/discounts/**").permitAll() //活動折扣選擇 //活動折扣選擇
+	                .requestMatchers("/api/discounts", "/api/discounts/**").permitAll() //活動折扣選擇 //活動折扣選擇                 
+	                .requestMatchers("/api/order-discounts/**").permitAll() // 訂單折扣明細的 API 
+	                
 	                
 					.anyRequest().authenticated()
 					);

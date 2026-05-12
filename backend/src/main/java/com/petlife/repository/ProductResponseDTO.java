@@ -3,9 +3,10 @@ package com.petlife.repository;
 import java.math.BigDecimal;
 
 /**
- * 業界標準：Data Transfer Object (DTO)
+ * Data Transfer Object (DTO)
  * 專門用於 API 回傳，避免直接暴露資料庫 Entity 結構
  */
+//活動前端接受資料的DTO
 public class ProductResponseDTO {
     // --- 商品基本資訊 ---
     private Integer productId;

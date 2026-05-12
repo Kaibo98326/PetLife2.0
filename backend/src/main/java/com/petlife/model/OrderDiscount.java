@@ -1,56 +1,47 @@
 package com.petlife.model;
 
+
+
+//將 javax 改成 jakarta，以符合新版 Spring Boot 的規範
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import java.math.BigDecimal;
-/*
+
 @Entity
 @Table(name = "OrderDiscount")
-@Getter
-@Setter
-
+@IdClass(OrderDiscountId.class) // 指定複合主鍵類別
 public class OrderDiscount {
 
-    // 建議新增的流水號主鍵，滿足 JPA 規範
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "order_discount_id")
-    private Integer orderDiscountId;
+ @Id
+ @Column(name = "order_id", nullable = false)
+ private Integer orderId;
 
-    // 關聯到 Order (訂單) 實體 (假設你有 Order 這個類別)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+ @Id
+ @Column(name = "product_id", nullable = false)
+ private Integer productId;
 
-    // 關聯到 Product (商品) 實體 (假設你有 Product 這個類別)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+ @Id
+ @Column(name = "discount_id", nullable = false)
+ private Integer discountId;
 
-    // 關聯到我們剛剛建立的 Discount (折扣) 實體
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "discount_id", nullable = false)
-    private Discount discount;
+ @Column(name = "quantity")
+ private Integer quantity;
 
-    @Column(name = "quantity")
-    private Integer quantity;
+ @Column(name = "discount_amount", precision = 10, scale = 2)
+ private BigDecimal discountAmount;
 
-    @Column(name = "discount_amount", precision = 10, scale = 2)
-    private BigDecimal discountAmount;
+ // Getters and Setters
+ public Integer getOrderId() { return orderId; }
+ public void setOrderId(Integer orderId) { this.orderId = orderId; }
 
-    //無參數建構子 (JPA 框架必備)
-    public OrderDiscount() {
-    }
+ public Integer getProductId() { return productId; }
+ public void setProductId(Integer productId) { this.productId = productId; }
 
-    // 帶參數建構子 
-    // 用來讀取使用者的參數，並映射到物件的屬性上
-    public OrderDiscount(Order order, Product product, Discount discount, Integer quantity, BigDecimal discountAmount) {
-        this.order = order;
-        this.product = product;
-        this.discount = discount;
-        this.quantity = quantity;
-        this.discountAmount = discountAmount;
-    }
+ public Integer getDiscountId() { return discountId; }
+ public void setDiscountId(Integer discountId) { this.discountId = discountId; }
+
+ public Integer getQuantity() { return quantity; }
+ public void setQuantity(Integer quantity) { this.quantity = quantity; }
+
+ public BigDecimal getDiscountAmount() { return discountAmount; }
+ public void setDiscountAmount(BigDecimal discountAmount) { this.discountAmount = discountAmount; }
 }
-*/

@@ -8,6 +8,33 @@ const userStore = useUserStore()
 const cartItems = ref([])
 const isProcessing = ref(false)
 
+//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
+const discountAmount = ref(0)
+const finalAmount = ref(0)
+
+ 
+//活動折扣邏輯                                              --->活動新增
+const calculateDiscount = async () => {
+  try {
+    const requestData = {
+      cartItems: cartItems.value.map(item => ({
+        productId: item.productId,
+        categoryId: item.categoryId, 
+        price: item.productPrice,
+        quantity: item.quantity
+      }))
+    }
+    const res = await axios.post('/cart/calculate', requestData)
+    discountAmount.value = res.data.discountAmount
+    finalAmount.value = res.data.finalAmount
+  } catch (error) {
+    console.error('結帳折扣計算失敗', error)
+  }
+}
+
+
+
+
 // 表單資料綁定
 const orderForm = ref({
   receiverName: '',
@@ -43,6 +70,10 @@ const fetchCart = async () => {
       userStore.cartId = res.data[0].cartId
       console.log('✅ cartId 已更新:', userStore.cartId)
     }
+
+    // 資料抓完後，呼叫後端算折扣   ---->活動新增
+    await calculateDiscount()
+
   } catch (error) {
     console.error('獲取購物車失敗:', error)
   }
@@ -201,7 +232,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="checkout-footer">
+      <!-- <div class="checkout-footer">             原先的
         <div class="total-amount-box">
           <span class="label">應付總額：</span>
           <span class="amount">$ {{ totalAmount.toLocaleString() }}</span>
@@ -213,7 +244,36 @@ onMounted(async () => {
             {{ isProcessing ? '處理中...' : '確認下單' }}
           </button>
         </div>
+      </div> -->
+                                                <!--                       活動新增                                  -->
+      <div class="checkout-footer">
+        <div class="total-amount-box" style="display: flex; flex-direction: column; align-items: flex-end;">
+          
+          <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">
+            <span class="label">商品總額：</span>
+            <span class="amount">$ {{ totalAmount.toLocaleString() }}</span>
+          </div>
+
+          <div v-if="discountAmount > 0" class="discount-row" style="font-size: 0.9em; margin-bottom: 8px;">
+            <span class="label" style="color: #ff4d4f;">活動折抵：</span>
+            <span class="amount" style="color: #ff4d4f;">- $ {{ discountAmount.toLocaleString() }}</span>
+          </div>
+
+          <div class="final-total" style="font-size: 1.2em; font-weight: bold;">
+            <span class="label">應付總額：</span>
+            <span class="amount" style="color: #fd7e14;">$ {{ finalAmount.toLocaleString() }}</span>
+          </div>
+          
+        </div>
+
+        <div class="button-group">
+          <router-link to="/cart" class="btn-cancel">返回修改購物車</router-link>
+          <button class="btn-confirm" @click="submitOrder" :disabled="isProcessing">
+            {{ isProcessing ? '處理中...' : '確認下單' }}
+          </button>
+        </div>
       </div>
+
     </div>
   </div>
 </template>
