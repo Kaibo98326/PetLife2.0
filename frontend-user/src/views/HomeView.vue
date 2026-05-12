@@ -385,7 +385,7 @@ onMounted(async () => {
                 <div class="group-title text-danger">
                   <i class="fas fa-bullhorn me-2"></i>活動特報 (功能尚未完成)
                 </div>
-                <!-- <div class="group-content">
+                <div class="group-content">
                   <a v-for="tag in categoryTree.activityTags" 
                      :key="tag.categoryId" 
                      href="#" 
@@ -395,7 +395,7 @@ onMounted(async () => {
                   >
                     <i class="fas fa-tag me-2"></i>{{ tag.categoryName }}
                   </a>
-                </div> -->
+                </div>
               </div>
             </nav>
           </div>

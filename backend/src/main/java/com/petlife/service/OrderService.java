@@ -106,7 +106,7 @@ public class OrderService {
 		// 內網穿透工具(ngrok) 要正式測試要記得來改網址!!!
 		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
 //		params.put("OrderResultURL", "http://localhost:5173/checkoutsuccess");// 結帳完導回的頁面
-		params.put("ClientBackURL", "http://localhost:5173/checkoutsuccess");
+		params.put("ClientBackURL", "http://localhost:5174/checkoutsuccess");
 		params.put("NeedExtraPaidInfo", "N");
 		
 		// 計算加密簽章CheckMacValue
