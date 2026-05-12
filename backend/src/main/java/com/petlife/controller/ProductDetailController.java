@@ -9,10 +9,7 @@ import com.petlife.model.Product;
 import com.petlife.model.Category; // 💡 記得匯入 Category
 import com.petlife.service.ProductService;
 import com.petlife.service.CategoryService; // 💡 記得匯入 CategoryService
-<<<<<<< HEAD
-=======
 // import com.petlife.service.CartService;
->>>>>>> main
 
 @Controller
 public class ProductDetailController {
@@ -23,12 +20,9 @@ public class ProductDetailController {
 	@Autowired
 	private ProductService productService;
 
-<<<<<<< HEAD
-=======
 //	@Autowired
 //	private CartService cartService;
 
->>>>>>> main
 //===== 前台商城 顯示商品詳情頁面 (含購物車狀態) ================================================================================================
 
 	@GetMapping("/product/detail")
@@ -49,8 +43,6 @@ public class ProductDetailController {
 		model.addAttribute("cartTotalQty",
 				session.getAttribute("cartTotalQty") != null ? session.getAttribute("cartTotalQty") : 0);
 
-<<<<<<< HEAD
-=======
 		// --- 若已登入會員，則即時查詢最新購物車數量 ---
 		if (memberId != null) {
 			// 由於目前尚未建立 CartService，暫時註解避免編譯錯誤
@@ -58,7 +50,6 @@ public class ProductDetailController {
 			// model.addAttribute("cartTotalQty", totalQty);
 		}
 
->>>>>>> main
 		// --- 若無商品 ID 則導回商城首頁 ---
 		if (id == null) {
 			return "redirect:/shop/index"; // 💡 路徑修正為我們統一的 /shop/index
