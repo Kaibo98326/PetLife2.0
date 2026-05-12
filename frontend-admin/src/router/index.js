@@ -42,11 +42,29 @@ const routes = [
       },
       {
         path: 'product/edit/:id', // 對應 /admin/product/edit/:id
+<<<<<<< HEAD
         name: 'ProductEdit',
         component: () => import('@/views/ProductEdit.vue')
       },
       {
         path: 'employee', 
+=======
+        name: '編輯商品',
+        component: () => import('@/views/ProductEdit.vue'),
+      },
+      {
+        path: 'product/add', // 對應 /admin/product/add
+        name: '新增商品',
+        component: () => import('@/views/ProductEdit.vue'),
+      },
+      {
+        path: 'order',
+        name: '訂單管理',
+        component: OrderAdminView,
+      },
+      {
+        path: 'employee',
+>>>>>>> main
         name: '員工管理',
         component: () => import('@/views/AdminEmployeeList.vue')
       },

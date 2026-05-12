@@ -25,6 +25,17 @@ public class SecutityConfig {
 	                .requestMatchers("/api/products", "/api/products/**").permitAll()
 	                .requestMatchers("/api/shop", "/api/shop/**").permitAll()
 					.requestMatchers("/error").permitAll()
+<<<<<<< HEAD
+=======
+					.requestMatchers("/api/cart/**").permitAll()
+	                .requestMatchers("/api/orders/**").permitAll()
+	                .requestMatchers("/api/checkout/**").permitAll()
+	                .requestMatchers("/api/checkoutsuccess/**").permitAll()
+	                .requestMatchers("/api/productorders/**").permitAll()
+	                .requestMatchers("/api/order/**").permitAll()
+	                .requestMatchers("/api/history/**").permitAll()
+	                
+>>>>>>> main
 					.anyRequest().authenticated()
 					);
 		return http.build();
