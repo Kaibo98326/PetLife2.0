@@ -22,12 +22,30 @@
 <script setup>
 import { useEmployeeStore } from '@/stores/employee';
 import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
 
 const employeeStore = useEmployeeStore();
 const router = useRouter();
 
 const logout = () => {
   employeeStore.logout();
-  router.push('/');
+  Swal.fire({
+        icon: 'warning',
+        title: '確定要登出嗎？',
+        text: '登出後需要重新登入才能使用後台系統功能',
+        showCancelButton: true,
+        confirmButtonText: '是的，登出',
+        cancelButtonText: '取消'
+    }).then((result) => {
+        Swal.fire({
+                icon: 'success',
+                title: '已登出',
+                text: '期待您再次回來！',
+                confirmButtonText: '回登入'
+            }).then(() =>{
+              router.push('/')
+            })
+    })
+  
 };
 </script>

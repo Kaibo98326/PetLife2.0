@@ -51,7 +51,7 @@ const login = async () => {
                 </div>
                 <div class="input-box">
                     <input type="password" v-model="password" placeholder="密碼" required />
-                    <i class="fas fa-lock"></i>
+                    <i class="fa-solid fa-lock"></i>
                 </div>
                 <div class="remember-forgot">
                     <label><input type="checkbox" /> 記住我</label>
