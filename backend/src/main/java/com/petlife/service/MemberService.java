@@ -107,7 +107,7 @@ public class MemberService implements IMemberService{
 		
 		//檢查電話
 		memberRepos.findByPhone(req.getPhone())
-					.filter(m -> !m.getPhone().equals(req.getPhone()))
+					.filter(m -> !m.getMemberId().equals(req.getMemberId()))
 					.ifPresent(m ->{throw new IllegalArgumentException("此電話已被使用");});
 		
 		//可修改欄位
@@ -119,10 +119,7 @@ public class MemberService implements IMemberService{
 			member.setPasswordHash(PasswordUtils.hashPassword(req.getPassword()));
 		}
 		
-		if(member.getProvider() != null && member.getProviderUserId() != null) {
-			member.setProvider(req.getProvider());
-			member.setProviderUserId(req.getProviderUserId());
-		}
+	
 		// 4/29更新使用者大頭貼功能
 		if(req.getUserImage() != null && !req.getUserImage().isEmpty()) {
 			member.setUserImage(req.getUserImage());
