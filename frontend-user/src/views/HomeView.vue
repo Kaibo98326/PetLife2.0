@@ -5,6 +5,8 @@ import axios from '@/axios.js'
 import Swal from 'sweetalert2'
 import { useUserStore } from '@/stores/user'
 import '@/assets/css/ShopPanel.css'
+import { Carousel } from 'bootstrap/dist/js/bootstrap.bundle.min'
+
 
 // ── 使用者 Store（登入判斷、購物車） ──────────────────────────────────────
 const userStore = useUserStore()
@@ -18,6 +20,7 @@ import ad03 from '@/assets/images/ad03.jpg'
 import ad04 from '@/assets/images/ad04.jpg'
 import ad05 from '@/assets/images/ad05.jpg'
 import ad06 from '@/assets/images/ad06.jpg'
+import { ca } from 'vuetify/locale'
 
 const carouselImages = ref([
   { src: ad01, alt: '廣告輪播01' },
@@ -324,6 +327,15 @@ onMounted(async () => {
   }
 
   await fetchProducts(1)
+
+  const carouselElement = document.getElementById('shopCarousel')
+
+  if (carouselElement) {
+    const carousel = new Carousel(carouselElement, {
+      interval: 2000,
+      ride: 'carousel',
+    })
+  }
 })
 </script>
 
@@ -426,6 +438,7 @@ onMounted(async () => {
           v-if="showCarousel"
           id="shopCarousel"
           class="carousel slide mb-4"
+          data-bs-interval="2000"
           data-bs-ride="carousel"
         >
           <div class="carousel-indicators">
