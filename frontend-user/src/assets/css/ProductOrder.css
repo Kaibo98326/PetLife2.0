@@ -1,0 +1,192 @@
+.product-order-container {
+  padding: 10px 5px;
+}
+
+/* 表格整體對齊與間距 */
+.custom-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.custom-table th, 
+.custom-table td {
+  width: calc(100% / 7); /* 平均分配 7 欄 */
+  text-align: center;
+  font-size: 16px;
+}
+
+.custom-table thead th {
+  border: none;
+  background-color: transparent;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  padding: 15px;
+}
+
+/* 每一行的卡片效果 */
+.custom-table tbody tr {
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  border-radius: 10px;
+}
+
+.custom-table tbody tr:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  background-color: #fffaf0; /* 微弱的暖色提示 */
+}
+
+.custom-table tbody td {
+  padding: 20px 15px;
+  border: none;
+  color: #444;
+  font-size: 1.05rem;
+}
+
+/* 第一個與最後一個 td 的圓角處理（因為 border-spacing 關係需個別處理） */
+.custom-table tbody tr td:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+.custom-table tbody tr td:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* 文字與標籤樣式 */
+.price-text {
+  font-size: 1.15rem;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  color: #dc3545;
+  font-weight: 700;
+}
+
+.badge {
+  padding: 8px 12px;
+  border-radius: 50px; /* 膠囊狀 */
+  font-weight: 500;
+}
+
+/* 查看內容按鈕美化 */
+.btn-detail-action {
+  border: 1.5px solid #ffca2c;
+  color: #d4a017;
+  background-color: white;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-detail-action:hover {
+  background-color: #df840e;
+  color: white;
+  box-shadow: 0 4px 10px rgba(255, 202, 44, 0.3);
+}
+
+/* Modal 內部優化 */
+.modal-content {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.modal-header {
+  border: none;
+  padding: 20px 30px;
+}
+
+.modal-body {
+  padding: 30px;
+}
+
+.item-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.empty-state {
+  background: #fff;
+  border-radius: 20px;
+  padding: 60px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+.bg-faint-gray {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.text-light-orange {
+  color: #ffe8cc;
+}
+
+.total-box {
+  background-color: #fff5f5;
+  border: 1px dashed #feb2b2;
+  min-width: 250px;
+}
+
+.info-card {
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+}
+
+.item-table thead th {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* 確保 Modal 滾動流暢 */
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.custom-header-orange {
+  /* 使用線性漸層：從深一點的橘色到明亮的橘色 */
+  background: linear-gradient(135deg, #FF7E5F 0%, #FEB47B 100%);
+  border-bottom: 2px solid #f0a500; /* 底部細線增加層次 */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* 微弱的投影 */
+}
+
+/* 強化標題文字 */
+.modal-title {
+  font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); /* 讓白色字體更立體 */
+}
+
+/* 如果你想讓那個 X 關閉按鈕更精緻 */
+.btn-close-white {
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+.btn-close-white:hover {
+  opacity: 1;
+}
+/* 讓表格比例嚴格執行 */
+.custom-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* 3天後按鈕變為唯讀的視覺效果 */
+.btn-readonly {
+  background-color: #f4f4f4 !important;
+  border-color: #ddd !important;
+  color: #bbb !important;
+  cursor: not-allowed !important;
+  pointer-events: none; /* 防止點擊 */
+}
+
+/* 取消按鈕的懸停效果 */
+.btn-outline-danger {
+  border-width: 1.5px;
+  transition: all 0.2s;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}

@@ -1,0 +1,212 @@
+@charset "UTF-8";
+.checkout-page {
+  background-color: #f4f4f4;
+  min-height: 100vh;
+  padding: 50px 20px;
+}
+
+.checkout-card {
+  max-width: 750px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+  padding: 40px;
+}
+
+.main-title {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 35px;
+  color: #333;
+}
+
+/* --- 上方訂單明細美化 --- */
+.order-details-section {
+  background-color: #fffaf7; /* 極淡橘色背景 */
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 30px;
+}
+
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.styled-table thead th {
+  padding: 15px;
+  color: #fd7e14;
+  border-bottom: 1px solid #ffe8d6;
+  font-size: 0.95rem;
+}
+
+.styled-table tbody td {
+  padding: 15px;
+  border-bottom: 1px solid #fdf2e9;
+  color: #555;
+  vertical-align: middle;
+}
+
+.styled-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.product-name {
+  font-weight: 500;
+  width: 60%;
+}
+
+.product-qty {
+  text-align: center;
+  font-family: 'Verdana', sans-serif;
+}
+
+.product-subtotal {
+  text-align: right;
+  font-weight: bold;
+  color: #666;
+}
+
+/* --- 下方表單美化 --- */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fd7e14;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.custom-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+  transition: 0.3s;
+}
+
+.custom-input:focus {
+  border-color: #fd7e14;
+  background-color: #fff;
+  outline: none;
+}
+
+.custom-textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* 付款方式 Radio */
+.payment-methods {
+  display: flex;
+  gap: 25px;
+  padding: 5px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.radio-label {
+  font-weight: 500;
+  color: #444;
+}
+
+input[type='radio'] {
+  accent-color: #fd7e14;
+  width: 18px;
+  height: 18px;
+}
+
+/* --- Footer --- */
+.checkout-footer {
+  margin-top: 40px;
+  border-top: 1px solid #eee;
+  padding-top: 30px;
+}
+
+.total-amount-box {
+  text-align: right;
+  margin-bottom: 30px;
+}
+
+.total-amount-box .label {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.total-amount-box .amount {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #d9534f;
+  margin-left: 10px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-cancel {
+  color: #888;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.btn-confirm {
+  background: #fd7e14;
+  color: #fff;
+  border: none;
+  padding: 15px 50px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 8px 20px rgba(253, 126, 20, 0.2);
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #e86c00;
+  transform: translateY(-2px);
+}
+
+.btn-confirm:disabled {
+  background: #ccc;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* 文字對齊輔助 */
+.text-start {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.text-end {
+  text-align: right;
+}

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginEmp from '@/views/LoginEmp.vue'
 import MainLayout from '@/layout/MainLayout.vue' // 引入你的外殼組件
+import OrderAdminView from '@/views/OrderAdminView.vue'
 
 const routes = [
   // 登入頁面 (不需要側邊欄和頂欄)
@@ -53,7 +54,7 @@ const routes = [
       {
         path: 'order',
         name: '訂單管理',
-        component: OrderAdminView,
+        component: OrderAdminView
       },
       {
         path: 'employee',
