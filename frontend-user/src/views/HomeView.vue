@@ -41,6 +41,7 @@ const totalPages = ref(1) // 總頁數
 const totalElements = ref(0) // 商品總數
 const loading = ref(false) // 載入狀態
 const errorMsg = ref('') // 錯誤訊息
+const viewHistory = ref([]) // 瀏覽紀錄
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
 const sortBy = ref('newest') // 預設：最新上架
@@ -193,6 +194,17 @@ async function fetchProducts(page = 1) {
   }
 }
 
+// ── 取得瀏覽紀錄 ──────────────────────────────────────────────────────────
+async function fetchHistory() {
+  if (!userStore.token || !userStore.memberId) return
+  try {
+    const res = await axios.get(`/history/${userStore.memberId}`)
+    viewHistory.value = res.data || []
+  } catch (e) {
+    console.error('取得歷史紀錄失敗', e)
+  }
+}
+
 // ── 分類篩選 ──────────────────────────────────────────────────────────────
 function selectCategory(categoryId) {
   if (categoryId === null) {
@@ -327,6 +339,7 @@ onMounted(async () => {
   }
 
   await fetchProducts(1)
+  fetchHistory()
 
   const carouselElement = document.getElementById('shopCarousel')
 
@@ -401,8 +414,26 @@ onMounted(async () => {
           </div>
 
           <!-- 這裡留給您未來放置「歷史紀錄」 -->
-          <div class="history-placeholder mt-4">
-            <!-- 未來放置歷史紀錄組件 -->
+          <div v-if="userStore.token && viewHistory.length > 0" class="recent-history-section mt-5">
+            <h6 class="history-title mb-3">
+              <i class="fas fa-history text-muted me-2"></i>最近看過
+            </h6>
+            <div class="history-list">
+              <router-link 
+                v-for="h in viewHistory.slice(0, 5)" 
+                :key="h.productId" 
+                :to="`/product/${h.productId}`"
+                class="history-item d-flex align-items-center text-decoration-none mb-3"
+              >
+                <div class="history-img-box me-2">
+                  <img :src="getImageUrl(h.productImage)" :alt="h.productName" />
+                </div>
+                <div class="history-info">
+                  <p class="history-name mb-0">{{ h.productName }}</p>
+                  <p class="history-price mb-0">$ {{ Number(h.productPrice).toLocaleString() }}</p>
+                </div>
+              </router-link>
+            </div>
           </div>
         </div>
       </aside>

@@ -744,3 +744,69 @@ body {
   font-size: 12px;
   margin-left: 4px;
 }
+
+/* ── 最近看過商品區塊 ── */
+.recent-history-section {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(211, 160, 80, 0.08);
+    border: 1px solid var(--border-color);
+}
+
+.history-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brand-brown);
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 10px;
+}
+
+.history-item {
+    transition: all 0.2s ease;
+    border-radius: 12px;
+    padding: 5px;
+}
+
+.history-item:hover {
+    background: #fffaf5;
+    transform: translateX(5px);
+}
+
+.history-img-box {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-img-box img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.history-info {
+    overflow: hidden;
+}
+
+.history-name {
+    font-size: 13px;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.history-price {
+    font-size: 12px;
+    color: var(--brand-red);
+    font-weight: 700;
+}

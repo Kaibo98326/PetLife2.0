@@ -64,6 +64,11 @@ async function fetchProduct() {
         })
       }
       allImages.value = images
+
+      // ── 紀錄瀏覽紀錄 ──
+      if (userStore.token && userStore.memberId) {
+        recordHistory(userStore.memberId, product.value.productId)
+      }
     }
 
     // 若商品不存在或已下架
@@ -76,6 +81,15 @@ async function fetchProduct() {
     errorMsg.value = '商品載入失敗，請稍後再試'
   } finally {
     loading.value = false
+  }
+}
+
+/** 記錄瀏覽歷史到後端 */
+async function recordHistory(memberId, productId) {
+  try {
+    await axios.post('/history/record', { memberId, productId })
+  } catch (e) {
+    console.error('記錄歷史失敗', e)
   }
 }
 
