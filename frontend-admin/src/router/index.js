@@ -43,12 +43,12 @@ const routes = [
       },
       {
         path: 'product/edit/:id', // 對應 /admin/product/edit/:id
-        name: 'ProductEdit',
+        name: '編輯商品',
         component: () => import('@/views/ProductEdit.vue'),
       },
       {
         path: 'product/add', // 對應 /admin/product/add
-        name: 'ProductAdd',
+        name: '新增商品',
         component: () => import('@/views/ProductEdit.vue'),
       },
       {

@@ -30,6 +30,7 @@ public class SecutityConfig {
 	                .requestMatchers("/api/checkoutsuccess/**").permitAll()
 	                .requestMatchers("/api/productorders/**").permitAll()
 	                .requestMatchers("/api/order/**").permitAll()
+	                .requestMatchers("/api/history/**").permitAll()
 	                
 					.anyRequest().authenticated()
 					);
