@@ -12,6 +12,22 @@ const router = useRouter()
 
 // ── 搜尋 ──────────────────────────────────────────────────────────────────
 const keyword = ref('')
+const hotKeywords = ref([])
+
+async function fetchHotKeywords() {
+  try {
+    const res = await axios.get('/shop/search/hot')
+    hotKeywords.value = res.data || []
+  } catch (e) {
+    console.error('取得熱門關鍵字失敗', e)
+  }
+}
+
+/** 點擊熱門關鍵字 */
+function clickHotKeyword(kw) {
+  keyword.value = kw
+  searchProducts()
+}
 
 // 監聽網址的 keyword，如果被清空(例如點擊分類)，就同步清空上方的搜尋框
 import { watch } from 'vue'
@@ -99,6 +115,7 @@ onMounted(async () => {
     await userStore.fetchUser()
   }
   await fetchCategories()
+  await fetchHotKeywords()
 })
 </script>
 
@@ -115,20 +132,35 @@ onMounted(async () => {
           </div>
 
           <!-- 搜尋框 -->
-          <div class="col px-lg-5">
+          <div class="col position-relative">
             <form @submit.prevent="searchProducts" class="shop-search-form">
               <div class="input-group">
                 <input
                   v-model="keyword"
                   type="text"
                   class="form-control search-input"
-                  placeholder="搜尋毛孩好物..."
+                  placeholder="請輸入關鍵字"
                 />
                 <button type="submit" class="btn search-submit-btn">
                   <i class="fas fa-search text-muted"></i>
                 </button>
               </div>
             </form>
+
+            <!-- 熱門關鍵字 -->
+            <div class="hot-keywords-row d-none d-lg-flex">
+              <div class="hot-keyword-list">
+                <a
+                  v-for="item in hotKeywords"
+                  :key="item.id"
+                  href="#"
+                  class="hot-keyword-item"
+                  @click.prevent="clickHotKeyword(item.keyword)"
+                >
+                  {{ item.keyword }}
+                </a>
+              </div>
+            </div>
           </div>
 
           <!-- 頂端右側 -->

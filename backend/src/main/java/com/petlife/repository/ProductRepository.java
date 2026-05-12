@@ -61,6 +61,16 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
     @Transactional
     @Query("UPDATE Product p SET p.productStatus = :status WHERE p.productId IN :ids")
     void batchUpdateStatus(@Param("ids") List<Integer> ids, @Param("status") Integer status);
+
+//===== 熱門排行 (依點擊率) ======================================================================================
+    
+    @Query("SELECT p FROM Product p WHERE p.productStatus = 1 ORDER BY p.clickCount DESC, p.productId DESC")
+    List<Product> findTop10ByClickCount(Pageable pageable);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Product p SET p.clickCount = COALESCE(p.clickCount, 0) + 1 WHERE p.productId = :id")
+    void incrementClickCount(@Param("id") Integer productId);
     
 }
 

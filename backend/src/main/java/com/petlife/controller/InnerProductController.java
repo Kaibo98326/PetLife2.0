@@ -167,6 +167,9 @@ public class InnerProductController {
     //===== 取得單一商品詳情 =====================================================================
     @GetMapping("/detail/{id}")
     public ResponseEntity<?> showDetail(@PathVariable("id") Integer id) {
+        // 【新增】點擊率累加邏輯
+        productService.incrementClickCount(id);
+
         Product product = productService.getProductById(id);
         if (product != null && product.getCategories() != null && !product.getCategories().isEmpty()) {
             String names = product.getCategories().stream()

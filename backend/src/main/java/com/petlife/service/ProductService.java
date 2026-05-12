@@ -242,5 +242,15 @@ public class ProductService {
         Pageable pageable = PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by("productId").descending());
         return productRepository.findAll(spec, pageable);
     }
+
+    // ===== 熱門排行相關 =====
+    @Transactional(readOnly = true)
+    public List<Product> getTop5HotProducts() {
+        return productRepository.findTop10ByClickCount(PageRequest.of(0, 5));
+    }
+
+    public void incrementClickCount(Integer productId) {
+        productRepository.incrementClickCount(productId);
+    }
     
 }
