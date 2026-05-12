@@ -31,6 +31,7 @@ public class SecutityConfig {
 	                .requestMatchers("/api/productorders/**").permitAll()
 	                .requestMatchers("/api/order/**").permitAll()
 	                .requestMatchers("/api/history/**").permitAll()
+	                .requestMatchers("/api/heart/**").permitAll()
 	                
 					.anyRequest().authenticated()
 					);

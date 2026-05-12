@@ -166,6 +166,14 @@ onMounted(async () => {
           <!-- 頂端右側 -->
           <div class="col-auto">
             <nav class="shop-user-nav d-flex align-items-center">
+              <!-- 收藏清單 -->
+             <router-link
+              to="/heart"
+              class="nav-icon-item d-flex flex-column align-items-center text-decoration-none"
+              >
+              <i class="fas fa-heart"></i>
+              <span>收藏清單</span>
+              </router-link>
               <!-- 購物車 -->
               <router-link
                 to="/cart"
@@ -225,22 +233,22 @@ onMounted(async () => {
         </div>
 
         <!-- 上層分類目錄 -->
-        <nav class="header-nav mt-3">
-          <div class="container-fluid px-lg-5">
-            <ul class="nav-menu-list">
-              <!-- 動態大專區 (從後台分類自動抓取) -->
-              <li v-for="area in mainAreas" :key="area.categoryId">
-                <router-link :to="{ path: '/', query: { catId: area.categoryId } }" class="nav-menu-link">
-                  {{ area.categoryName }}
-                </router-link>
-              </li>
+   <nav class="header-nav mt-3">
+     <div class="container-fluid px-lg-5">
+       <ul class="nav-menu-list">
+         <!-- 動態大專區 (從後台分類自動抓取) -->
+         <li v-for="area in mainAreas" :key="area.categoryId">
+           <router-link :to="{ path: '/', query: { catId: area.categoryId } }" class="nav-menu-link">
+             {{ area.categoryName }}
+           </router-link>
+           </li>
 
-              <!-- 動態活動標籤 (Type 3) -->
-              <li v-for="tag in activityTags" :key="tag.categoryId">
-                <router-link :to="{ path: '/', query: { catId: tag.categoryId } }" class="nav-menu-link">
-                  {{ tag.categoryName }}
-                </router-link>
-              </li>
+         <!-- 動態活動標籤 (Type 3) -->
+         <li v-for="tag in activityTags" :key="tag.categoryId">
+           <router-link :to="{ path: '/', query: { catId: tag.categoryId } }" class="nav-menu-link">
+             {{ tag.categoryName }}
+           </router-link>
+         </li>
 
               <!-- 靜態連結 (確保固定在最後面) -->
               <li><router-link to="/beauty-booking" class="nav-menu-link">🛁 寵物美容</router-link></li>

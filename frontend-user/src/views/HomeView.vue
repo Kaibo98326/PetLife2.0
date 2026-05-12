@@ -43,6 +43,8 @@ const loading = ref(false) // 載入狀態
 const errorMsg = ref('') // 錯誤訊息
 const viewHistory = ref([]) // 瀏覽紀錄
 const top10Products = ref([]) // TOP10 熱銷商品
+const favoriteProducts = ref([]) // 收藏商品
+
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
 const sortBy = ref('newest') // 預設：最新上架
@@ -309,6 +311,65 @@ async function addToCart(product) {
   }
 }
 
+// -- 收藏小愛心 --
+async function toggleHeart(product) {
+  if (!userStore.token || !userStore.memberId) {
+    await Swal.fire({
+      icon: 'warning',
+      title: '請先登入',
+      text: '登入後才能收藏您心儀的毛孩好物喔！',
+      confirmButtonText: '前往登入',
+      confirmButtonColor: '#e67e22',
+    })
+    router.push('/login')
+    return
+  }
+
+  try {
+    const res = await axios.post('/heart/toggle', null, {
+      params: {
+        memberId: userStore.memberId,
+        productId: product.productId
+      }
+    })
+
+    if (res.data.includes('已加入')) {
+      favoriteProducts.value.push(product.productId)
+    } else {
+      favoriteProducts.value = favoriteProducts.value.filter(id => id !== product.productId)
+    }
+
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: res.data,
+      showConfirmButton: false,
+      timer: 1500
+    })
+  } catch (e) {
+    console.error('收藏操作失敗', e)
+    Swal.fire({
+      icon: 'error',
+      title: '操作失敗',
+      text: '請稍後再試',
+    })
+  }
+}
+
+/* 取得該會員的收藏清單 */
+async function fetchMemberFavorites() {
+  if (!userStore.token || !userStore.memberId) return
+  try {
+    const res = await axios.get(`/heart/list`, {
+      params: { memberId: userStore.memberId }
+    })
+    favoriteProducts.value = res.data.map(item => item.productId)
+  } catch (e) {
+    console.error('取得收藏清單失敗', e)
+  }
+}
+
 // ── 監聽 URL query 變化（Header 搜尋 / 分類連結點擊） ─────────────────────
 watch(
   () => route.query,
@@ -345,8 +406,14 @@ onMounted(async () => {
   if (route.query.catId) {
     selectedCategoryId.value = parseInt(route.query.catId)
   }
+  // 更新購物車數量
   if (userStore.token && userStore.memberId) {
     userStore.updateCartCount()
+  }
+  // 收藏清單
+  if (userStore.token && userStore.memberId) {
+    userStore.updateCartCount()
+    await fetchMemberFavorites() 
   }
 
   await fetchProducts(1)
@@ -549,9 +616,14 @@ onMounted(async () => {
                 </router-link>
                 <div class="top10-footer">
                   <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
-                  <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                    <i class="fas fa-shopping-basket"></i>
-                  </button>
+                  <div class="action-btns">
+                    <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                      <i :class="favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                    </button>
+                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                      <i class="fas fa-shopping-basket"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -667,9 +739,14 @@ onMounted(async () => {
                     <span class="product-price"
                       >$ {{ Number(p.productPrice).toLocaleString() }}</span
                     >
-                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                      <i class="fas fa-shopping-basket"></i>
-                    </button>
+                    <div class="action-btns">
+                      <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                        <i :class="favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                      </button>
+                      <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                        <i class="fas fa-shopping-basket"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>

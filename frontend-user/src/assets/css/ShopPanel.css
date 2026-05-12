@@ -690,7 +690,12 @@ body {
     font-weight: 800;
 }
 
-.add-to-cart-btn {
+.action-btns {
+    display: flex;
+    gap: 8px; /* 兩個按鈕之間的間距 */
+}
+
+.add-to-cart-btn,.heart-btn {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -700,10 +705,20 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s ease;
 }
 
 .add-to-cart-btn:hover {
     background: var(--brand-orange);
+    color: #fff;
+}
+/* 愛心按鈕顏色 (通常用紅色或粉色) */
+.heart-btn {
+    color: #ff4d4f; /* 愛心顏色 */
+}
+
+.heart-btn:hover {
+    background: #ff4d4f;
     color: #fff;
 }
 
