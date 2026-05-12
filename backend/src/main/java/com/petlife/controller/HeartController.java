@@ -19,12 +19,12 @@ import com.petlife.service.HeartService;
 public class HeartController {
 
     @Autowired
-    private HeartService heartService;
+    private HeartService hs;
 
     // 取得會員的所有追蹤清單
     @GetMapping("/list")
     public ResponseEntity<List<Heart>> getWatchList(@RequestParam Integer memberId) {
-        List<Heart> watchList = heartService.getWatchListWithComparison(memberId);
+        List<Heart> watchList = hs.getWatchListWithComparison(memberId);
         return ResponseEntity.ok(watchList);
     }
 
@@ -33,7 +33,7 @@ public class HeartController {
     public ResponseEntity<String> toggleHeart(
             @RequestParam Integer memberId, 
             @RequestParam Integer productId) {
-        String message = heartService.toggleHeart(memberId, productId);
+        String message = hs.toggleHeart(memberId, productId);
         return ResponseEntity.ok(message);
     }
 
@@ -42,7 +42,7 @@ public class HeartController {
     public ResponseEntity<Void> removeHeart(
             @RequestParam Integer memberId, 
             @RequestParam Integer productId) {
-        heartService.removeHeart(memberId, productId);
+        hs.removeHeart(memberId, productId);
         return ResponseEntity.noContent().build();
     }
 }
