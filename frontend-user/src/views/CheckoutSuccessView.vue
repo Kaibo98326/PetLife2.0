@@ -36,6 +36,55 @@
             </tr>
           </thead>
           <tbody>
+
+            <!--                                                活動修改 -->
+<tr v-for="(item, index) in orderItems" :key="index">
+              <td class="text-left">{{ item.productName }}</td>
+              <td class="text-center">$ {{ (item.productPrice || 0).toLocaleString() }}</td>
+              <td class="text-center">{{ item.quantity }}</td>
+              <td class="text-center text-discount">
+                {{ item.discount > 0 ? '-$ ' + item.discount.toLocaleString() : '$ 0' }}
+              </td>
+              <td class="text-right subtotal-cell">$ {{ item.subtotal.toLocaleString() }}</td>
+            </tr>
+
+
+
+      <!-- <tr v-for="(item, index) in orderItems" :key="index">   原先的
+        <td class="text-left">{{ item.productName }}</td>
+        <td class="text-center">$ {{ (item.productPrice || 0).toLocaleString() }}</td>
+        <td class="text-center">{{ item.quantity }}</td>
+        <td class="text-center text-discount">
+          {{ item.discount > 0 ? '-$ ' + item.discount.toLocaleString() : '$ 0' }}
+        </td>
+        <td class="text-right subtotal-cell">$ {{ item.subtotal.toLocaleString() }}</td>
+      </tr> -->
+
+
+
+    </tbody>
+  </table>
+
+
+ <!--                                                                  活動修改 開始-->
+
+  <div class="success-total-wrapper">
+          
+          <div v-if="orderMain.appliedDiscounts.length > 0" class="success-discount-header">
+             <span class="success-discount-title">活動折抵明細：</span>
+          </div>
+
+          <div v-for="(disc, idx) in orderMain.appliedDiscounts" :key="idx" class="success-discount-line">
+            <span>{{ disc.name }} - $ {{ disc.amount.toLocaleString() }}</span>
+          </div>
+
+          <div class="success-final-box">
+            <span class="success-final-label">應付總額：</span>
+            <span class="success-final-price">$ {{ orderMain.orderTotal.toLocaleString() }}</span>
+          </div>
+        </div>
+    <!--                                                                  活動修改 結束-->
+          <!-- <tbody>                  原先的
             <tr v-for="(item, index) in orderItems" :key="index">
               <td class="text-left">{{ item.productName }}</td>
               <td class="text-center">$ {{ item.productPrice || 0 }}</td>
@@ -51,7 +100,7 @@
         <div class="total-box">
           <span class="total-label">應付總額：</span>
           <span class="total-price">$ {{ orderMain.orderTotal }}</span>
-        </div>
+        </div> -->
         <span class="warn">確認訂單狀態請前往會員中心查看。</span>
 
         <div class="actions">
@@ -72,6 +121,8 @@ const orderMain = reactive({
   orderName: '',
   orderAddress: '',
   orderTotal: 0,
+  // --- 活動新增 ---
+  appliedDiscounts: []
 })
 
 const orderItems = reactive([])
@@ -98,6 +149,10 @@ onMounted(async () => {
       orderMain.orderPrice = data.orderPrice
       orderMain.orderTotal = data.orderTotal
 
+      // --- 活動新增：抓取訂單儲存的活動明細 ---
+      orderMain.appliedDiscounts = res.data.appliedDiscounts || []
+
+
       orderItems.length = 0
       const items = data.items || []
       orderItems.push(...items)
@@ -110,4 +165,6 @@ onMounted(async () => {
 
 <style scoped>
 @import '../assets/css/CheckoutSuccess.css';
+
+
 </style>

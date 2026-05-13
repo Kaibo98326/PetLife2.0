@@ -8,16 +8,20 @@ const userStore = useUserStore()
 const cartItems = ref([])
 const isProcessing = ref(false)
 
-//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
+//  因應活動新增  用來裝後端算好的折扣與最終金額              // --- 活動新增開始 ---
 const discountAmount = ref(0)
 const finalAmount = ref(0)
-
+const backendOriginalTotal = ref(0)
+const appliedDiscounts = ref([])
+const isDiscountExpanded = ref(false)
+// --- 活動新增結束 ---
  
 //活動折扣邏輯                                              --->活動新增
 const calculateDiscount = async () => {
   try {
     const requestData = {
       cartItems: cartItems.value.map(item => ({
+        itemId: item.itemId, // --- 活動新增：補上 itemId 
         productId: item.productId,
         categoryId: item.categoryId, 
         price: item.productPrice,
@@ -27,6 +31,10 @@ const calculateDiscount = async () => {
     const res = await axios.post('/cart/calculate', requestData)
     discountAmount.value = res.data.discountAmount
     finalAmount.value = res.data.finalAmount
+    // --- 活動新增開始 ---
+    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value
+    appliedDiscounts.value = res.data.appliedDiscounts || []
+    // --- 活動新增結束 ---
   } catch (error) {
     console.error('結帳折扣計算失敗', error)
   }
@@ -246,22 +254,30 @@ onMounted(async () => {
         </div>
       </div> -->
                                                 <!--                       活動新增                                  -->
-      <div class="checkout-footer">
-        <div class="total-amount-box" style="display: flex; flex-direction: column; align-items: flex-end;">
+   <div class="checkout-footer">
+        <div class="checkout-total-wrapper">
           
-          <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">
-            <span class="label">商品總額：</span>
-            <span class="amount">$ {{ totalAmount.toLocaleString() }}</span>
+          <div class="checkout-summary-line">
+            <span class="checkout-label">商品總額：</span>
+            <span class="checkout-amount">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
           </div>
 
-          <div v-if="discountAmount > 0" class="discount-row" style="font-size: 0.9em; margin-bottom: 8px;">
-            <span class="label" style="color: #ff4d4f;">活動折抵：</span>
-            <span class="amount" style="color: #ff4d4f;">- $ {{ discountAmount.toLocaleString() }}</span>
+          <div v-if="discountAmount > 0" class="checkout-discount-row" @click="isDiscountExpanded = !isDiscountExpanded">
+            <span class="checkout-discount-label">
+              {{ isDiscountExpanded ? '▲' : '▼' }} 活動折抵明細：
+            </span>
+            <span class="checkout-discount-amount">- $ {{ discountAmount.toLocaleString() }}</span>
           </div>
 
-          <div class="final-total" style="font-size: 1.2em; font-weight: bold;">
-            <span class="label">應付總額：</span>
-            <span class="amount" style="color: #fd7e14;">$ {{ finalAmount.toLocaleString() }}</span>
+          <div v-if="isDiscountExpanded && discountAmount > 0" class="checkout-detail-box">
+            <div v-for="(disc, idx) in appliedDiscounts" :key="idx" class="checkout-detail-line">
+              <span>{{ disc.name }} - $ {{ disc.amount.toLocaleString() }}</span>
+            </div>
+          </div>
+
+          <div class="checkout-final-line">
+            <span class="checkout-label">應付總額：</span>
+            <span class="checkout-final-amount">$ {{ finalAmount.toLocaleString() }}</span>
           </div>
           
         </div>

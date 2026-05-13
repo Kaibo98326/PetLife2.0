@@ -1,4 +1,5 @@
 @charset "UTF-8";
+
 .cart-page-container {
   padding: 50px 0;
   background-color: #f8f9fa;
@@ -120,4 +121,112 @@
   padding: 50px !important;
   color: #999;
   font-size: 1.2rem;
+}
+
+/*                                                         --- 活動新增 CSS --- */
+/* */
+.cart-reminder-text {
+  color: #ff4d4f;
+  font-size: 0.85em;
+  margin-top: 4px;
+}
+
+.cart-discount-badge {
+  color: #52c41a;
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.total-section-enhanced {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 20px 0;
+  padding-right: 80px;
+  /* 對齊小計欄位 */
+  box-sizing: border-box;
+}
+
+.cart-summary-line,
+.cart-discount-row,
+.cart-final-line,
+.cart-detail-line {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.cart-summary-label {
+  flex: 1;
+  text-align: left;
+  color: #555;
+  font-weight: bold;
+}
+
+.cart-summary-value {
+  font-weight: bold;
+  color: #555;
+}
+
+.cart-discount-row {
+  cursor: pointer;
+}
+
+.cart-discount-label {
+  flex: 1;
+  text-align: left;
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.cart-discount-value {
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.cart-detail-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+.cart-detail-line {
+  margin-bottom: 4px;
+}
+
+.cart-detail-name {
+  flex: 1;
+  text-align: left;
+  padding-left: 20px;
+  font-size: 0.9em;
+  color: #888;
+}
+
+.cart-detail-amount {
+  color: #ff4d4f;
+  font-size: 0.9em;
+}
+
+.cart-final-line {
+  margin-top: 8px;
+}
+
+.cart-final-label {
+  flex: 1;
+  text-align: left;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+}
+
+.cart-final-value {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #fd7e14;
 }

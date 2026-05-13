@@ -24,6 +24,9 @@ import com.petlife.repository.CartItemDTO;
 //處理CartItemDTO，當前端按下結帳或計算時，就是把這個list傳給後端，後端才知道購物車裡到底有哪些東西要算錢
 import com.petlife.repository.CartRequestDTO;
 import com.petlife.repository.DiscountRepository;
+//--- 活動新增開始 ---
+import com.petlife.repository.CartCalculateResponseDTO;
+//--- 活動新增結束 ---
 
 @RestController
 @RequestMapping("/api/cart")
@@ -117,7 +120,12 @@ public class CartController {
                 .collect(Collectors.toList());
 
         // 3. 呼叫折扣引擎執行計算
-        BigDecimal discountAmount = discountEngine.executeDiscount(cartItems, activeDiscounts);
+     // --- 活動新增：改為接收新的 Response DTO 格式 ---
+        CartCalculateResponseDTO calcResponse = discountEngine.executeDiscount(cartItems, activeDiscounts);
+        BigDecimal discountAmount = calcResponse.getDiscountAmount();
+        
+        //原先的
+    //    BigDecimal discountAmount = discountEngine.executeDiscount(cartItems, activeDiscounts);
 
         // 4. 計算應付總額 (Final Amount)
         BigDecimal finalAmount = originalTotal.subtract(discountAmount);
@@ -129,6 +137,10 @@ public class CartController {
         result.put("discountAmount", discountAmount);
         result.put("finalAmount", finalAmount);
 
+     // --- 活動新增：將明細清單與綁好標籤的商品回傳給 Vue ---
+        result.put("appliedDiscounts", calcResponse.getAppliedDiscounts());
+        result.put("cartItems", calcResponse.getCartItems());
+        // --- 活動新增結束 ---
         return ResponseEntity.ok(result);
     }
 }

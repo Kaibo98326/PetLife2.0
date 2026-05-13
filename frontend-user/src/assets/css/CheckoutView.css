@@ -1,4 +1,5 @@
 @charset "UTF-8";
+
 .checkout-page {
   background-color: #f4f4f4;
   min-height: 100vh;
@@ -23,7 +24,8 @@
 
 /* --- 上方訂單明細美化 --- */
 .order-details-section {
-  background-color: #fffaf7; /* 極淡橘色背景 */
+  background-color: #fffaf7;
+  /* 極淡橘色背景 */
   border-radius: 12px;
   padding: 10px;
   margin-bottom: 30px;
@@ -204,9 +206,79 @@ input[type='radio'] {
 .text-start {
   text-align: left;
 }
+
 .text-center {
   text-align: center;
 }
+
 .text-end {
   text-align: right;
+}
+
+/* --- 活動新增 CSS --- */
+/* */
+.checkout-total-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.checkout-summary-line {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: flex-end;
+  width: 350px;
+}
+
+.checkout-label {
+  flex: 1;
+  text-align: left;
+}
+
+.checkout-discount-row {
+  font-size: 0.9em;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: flex-end;
+  width: 350px;
+  cursor: pointer;
+}
+
+.checkout-discount-label {
+  color: #ff4d4f;
+  flex: 1;
+  text-align: left;
+}
+
+.checkout-discount-amount {
+  color: #ff4d4f;
+}
+
+.checkout-detail-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 350px;
+  margin-bottom: 8px;
+}
+
+.checkout-detail-line {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 3px;
+}
+
+.checkout-final-line {
+  font-size: 1.2em;
+  font-weight: bold;
+  display: flex;
+  justify-content: flex-end;
+  width: 350px;
+}
+
+.checkout-final-amount {
+  color: #fd7e14;
 }

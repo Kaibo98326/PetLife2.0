@@ -72,23 +72,33 @@
 .item-table th:nth-child(1),
 .item-table td:nth-child(1) {
   width: 40%;
-} /* 項目 */
+}
+
+/* 項目 */
 .item-table th:nth-child(2),
 .item-table td:nth-child(2) {
   width: 15%;
-} /* 單價 */
+}
+
+/* 單價 */
 .item-table th:nth-child(3),
 .item-table td:nth-child(3) {
   width: 15%;
-} /* 數量 */
+}
+
+/* 數量 */
 .item-table th:nth-child(4),
 .item-table td:nth-child(4) {
   width: 15%;
-} /* 折扣 */
+}
+
+/* 折扣 */
 .item-table th:nth-child(5),
 .item-table td:nth-child(5) {
   width: 15%;
-} /* 小計 */
+}
+
+/* 小計 */
 
 .item-table th {
   background-color: #f8f8f8;
@@ -107,9 +117,11 @@
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .text-center {
   text-align: center !important;
 }
+
 .text-right {
   text-align: right !important;
   padding-right: 30px !important;
@@ -166,8 +178,58 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.warn{
+.warn {
   font-size: 20px;
-  font-family:' Microsoft JhengHei';
+  font-family: ' Microsoft JhengHei';
   padding-left: 450px;
+}
+
+/* 活動*/
+.success-total-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 20px;
+  padding-right: 15px;
+}
+
+.success-discount-header {
+  width: 300px;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+}
+
+.success-discount-title {
+  flex: 1;
+  text-align: left;
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.success-discount-line {
+  display: flex;
+  justify-content: flex-end;
+  width: 300px;
+  margin-bottom: 4px;
+  color: #ff4d4f;
+  font-size: 0.95em;
+}
+
+.success-final-box {
+  width: 300px;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.success-final-label {
+  flex: 1;
+  text-align: left;
+  font-weight: bold;
+}
+
+.success-final-price {
+  color: #fd7e14;
+  font-weight: bold;
 }
