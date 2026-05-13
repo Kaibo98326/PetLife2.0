@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.RoomTypeDto;
+import com.petlife.repository.StayPaymentResponseDto;
 import com.petlife.repository.StayRequestDto;
 import com.petlife.repository.StayResponseDto;
 
@@ -22,6 +23,9 @@ public interface IStayService {
 	// 取消預約
 	void cancelStay(Integer stayId);
 	 
+	// 查單筆訂單
+	StayResponseDto getStayById(Integer stayId);
+	
 	// 取得會員訂單
 	List<StayResponseDto> getMyStays(Integer memberId);
 	
@@ -33,5 +37,11 @@ public interface IStayService {
 	
 	// 取得房型ID
 	RoomTypeDto getRoomTypeById(Integer roomTypeId);
+	
+	// 建立訂單 與 line pay
+	StayPaymentResponseDto createStayWithPayment(StayRequestDto request);
+	
+	// 確認預約
+	String confirmPayment(String merchantTradeNo, String transactionId);
 	
 }

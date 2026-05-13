@@ -1,6 +1,7 @@
 package com.petlife.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -10,11 +11,14 @@ import org.springframework.stereotype.Service;
 
 import com.petlife.model.Pet;
 import com.petlife.model.Stay;
+import com.petlife.model.StayPayment;
 import com.petlife.model.StayRoom;
 import com.petlife.model.StayRoomType;
 import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.PetRepository;
 import com.petlife.repository.RoomTypeDto;
+import com.petlife.repository.StayPaymentRepository;
+import com.petlife.repository.StayPaymentResponseDto;
 import com.petlife.repository.StayRemarkDto;
 import com.petlife.repository.StayRepository;
 import com.petlife.repository.StayRequestDto;
@@ -23,16 +27,17 @@ import com.petlife.repository.StayRoomRepository;
 import com.petlife.repository.StayRoomTypeRepository;
 
 import lombok.RequiredArgsConstructor;
-import tools.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 @RequiredArgsConstructor
 public class StayService implements IStayService {
 
 	private final StayRoomTypeRepository stayRoomTypeRepository;
+	private final StayPaymentRepository stayPaymentRepository;
 	private final StayRoomRepository stayRoomRepository;
 	private final StayRepository stayRepository;
 	private final PetRepository petRepository;
+	private final LinePayService linePayService;
 	
 
 	//計價邏輯
@@ -301,6 +306,90 @@ public class StayService implements IStayService {
 		    dto.setAvailableCount(totalRooms);
 		return dto;
 	}
+
+	// 建立訂單 與 line pay
+	@Override
+	public StayPaymentResponseDto  createStayWithPayment(StayRequestDto request) {
+		
+		 // 1. 建立訂單（呼叫原本的 createStay）
+	    StayResponseDto stayResponse = createStay(request);
+
+	    // 2. 產生商家交易編號
+	    String merchantTradeNo = "STAY" + stayResponse.getStayId() +
+	                             System.currentTimeMillis();
+
+	    // 3. 建立付款紀錄
+	    StayPayment payment = new StayPayment();
+	    payment.setStay(stayRepository.findById(stayResponse.getStayId()).orElseThrow());
+	    payment.setPaymentMethod("LINE_PAY");
+	    payment.setPaymentStatus("PENDING");
+	    payment.setAmount(stayResponse.getSumPrice());
+	    payment.setMerchantTradeNo(merchantTradeNo);
+	    payment.setCreatedAt(LocalDateTime.now());
+	    stayPaymentRepository.save(payment);
+
+	    // 4. 呼叫 LINE Pay 拿付款網址
+	    String paymentUrl = linePayService.requestPayment(
+	        merchantTradeNo,
+	        stayResponse.getSumPrice().intValue(),
+	        "PetLife 寵物住宿 - " + stayResponse.getRoomTypeName()
+	    );
+
+	    // 5. 回傳結果
+	    StayPaymentResponseDto result = new StayPaymentResponseDto();
+	    result.setStayId(stayResponse.getStayId());
+	    result.setPaymentUrl(paymentUrl);
+
+	    return result;
+	}
+
+	// 確認預約
+	@Override
+	public String confirmPayment(String merchantTradeNo, String transactionId) {
+		// 1. 查付款紀錄
+	    StayPayment payment = stayPaymentRepository
+	            .findByMerchantTradeNo(merchantTradeNo)
+	            .orElseThrow(() -> new RuntimeException("找不到付款紀錄"));
+
+	    // 2. 打 LINE Pay Confirm API
+	    boolean success = linePayService.confirmPayment(
+	        transactionId,
+	        payment.getAmount().intValue()
+	    );
+
+	    // 3. 更新付款狀態
+	    if (success) {
+	        payment.setPaymentStatus("SUCCESS");
+	        payment.setTradeNo(transactionId);
+	        payment.setPaidAt(LocalDateTime.now());
+	        stayPaymentRepository.save(payment);
+	        return "SUCCESS";
+	    } else {
+	        payment.setPaymentStatus("FAILED");
+	        stayPaymentRepository.save(payment);
+	        return "FAILED";
+	    }
+	}
+	
+	// 查單筆訂單
+	@Override
+	public StayResponseDto getStayById(Integer stayId) {
+	    Stay stay = stayRepository.findById(stayId)
+	            .orElseThrow(() -> new RuntimeException("找不到此訂單"));
+
+	    StayResponseDto dto = new StayResponseDto();
+	    dto.setStayId(stay.getStayId());
+	    dto.setPetName(stay.getPet().getPetName());
+	    dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
+	    dto.setRoomNo(stay.getStayRoom().getRoomNo());
+	    dto.setStayStartDate(stay.getStayStartDate());
+	    dto.setStayEndDate(stay.getStayEndDate());
+	    dto.setStayDay(stay.getStayDay());
+	    dto.setSumPrice(stay.getSumPrice());
+	    dto.setStayStatus(stay.getStayStatus());
+	    return dto;
+	}
+	
 	
 	
 	

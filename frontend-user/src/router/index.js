@@ -49,6 +49,12 @@ const routes = [
         name: 'StayBooking',
         component: () => import('@/views/stay/StayBooking.vue'),
       },
+      // 5/13  訂單成功頁面
+      {
+        path: 'stay/booking-success',
+        name: 'StayBookingSuccess',
+        component: () => import('@/views/stay/StayBookingSuccess.vue'),
+      },
     ],
   },
   // 5/8 stay 路徑 不希望有UserLayout

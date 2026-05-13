@@ -265,7 +265,7 @@ onMounted(() => {
         <div v-if="additionalPets.length > 0" class="additional-pets-hint">
           <p>
             <strong>{{ additionalPets.length }} 隻同行寵物</strong>
-            的資料將顯示在備註欄
+            的資料將顯示在訂單明細的備註欄
           </p>
         </div>
       </div>

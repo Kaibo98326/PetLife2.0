@@ -35,3 +35,9 @@ google:
   client-id: 70410001365-t87v8nd57cf2s3qa1mipfpftqsppr3hd.apps.googleusercontent.com
   client-secret: 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
   redirect-uri: http://localhost:5173/login
+
+linepay:
+  channel-id: "2009990456"
+  channel-secret: "bd4a6f24c66713c5f3247dca430a6047"
+  api-url: https://sandbox-api-pay.line.me
+  confirm-url: http://localhost:8082/api/stay/payment/confirm
