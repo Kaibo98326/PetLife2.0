@@ -102,6 +102,11 @@ const routes = [
       { path: 'pets/add', component: AddPetView },
     ],
   },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue')
+  }
 ]
 
 const router = createRouter({
