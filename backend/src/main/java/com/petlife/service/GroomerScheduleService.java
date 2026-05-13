@@ -9,6 +9,7 @@ import com.petlife.repository.GroomerMonthlyScheduleDayResponse;
 import com.petlife.repository.GroomerMonthlyScheduleResponse;
 import com.petlife.repository.GroomerScheduleRequest;
 import com.petlife.repository.GroomerScheduleResponse;
+import com.petlife.repository.UpdateDayScheduleSlotsRequest;
 import com.petlife.model.GroomerSchedule;
 import com.petlife.repository.GroomerProfileRepository;
 import com.petlife.repository.GroomerScheduleRepository;
@@ -21,6 +22,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -85,12 +87,13 @@ public class GroomerScheduleService {
             List<GroomerWorkSlot> workSlots = workSlotsByDate.getOrDefault(date, List.of());
             int bookedCount = countWorkSlots(workSlots, BeautyConstants.WORK_SLOT_APPOINTMENT);
             int blockedCount = countWorkSlots(workSlots, BeautyConstants.WORK_SLOT_BLOCKED);
+            int scheduleClosedCount = countWorkSlots(workSlots, BeautyConstants.WORK_SLOT_SCHEDULE_CLOSED);
             int availableCount = BeautyConstants.SCHEDULE_WORK.equals(scheduleStatus)
-                    ? Math.max(0, bookableSlotCount - bookedCount - blockedCount)
+                    ? Math.max(0, bookableSlotCount - bookedCount - blockedCount - scheduleClosedCount)
                     : 0;
 
             days.add(new GroomerMonthlyScheduleDayResponse(date, scheduleStatus, bookedCount, blockedCount,
-                    availableCount));
+                    scheduleClosedCount, availableCount));
         }
 
         return new GroomerMonthlyScheduleResponse(groomerId, yearMonth.toString(), days);
@@ -119,6 +122,112 @@ public class GroomerScheduleService {
         schedule.setScheduleStatus(status);
         schedule.setNote(req.note());
         return BeautyMapper.schedule(scheduleRepository.save(schedule));
+    }
+
+    @Transactional
+    public GroomerScheduleResponse updateDayScheduleSlots(UpdateDayScheduleSlotsRequest req) {
+        if (req == null || req.groomerId() == null || req.workDate() == null) {
+            throw ApiException.badRequest("排班資料不可為空");
+        }
+
+        groomerRepository.findById(req.groomerId())
+                .orElseThrow(() -> ApiException.notFound("找不到美容師"));
+
+        String status = req.scheduleStatus() == null ? BeautyConstants.SCHEDULE_WORK : req.scheduleStatus();
+        if (!BeautyConstants.SCHEDULE_WORK.equals(status) && !BeautyConstants.SCHEDULE_OFF.equals(status)) {
+            throw ApiException.badRequest("排班狀態只能是 上班 或 休假");
+        }
+
+        List<GroomerWorkSlot> workSlots = workSlotRepository.findByGroomerIdAndWorkDate(req.groomerId(),
+                req.workDate());
+
+        if (BeautyConstants.SCHEDULE_OFF.equals(status) && hasAppointmentSlot(workSlots)) {
+            throw ApiException.badRequest("當日已有預約，不可改為休假");
+        }
+
+        GroomerSchedule schedule = scheduleRepository.findByGroomerIdAndWorkDate(req.groomerId(), req.workDate())
+                .orElseGet(GroomerSchedule::new);
+        schedule.setGroomerId(req.groomerId());
+        schedule.setWorkDate(req.workDate());
+        schedule.setScheduleStatus(status);
+        schedule.setNote(req.note());
+        schedule = scheduleRepository.save(schedule);
+
+        if (BeautyConstants.SCHEDULE_OFF.equals(status)) {
+            deleteScheduleClosedSlots(workSlots);
+            return BeautyMapper.schedule(schedule);
+        }
+
+        syncScheduleClosedSlots(req, workSlots);
+        return BeautyMapper.schedule(schedule);
+    }
+
+    private void syncScheduleClosedSlots(UpdateDayScheduleSlotsRequest req, List<GroomerWorkSlot> workSlots) {
+        List<BeautyTimeSlot> bookableSlots = slotRepository.findByIsBookableTrueOrderBySortOrderAsc();
+        Set<Integer> allBookableSlotIds = bookableSlots.stream()
+                .map(BeautyTimeSlot::getSlotId)
+                .collect(Collectors.toSet());
+        Set<Integer> openSlotIds = req.bookableSlotIds() == null
+                ? allBookableSlotIds
+                : req.bookableSlotIds().stream().collect(Collectors.toSet());
+
+        if (!allBookableSlotIds.containsAll(openSlotIds)) {
+            throw ApiException.badRequest("排班時段包含不可預約或不存在的時段");
+        }
+
+        Map<Integer, GroomerWorkSlot> workSlotBySlotId = workSlots.stream()
+                .collect(Collectors.toMap(GroomerWorkSlot::getSlotId, Function.identity()));
+        List<GroomerWorkSlot> closingSlots = new ArrayList<>();
+
+        for (BeautyTimeSlot slot : bookableSlots) {
+            GroomerWorkSlot workSlot = workSlotBySlotId.get(slot.getSlotId());
+            boolean shouldOpen = openSlotIds.contains(slot.getSlotId());
+
+            if (shouldOpen) {
+                if (workSlot != null
+                        && BeautyConstants.WORK_SLOT_SCHEDULE_CLOSED.equals(workSlot.getWorkSlotStatus())) {
+                    workSlotRepository.delete(workSlot);
+                }
+                continue;
+            }
+
+            if (workSlot == null) {
+                GroomerWorkSlot closingSlot = new GroomerWorkSlot();
+                closingSlot.setGroomerId(req.groomerId());
+                closingSlot.setWorkDate(req.workDate());
+                closingSlot.setSlotId(slot.getSlotId());
+                closingSlot.setAppointmentId(null);
+                closingSlot.setWorkSlotStatus(BeautyConstants.WORK_SLOT_SCHEDULE_CLOSED);
+                closingSlot.setNote("排班未開放");
+                closingSlots.add(closingSlot);
+                continue;
+            }
+
+            if (BeautyConstants.WORK_SLOT_APPOINTMENT.equals(workSlot.getWorkSlotStatus())) {
+                throw ApiException.badRequest("已有預約的時段不可從排班中關閉");
+            }
+            if (BeautyConstants.WORK_SLOT_BLOCKED.equals(workSlot.getWorkSlotStatus())) {
+                throw ApiException.badRequest("手動封鎖時段需先解除封鎖，才能從排班中關閉");
+            }
+        }
+
+        if (!closingSlots.isEmpty()) {
+            workSlotRepository.saveAll(closingSlots);
+        }
+    }
+
+    private void deleteScheduleClosedSlots(List<GroomerWorkSlot> workSlots) {
+        List<GroomerWorkSlot> scheduleClosedSlots = workSlots.stream()
+                .filter(workSlot -> BeautyConstants.WORK_SLOT_SCHEDULE_CLOSED.equals(workSlot.getWorkSlotStatus()))
+                .toList();
+        if (!scheduleClosedSlots.isEmpty()) {
+            workSlotRepository.deleteAll(scheduleClosedSlots);
+        }
+    }
+
+    private boolean hasAppointmentSlot(List<GroomerWorkSlot> workSlots) {
+        return workSlots.stream()
+                .anyMatch(workSlot -> BeautyConstants.WORK_SLOT_APPOINTMENT.equals(workSlot.getWorkSlotStatus()));
     }
 
     private int countWorkSlots(List<GroomerWorkSlot> workSlots, String status) {

@@ -16,8 +16,13 @@ import com.petlife.repository.EmployeeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GroomerService {
@@ -68,6 +73,7 @@ public class GroomerService {
     public List<GroomerServiceResponse> getServices(Integer groomerId) {
         return serviceRepository.findByGroomerIdOrderByBeautyIdAsc(groomerId)
                 .stream()
+                .filter(service -> Boolean.TRUE.equals(service.getIsActive()))
                 .map(BeautyMapper::groomerService)
                 .toList();
     }
@@ -93,16 +99,34 @@ public class GroomerService {
                     throw ApiException.badRequest("美容項目已停用：" + item.getItemName());
                 });
 
-        serviceRepository.deleteByGroomerId(groomerId);
+        List<GroomerBeautyItem> existingServices = serviceRepository.findByGroomerIdOrderByBeautyIdAsc(groomerId);
+        Map<Integer, GroomerBeautyItem> existingByBeautyId = existingServices.stream()
+                .collect(Collectors.toMap(GroomerBeautyItem::getBeautyId, Function.identity()));
+        Set<Integer> requestedBeautyIds = Set.copyOf(distinctBeautyIds);
+        List<GroomerBeautyItem> rowsToSave = new ArrayList<>();
 
-        return serviceRepository.saveAll(distinctBeautyIds.stream().map(beautyId -> {
-                    GroomerBeautyItem row = new GroomerBeautyItem();
-                    row.setGroomerId(groomerId);
-                    row.setBeautyId(beautyId);
-                    row.setIsActive(true);
-                    return row;
-                }).toList())
+        for (Integer beautyId : distinctBeautyIds) {
+            GroomerBeautyItem row = existingByBeautyId.get(beautyId);
+            if (row == null) {
+                row = new GroomerBeautyItem();
+                row.setGroomerId(groomerId);
+                row.setBeautyId(beautyId);
+            }
+            row.setIsActive(true);
+            rowsToSave.add(row);
+        }
+
+        existingServices.stream()
+                .filter(row -> !requestedBeautyIds.contains(row.getBeautyId()))
+                .filter(row -> Boolean.TRUE.equals(row.getIsActive()))
+                .forEach(row -> {
+                    row.setIsActive(false);
+                    rowsToSave.add(row);
+                });
+
+        return serviceRepository.saveAll(rowsToSave)
                 .stream()
+                .filter(service -> Boolean.TRUE.equals(service.getIsActive()))
                 .map(BeautyMapper::groomerService)
                 .toList();
     }

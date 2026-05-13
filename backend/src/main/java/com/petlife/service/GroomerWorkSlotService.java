@@ -6,6 +6,7 @@ import com.petlife.repository.BlockWorkSlotRequest;
 import com.petlife.repository.GroomerDaySlotLineResponse;
 import com.petlife.repository.GroomerDaySlotResponse;
 import com.petlife.repository.GroomerWorkSlotResponse;
+import com.petlife.repository.UpdateBlockWorkSlotRequest;
 import com.petlife.model.BeautyTimeSlot;
 import com.petlife.model.GroomerSchedule;
 import com.petlife.model.GroomerWorkSlot;
@@ -56,9 +57,9 @@ public class GroomerWorkSlotService {
             throw ApiException.badRequest("日期不可為空");
         }
 
-        String scheduleStatus = scheduleRepository.findByGroomerIdAndWorkDate(groomerId, workDate)
-                .map(GroomerSchedule::getScheduleStatus)
-                .orElse(SCHEDULE_NOT_SET);
+        GroomerSchedule schedule = scheduleRepository.findByGroomerIdAndWorkDate(groomerId, workDate).orElse(null);
+        String scheduleStatus = schedule == null ? SCHEDULE_NOT_SET : schedule.getScheduleStatus();
+        String scheduleNote = schedule == null ? null : schedule.getNote();
 
         Map<Integer, GroomerWorkSlot> workSlotBySlotId = workSlotRepository.findByGroomerIdAndWorkDate(groomerId,
                 workDate)
@@ -70,7 +71,7 @@ public class GroomerWorkSlotService {
                 .map(slot -> toDaySlotLine(slot, scheduleStatus, workSlotBySlotId.get(slot.getSlotId())))
                 .toList();
 
-        return new GroomerDaySlotResponse(groomerId, workDate, scheduleStatus, slots);
+        return new GroomerDaySlotResponse(groomerId, workDate, scheduleStatus, scheduleNote, slots);
     }
 
     @Transactional
@@ -127,6 +128,19 @@ public class GroomerWorkSlotService {
         workSlotRepository.delete(workSlot);
     }
 
+    @Transactional
+    public GroomerWorkSlotResponse updateBlock(Integer id, UpdateBlockWorkSlotRequest req) {
+        GroomerWorkSlot workSlot = workSlotRepository.findById(id)
+                .orElseThrow(() -> ApiException.notFound("找不到時段占用資料"));
+
+        if (!BeautyConstants.WORK_SLOT_BLOCKED.equals(workSlot.getWorkSlotStatus())) {
+            throw ApiException.badRequest("只有手動封鎖時段可以更新備註");
+        }
+
+        workSlot.setNote(req == null ? null : req.note());
+        return BeautyMapper.workSlot(workSlotRepository.save(workSlot));
+    }
+
     private void validateBlockRequest(BlockWorkSlotRequest req) {
         if (req == null) {
             throw ApiException.badRequest("封鎖時段資料不可為空");
@@ -155,6 +169,7 @@ public class GroomerWorkSlotService {
                 slot.getStartTime().toString(),
                 slot.getEndTime().toString(),
                 slot.getSortOrder(),
+                slot.getIsBookable(),
                 slotStatus,
                 workSlot == null ? null : workSlot.getAppointmentId(),
                 workSlot == null ? null : workSlot.getWorkSlotId(),
@@ -165,11 +180,11 @@ public class GroomerWorkSlotService {
         if (!Boolean.TRUE.equals(slot.getIsBookable())) {
             return SLOT_UNAVAILABLE;
         }
-        if (!BeautyConstants.SCHEDULE_WORK.equals(scheduleStatus)) {
-            return SLOT_UNAVAILABLE;
-        }
         if (workSlot != null) {
             return workSlot.getWorkSlotStatus();
+        }
+        if (!BeautyConstants.SCHEDULE_WORK.equals(scheduleStatus)) {
+            return SLOT_UNAVAILABLE;
         }
         return SLOT_AVAILABLE;
     }

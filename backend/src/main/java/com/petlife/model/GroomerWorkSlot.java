@@ -3,6 +3,8 @@ package com.petlife.model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.petlife.config.BeautyConstants;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -41,7 +43,7 @@ public class GroomerWorkSlot {
     private Integer appointmentId;
 
     @Column(name = "work_slot_status", nullable = false, length = 20)
-    private String workSlotStatus = "預約占用";
+    private String workSlotStatus = BeautyConstants.WORK_SLOT_APPOINTMENT;
 
     @Column(name = "note", length = 200)
     private String note;
@@ -55,7 +57,7 @@ public class GroomerWorkSlot {
             createdAt = LocalDateTime.now();
         }
         if (workSlotStatus == null) {
-            workSlotStatus = "預約占用";
+            workSlotStatus = BeautyConstants.WORK_SLOT_APPOINTMENT;
         }
     }
 }

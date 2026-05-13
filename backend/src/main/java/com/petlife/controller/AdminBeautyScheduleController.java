@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.petlife.config.ApiException;
 import com.petlife.repository.BlockWorkSlotRequest;
 import com.petlife.repository.GroomerScheduleRequest;
+import com.petlife.repository.UpdateBlockWorkSlotRequest;
+import com.petlife.repository.UpdateDayScheduleSlotsRequest;
 import com.petlife.service.GroomerScheduleService;
 import com.petlife.service.GroomerWorkSlotService;
 
@@ -60,6 +62,11 @@ public class AdminBeautyScheduleController {
         return ResponseEntity.ok(groomerWorkSlotService.getDaySlotStatus(groomerId, workDate));
     }
 
+    @PutMapping("/day-slots")
+    public ResponseEntity<?> updateDayScheduleSlots(@Valid @RequestBody UpdateDayScheduleSlotsRequest request) {
+        return ResponseEntity.ok(groomerScheduleService.updateDayScheduleSlots(request));
+    }
+
     @PostMapping("/work-slots/block")
     public ResponseEntity<?> blockSlots(@Valid @RequestBody BlockWorkSlotRequest request) {
         return ResponseEntity.ok(groomerWorkSlotService.blockSlots(request));
@@ -69,6 +76,12 @@ public class AdminBeautyScheduleController {
     public ResponseEntity<?> deleteBlock(@PathVariable Integer workSlotId) {
         groomerWorkSlotService.deleteBlock(workSlotId);
         return ResponseEntity.ok("封鎖時段刪除成功");
+    }
+
+    @PutMapping("/work-slots/block/{workSlotId}")
+    public ResponseEntity<?> updateBlock(@PathVariable Integer workSlotId,
+            @RequestBody UpdateBlockWorkSlotRequest request) {
+        return ResponseEntity.ok(groomerWorkSlotService.updateBlock(workSlotId, request));
     }
 
     private YearMonth parseYearMonth(String yearMonth) {
