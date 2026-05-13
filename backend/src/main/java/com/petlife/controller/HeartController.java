@@ -18,31 +18,31 @@ import com.petlife.service.HeartService;
 @RequestMapping("/api/heart")
 public class HeartController {
 
-    @Autowired
-    private HeartService hs;
+	@Autowired
+	private HeartService hs;
 
-    // 取得會員的所有追蹤清單
-    @GetMapping("/list")
-    public ResponseEntity<List<Heart>> getWatchList(@RequestParam Integer memberId) {
-        List<Heart> watchList = hs.getWatchListWithComparison(memberId);
-        return ResponseEntity.ok(watchList);
-    }
+	// 取得會員的所有追蹤清單
+	@GetMapping("/list")
+	public ResponseEntity<List<Heart>> getWatchListWithComparison(@RequestParam Integer memberId) {
+		List<Heart> watchList = hs.getMemberHearts(memberId);
 
-    // 切換收藏狀態
-    @PostMapping("/toggle")
-    public ResponseEntity<String> toggleHeart(
-            @RequestParam Integer memberId, 
-            @RequestParam Integer productId) {
-        String message = hs.toggleHeart(memberId, productId);
-        return ResponseEntity.ok(message);
-    }
+		if (watchList.isEmpty()) {
+			return ResponseEntity.ok(watchList);
+		}
+		return ResponseEntity.ok(watchList);
+	}
 
-    // 刪除收藏
-    @DeleteMapping("/remove")
-    public ResponseEntity<Void> removeHeart(
-            @RequestParam Integer memberId, 
-            @RequestParam Integer productId) {
-        hs.removeHeart(memberId, productId);
-        return ResponseEntity.noContent().build();
-    }
+	// 切換收藏狀態
+	@PostMapping("/toggle")
+	public ResponseEntity<String> toggleHeart(@RequestParam Integer memberId, @RequestParam Integer productId) {
+		String message = hs.toggleHeart(memberId, productId);
+		return ResponseEntity.ok(message);
+	}
+
+	// 刪除收藏
+	@DeleteMapping("/remove")
+	public ResponseEntity<Void> removeHeart(@RequestParam Integer memberId, @RequestParam Integer productId) {
+		hs.removeHeart(memberId, productId);
+		return ResponseEntity.noContent().build();
+	}
 }

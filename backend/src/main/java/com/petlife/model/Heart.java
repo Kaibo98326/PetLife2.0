@@ -15,9 +15,11 @@ import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "Heart")
@@ -26,7 +28,12 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @RequiredArgsConstructor
+@Getter
+@Setter
 public class Heart {
+	
+	@jakarta.persistence.Transient // 不存進資料庫
+	private Product product;
 	
 	@Id
 	@Column(name="heart_id")
@@ -51,5 +58,13 @@ public class Heart {
 	private BigDecimal currentPrice;
 	
 	@Transient
-	private Boolean isPriceChange; 
+	private Boolean isPriceChange;
+
+	public void setProduct(Product product) {
+	    this.product = product;
+	}
+
+	public Product getProduct() {
+	    return this.product;
+	}
 }

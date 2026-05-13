@@ -32,6 +32,12 @@ const routes = [
         name: 'productDetail',
         component: ProductDetailView,
       },
+      {
+        path: '/heart',
+        name: 'heart',
+        component: HeartView,
+        meta: { requiresAuth: true },
+      },
     ],
   },
   // 購物車的router
@@ -102,12 +108,6 @@ const routes = [
       { path: 'pets', component: PetListView },
       { path: 'pets/add', component: AddPetView },
     ],
-  },
-    {
-    path: '/heart',
-    name: 'heart',
-    component: HeartView,
-    meta: { requiresAuth: true },
   },
 ]
 

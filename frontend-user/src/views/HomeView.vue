@@ -7,7 +7,6 @@ import { useUserStore } from '@/stores/user'
 import '@/assets/css/ShopPanel.css'
 import { Carousel } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
-
 // ── 使用者 Store（登入判斷、購物車） ──────────────────────────────────────
 const userStore = useUserStore()
 const route = useRoute()
@@ -44,7 +43,6 @@ const errorMsg = ref('') // 錯誤訊息
 const viewHistory = ref([]) // 瀏覽紀錄
 const top10Products = ref([]) // TOP10 熱銷商品
 const favoriteProducts = ref([]) // 收藏商品
-
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
 const sortBy = ref('newest') // 預設：最新上架
@@ -329,14 +327,14 @@ async function toggleHeart(product) {
     const res = await axios.post('/heart/toggle', null, {
       params: {
         memberId: userStore.memberId,
-        productId: product.productId
-      }
+        productId: product.productId,
+      },
     })
 
     if (res.data.includes('已加入')) {
       favoriteProducts.value.push(product.productId)
     } else {
-      favoriteProducts.value = favoriteProducts.value.filter(id => id !== product.productId)
+      favoriteProducts.value = favoriteProducts.value.filter((id) => id !== product.productId)
     }
 
     Swal.fire({
@@ -345,7 +343,7 @@ async function toggleHeart(product) {
       icon: 'success',
       title: res.data,
       showConfirmButton: false,
-      timer: 1500
+      timer: 1500,
     })
   } catch (e) {
     console.error('收藏操作失敗', e)
@@ -354,19 +352,6 @@ async function toggleHeart(product) {
       title: '操作失敗',
       text: '請稍後再試',
     })
-  }
-}
-
-/* 取得該會員的收藏清單 */
-async function fetchMemberFavorites() {
-  if (!userStore.token || !userStore.memberId) return
-  try {
-    const res = await axios.get(`/heart/list`, {
-      params: { memberId: userStore.memberId }
-    })
-    favoriteProducts.value = res.data.map(item => item.productId)
-  } catch (e) {
-    console.error('取得收藏清單失敗', e)
   }
 }
 
@@ -409,11 +394,6 @@ onMounted(async () => {
   // 更新購物車數量
   if (userStore.token && userStore.memberId) {
     userStore.updateCartCount()
-  }
-  // 收藏清單
-  if (userStore.token && userStore.memberId) {
-    userStore.updateCartCount()
-    await fetchMemberFavorites() 
   }
 
   await fetchProducts(1)
@@ -494,13 +474,11 @@ onMounted(async () => {
 
           <!-- 這裡留給您未來放置「歷史紀錄」 -->
           <div v-if="userStore.token && viewHistory.length > 0" class="recent-history-section mt-5">
-            <h6 class="history-title mb-3">
-              最近看過 ...
-            </h6>
+            <h6 class="history-title mb-3">最近看過 ...</h6>
             <div class="history-list">
-              <router-link 
-                v-for="h in viewHistory.slice(0, 10)" 
-                :key="h.productId" 
+              <router-link
+                v-for="h in viewHistory.slice(0, 10)"
+                :key="h.productId"
                 :to="`/product/${h.productId}`"
                 class="history-item d-flex align-items-center text-decoration-none mb-3"
               >
@@ -618,7 +596,11 @@ onMounted(async () => {
                   <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
                   <div class="action-btns">
                     <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
-                      <i :class="favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                      <i
+                        :class="
+                          favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'
+                        "
+                      ></i>
                     </button>
                     <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
                       <i class="fas fa-shopping-basket"></i>
@@ -741,7 +723,11 @@ onMounted(async () => {
                     >
                     <div class="action-btns">
                       <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
-                        <i :class="favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                        <i
+                          :class="
+                            favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'
+                          "
+                        ></i>
                       </button>
                       <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
                         <i class="fas fa-shopping-basket"></i>

@@ -21,6 +21,9 @@ public class HeartService {
 
 	@Autowired
 	private ProductRepository pr;
+	
+	@Autowired
+	private ProductService productService;
 
 	// 切換收藏狀態
 	public String toggleHeart(Integer memberId, Integer productId) {
@@ -57,7 +60,6 @@ public class HeartService {
 				BigDecimal oldPrice = heart.getTrackedPrice();
 
 				heart.setCurrentPrice(nowPrice);
-
 				// compareTo != 0 代表價格有變動
 				if (oldPrice != null && nowPrice != null) {
 					heart.setIsPriceChange(nowPrice.compareTo(oldPrice) != 0);
@@ -71,4 +73,28 @@ public class HeartService {
 	public void removeHeart(Integer memberId, Integer productId) {
 		hp.deleteByMemberIdAndProductId(memberId, productId);
 	}
-}
+	
+	public List<Heart> getMemberHearts(Integer memberId) {
+        // 拿收藏紀錄
+        List<Heart> hearts = hp.findByMemberId(memberId);
+
+        // 產品資料
+        for (Heart heart : hearts) {
+            Product p = productService.getProductById(heart.getProductId());
+            
+            if (p != null) {
+                if (p.getCategories() != null && !p.getCategories().isEmpty()) {
+                    String names = p.getCategories().stream()
+                            .map(cat -> cat.getCategoryName())
+                            .collect(java.util.stream.Collectors.joining(", "));
+                    p.setCategoryName(names);
+                }
+                heart.setProduct(p);
+            }
+        }
+        // 過濾空的product
+        return hearts.stream()
+                     .filter(h -> h.getProduct() != null)
+                     .collect(java.util.stream.Collectors.toList());
+    	}
+	}
