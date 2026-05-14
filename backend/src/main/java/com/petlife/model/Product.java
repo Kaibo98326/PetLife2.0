@@ -70,13 +70,13 @@ public class Product implements Serializable{
 	@Column(name = "product_status")
 	private Integer productStatus;
 	
+//點擊次數 (用於熱門排行)
+	@Column(name = "click_count")
+	private Integer clickCount = 0;
+	
 //關聯分類名稱 (非資料庫欄位，用於 join 顯示)，使用 @Transient 告訴 JPA 這個欄位不需要持久化到資料庫
     @Transient
     private String categoryName;
-
-    // ✨ 新增：活動徽章 (非資料庫欄位，用來傳遞「買一送一」、「夏季特賣」等字串給前端 Vue 顯示)
-    @Transient
-    private String activityBadge;
 
     
     // Getter / Setter
@@ -116,7 +116,15 @@ public class Product implements Serializable{
     public String getCategoryName() { return categoryName; }
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
-    // ✨ 新增：Getter & Setter for activityBadge
-    public String getActivityBadge() { return activityBadge; }
-    public void setActivityBadge(String activityBadge) { this.activityBadge = activityBadge; }
+    public Integer getClickCount() { return clickCount; }
+    public void setClickCount(Integer clickCount) { this.clickCount = clickCount; }
+
+    // 多張圖片關聯
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
+    private List<ProductImage> images = new java.util.ArrayList<>();
+
+    public List<ProductImage> getImages() { return images; }
+    public void setImages(List<ProductImage> images) { this.images = images; }
+
 }

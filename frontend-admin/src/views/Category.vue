@@ -29,7 +29,7 @@ const editItem = ref({
 // 分類類型定義
 const typeMap = {
   1: { label: '實體分類', class: 'type-physical', color: '#795548' }, // 溫暖褐色
-  2: { label: '大專區', class: 'type-area', color: '#e67e22' },    // 活力橘色
+  2: { label: '專區', class: 'type-area', color: '#e67e22' },    // 活力橘色
   3: { label: '活動標籤', class: 'type-tag', color: '#d81b60' }     // 質感桃紅
 }
 
@@ -213,7 +213,7 @@ const submitAdd = async () => {
     return
   }
   if (newCategory.value.categoryType === 1 && !newCategory.value.parentId) {
-    Swal.fire('提示', '實體分類必須隸屬於一個大專區', 'warning')
+    Swal.fire('提示', '實體分類必須隸屬於一個專區', 'warning')
     return
   }
   if (newCategory.value.categoryType !== 1) {
@@ -249,7 +249,7 @@ const submitUpdate = async () => {
     return
   }
   if (editItem.value.categoryType === 1 && !editItem.value.parentId) {
-    Swal.fire('提示', '實體分類必須隸屬於一個大專區', 'warning')
+    Swal.fire('提示', '實體分類必須隸屬於一個專區', 'warning')
     return
   }
   if (editItem.value.categoryType !== 1) {
@@ -320,9 +320,9 @@ onMounted(fetchCategories)
           </select>
         </div>
         <div class="form-group" v-if="newCategory.categoryType === 1">
-          <label class="form-label">隸屬大專區</label>
+          <label class="form-label">隸屬專區</label>
           <select v-model="newCategory.parentId" class="form-select">
-            <option :value="null" disabled>-- 請選擇大專區 --</option>
+            <option :value="null" disabled>-- 請選擇專區 --</option>
             <option v-for="cat in mainCategories.filter(c => c.depth === 0)" :key="cat.categoryId" :value="cat.categoryId">
               {{ cat.categoryName }}
             </option>
@@ -351,9 +351,9 @@ onMounted(fetchCategories)
           </select>
         </div>
         <div class="form-group" v-if="editItem.categoryType === 1">
-          <label class="form-label">隸屬大專區</label>
+          <label class="form-label">隸屬專區</label>
           <select v-model="editItem.parentId" class="form-select">
-            <option :value="null" disabled>-- 請選擇大專區 --</option>
+            <option :value="null" disabled>-- 請選擇專區 --</option>
             <option v-for="cat in mainCategories.filter(c => c.depth === 0)" :key="cat.categoryId" :value="cat.categoryId" v-show="cat.categoryId !== editItem.categoryId">
               {{ cat.categoryName }}
             </option>
@@ -395,7 +395,7 @@ onMounted(fetchCategories)
 
     <!-- 區塊二：分類結構 -->
     <div class="category-section">
-      <h4 class="section-title"><i class="fas fa-sitemap"></i> 分類結構 (大專區 / 實體分類)</h4>
+      <h4 class="section-title"><i class="fas fa-sitemap"></i> 分類結構 (專區 / 實體分類)</h4>
       <ul class="category-list">
         <li v-for="cat in mainCategories" :key="cat.categoryId" class="category-item">
           <!-- 左側：縮排控制 -->

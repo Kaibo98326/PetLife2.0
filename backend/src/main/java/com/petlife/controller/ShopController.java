@@ -31,6 +31,9 @@ public class ShopController {
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private com.petlife.service.SearchKeywordService searchKeywordService;
+
     // ===== 【商城商品列表】 支援：分頁、每頁筆數、分類篩選、關鍵字搜尋、排序 =============================
     @GetMapping("/products")
     public ResponseEntity<?> listProducts(
@@ -48,42 +51,30 @@ public class ShopController {
             sortObj = org.springframework.data.domain.Sort.by("productPrice").descending();
         } else if ("newest".equals(sort)) {
             sortObj = org.springframework.data.domain.Sort.by("productId").descending();
+        } else if ("sales".equals(sort)) {
+            sortObj = org.springframework.data.domain.Sort.by("clickCount").descending();
         }
 
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(cp - 1, pageSize, sortObj);
         
         Page<Product> productPage;
-//  原先的
-//        if (categoryId != null && categoryId != 0) {
-//            // 【分類篩選】
-//            productPage = productService.getProductsByCategory(categoryId, pageable);
-//        } else {
-//            // 【關鍵字搜尋 / 全部商品】
-//            productPage = productService.searchProducts(keyword.trim(), pageable);
-//        }
-        
+
         if (categoryId != null && categoryId != 0) {
-        	// 修改：取得分類，判斷是否為「活動標籤 (Type 3)」
-        	Category category = categoryService.getCategoryById(categoryId);
-        	if (category != null && category.getCategoryType() == 3) {
-        	// 是活動標籤：走活動跳轉查詢邏輯
-        	productPage = productService.getProductsByActivityTag(categoryId, pageable);
-        	} else {
-        	// 是一般分類篩選：走原生分類查詢邏輯
-        	productPage = productService.getProductsByCategory(categoryId, pageable);
-        	}
-        	} else {
+            // 【分類篩選】(僅查上架)
+            productPage = productService.getActiveProductsByCategory(categoryId, pageable);
+        } else {
+            // 【關鍵字搜尋 / 全部商品】(僅查上架)
+            productPage = productService.searchActiveProducts(keyword.trim(), pageable);
+            
+            // 【新增】紀錄熱門關鍵字
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                searchKeywordService.recordKeyword(keyword);
+            }
+        }
 
-        	// 【關鍵字搜尋 / 全部商品】
-
-        	productPage = productService.searchProducts(keyword.trim(), pageable);
-
-        	}
-
-        // 只取上架商品 (productStatus === 1)，並補齊分類名稱
-        List<Product> activeProducts = productPage.getContent().stream()
-                .filter(p -> p.getProductStatus() != null && p.getProductStatus() == 1)
-                .collect(Collectors.toList());
+        // 直接取得資料庫回傳的已上架商品
+        List<Product> activeProducts = productPage.getContent();
+        
         // 手動補齊分類名稱
         for (Product p : activeProducts) {
             if (p.getCategories() != null && !p.getCategories().isEmpty()) {
@@ -102,6 +93,24 @@ public class ShopController {
         response.put("totalElements", productPage.getTotalElements());
 
         return ResponseEntity.ok(response);
+    }
+
+    // ===== 【熱門排行】 取得點擊率最高的前 5 名 ====================================================
+    @GetMapping("/products/top10")
+    public ResponseEntity<?> getTop10Products() {
+        List<Product> top10 = productService.getTop5HotProducts();
+        
+        // 手動補齊分類名稱
+        for (Product p : top10) {
+            if (p.getCategories() != null && !p.getCategories().isEmpty()) {
+                String names = p.getCategories().stream()
+                        .map(Category::getCategoryName)
+                        .collect(java.util.stream.Collectors.joining(", "));
+                p.setCategoryName(names);
+            }
+        }
+        
+        return ResponseEntity.ok(top10);
     }
 
     // ===== 【取得所有分類】 供前台左側選單使用 ====================================================

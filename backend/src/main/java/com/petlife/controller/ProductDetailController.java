@@ -9,7 +9,7 @@ import com.petlife.model.Product;
 import com.petlife.model.Category; // 💡 記得匯入 Category
 import com.petlife.service.ProductService;
 import com.petlife.service.CategoryService; // 💡 記得匯入 CategoryService
-import com.petlife.service.CartService;
+// import com.petlife.service.CartService;
 
 @Controller
 public class ProductDetailController {
@@ -20,8 +20,8 @@ public class ProductDetailController {
 	@Autowired
 	private ProductService productService;
 
-	@Autowired
-	private CartService cartService;
+//	@Autowired
+//	private CartService cartService;
 
 //===== 前台商城 顯示商品詳情頁面 (含購物車狀態) ================================================================================================
 
@@ -45,8 +45,9 @@ public class ProductDetailController {
 
 		// --- 若已登入會員，則即時查詢最新購物車數量 ---
 		if (memberId != null) {
-			int totalQty = cartService.getCartTotalQuantity(memberId);
-			model.addAttribute("cartTotalQty", totalQty);
+			// 由於目前尚未建立 CartService，暫時註解避免編譯錯誤
+			// int totalQty = cartService.getCartTotalQuantity(memberId);
+			// model.addAttribute("cartTotalQty", totalQty);
 		}
 
 		// --- 若無商品 ID 則導回商城首頁 ---
