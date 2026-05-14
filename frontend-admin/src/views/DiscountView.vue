@@ -4,13 +4,15 @@ import { useDiscount } from '@/stores/useDiscount';
 import DiscountFormModal from '@/components/DiscountFormModal.vue';
 // 建立的明細彈窗組件
 import OrderDiscountModal from '@/components/OrderDiscountModal.vue';
-// 入員工 Store 來拿 Token
-import { useEmployeeStore } from '@/stores/employee';
-const employeeStore = useEmployeeStore();
 
+// ✨ 修改：引入剛建立的快速新增組件
+import QuickCategoryAdd from '@/components/QuickCategoryAdd.vue';
 
-import axios from 'axios';
+// ✨ 修改：引入自己封裝的 request，並移除了 axios
+import request from '@/utils/request';
 import Swal from 'sweetalert2';
+
+// ✨ 修改：移除了 useEmployeeStore 與 employeeStore，因為 request 已經會自動帶入 Token
 
 // 建立一個 ref 來綁定子組件實例
 const discountModalRef = ref(null);
@@ -20,8 +22,9 @@ const viewOrderDiscountDetails = (orderId) => {
     discountModalRef.value.openModal(orderId);
 };
 
+// ✨ 修改：移除了 API_BASE_URL 的解構，因為子組件不再需要傳遞此 prop
 const { 
-    API_BASE_URL, discounts, discountTypesList, 
+    discounts, discountTypesList, 
     searchActivityName, statusFilter, scopeFilter, typeFilter,
     fetchDiscounts, fetchDiscountTypes, deleteActivity, filteredDiscounts, getStatusBadge 
 } = useDiscount();
@@ -39,19 +42,22 @@ const paginatedDiscounts = computed(() => {
 
 watch([searchActivityName, statusFilter, scopeFilter, typeFilter], () => { currentPage.value = 1; });
 
+// ✨ 修改：標籤新增成功後的處理 (可選，這裡主要做提醒或預刷新)
+const handleTagSuccess = () => {
+    // 這裡不需要額外動作，因為 DiscountFormModal 開啟時會重新 fetchOptions
+    // 但如果想更新搜尋列的某些資訊也可以寫在這裡
+    console.log('新標籤已就緒');
+};
 
 // ✨ 新增：明細變數與功能
 const discountDetails = ref([]);
 
 const viewDiscountDetails = async (discountId) => {
   try {
-    // 呼叫後端寫好的 API (加上 headers 帶入 Token)
-    const res = await axios.get(`http://localhost:8082/api/order-discounts/discount/${discountId}`, {
-      headers: {
-        Authorization: `Bearer ${employeeStore.token}`
-      }
-    });
+    // ✨ 修改：改呼叫 request.get()，使用相對路徑，並移除手動設定 headers 的 Authorization，讓 request 自動處理
+    const res = await request.get(`/api/order-discounts/discount/${discountId}`);
     
+    // 取得資料
     discountDetails.value = res.data;
 
     // 防呆：如果沒有人使用過這個活動
@@ -100,7 +106,7 @@ const viewDiscountDetails = async (discountId) => {
       title: '活動使用明細',
       html: tableHtml,
       width: '600px',
-      confirmButtonColor: '#198754', // 使用你的綠色主題
+      confirmButtonColor: '#198754', 
       confirmButtonText: '關閉'
     });
 
@@ -110,10 +116,6 @@ const viewDiscountDetails = async (discountId) => {
   }
 };
 
-
-
-
-
 onMounted(() => {
     fetchDiscounts();
     fetchDiscountTypes();
@@ -122,6 +124,9 @@ onMounted(() => {
 
 <template>
     <div class="container-fluid py-3">
+        
+        <QuickCategoryAdd @success="handleTagSuccess" />
+
         <div id="listView">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="d-flex gap-2 align-items-center">
@@ -214,7 +219,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <DiscountFormModal ref="formModalRef" :api-base-url="API_BASE_URL" :discount-types="discountTypesList" @saved="fetchDiscounts" />
+        <DiscountFormModal ref="formModalRef" :discount-types="discountTypesList" @saved="fetchDiscounts" />
     </div>
 </template>
 

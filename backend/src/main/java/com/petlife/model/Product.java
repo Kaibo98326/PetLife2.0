@@ -74,6 +74,10 @@ public class Product implements Serializable{
     @Transient
     private String categoryName;
 
+    // ✨ 新增：活動徽章 (非資料庫欄位，用來傳遞「買一送一」、「夏季特賣」等字串給前端 Vue 顯示)
+    @Transient
+    private String activityBadge;
+
     
     // Getter / Setter
     public Integer getProductId() { return productId; }
@@ -112,4 +116,7 @@ public class Product implements Serializable{
     public String getCategoryName() { return categoryName; }
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
+    // ✨ 新增：Getter & Setter for activityBadge
+    public String getActivityBadge() { return activityBadge; }
+    public void setActivityBadge(String activityBadge) { this.activityBadge = activityBadge; }
 }

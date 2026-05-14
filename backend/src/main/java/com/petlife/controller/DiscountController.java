@@ -52,12 +52,14 @@ public class DiscountController {
     public ResponseEntity<String> saveDiscount(@RequestBody DiscountRequestDTO request) {
         try {
             // 第 5 個參數 (addonCategoryIds) 傳遞給 Service
+            // ✨ 修改：補上第 6 個參數 request.getTagCategoryId()，對應 Service 新增的接收標籤 ID 邏輯
             discountService.saveDiscountWithDetails(
                 request.getDiscount(), 
                 request.getCategoryIds(), 
                 request.getMainProductIds(), 
                 request.getAddonProductIds(),
-                request.getAddonCategoryIds() 
+                request.getAddonCategoryIds(),
+                request.getTagCategoryId() // ✨ 新增：將前端傳來的標籤 ID 傳入 Service
             );
             
             return ResponseEntity.ok("活動儲存成功！");
@@ -77,12 +79,14 @@ public class DiscountController {
             // 這樣 Spring Data JPA 存檔時，才會知道這是「更新舊資料」而不是「新增一筆」
             request.getDiscount().setDiscountId(id);
             
+            // ✨ 修改：補上第 6 個參數 request.getTagCategoryId()，確保修改時也能正確更新標籤關聯
             discountService.saveDiscountWithDetails(
                 request.getDiscount(), 
                 request.getCategoryIds(), 
                 request.getMainProductIds(), 
                 request.getAddonProductIds(),
-                request.getAddonCategoryIds() 
+                request.getAddonCategoryIds(),
+                request.getTagCategoryId() // ✨ 新增：將標籤 ID 傳入 Service 處理
             );
             
             return ResponseEntity.ok("活動修改成功！");

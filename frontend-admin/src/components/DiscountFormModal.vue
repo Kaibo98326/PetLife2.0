@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue';
-import axios from 'axios';
+// ✨ 修改：引入封裝的 request
+import request from '@/utils/request';
 import * as bootstrap from 'bootstrap';
 
-const props = defineProps(['apiBaseUrl', 'discountTypes']);
+// ✨ 修改：移除 apiBaseUrl，統一在元件內使用相對路徑
+const props = defineProps(['discountTypes']);
 const emit = defineEmits(['saved']);
 
 const currentStep = ref(1);
@@ -14,6 +16,9 @@ const selectedCategoryIds = ref([]);
 const selectedMainProductIds = ref([]);
 const selectedAddonProductIds = ref([]);
 const selectedAddonCategoryIds = ref([]); 
+
+// ✨ 新增：用來綁定使用者選擇的活動標籤 ID
+const selectedTagId = ref(''); 
 
 // ✨ 恢復搜尋與篩選狀態
 const searchCategory = ref('');
@@ -34,14 +39,23 @@ const categoriesList = ref([]);
 
 const fetchOptions = async () => {
     try {
-        const prodRes = await axios.get('http://localhost:8082/api/products/list');
+        // ✨ 修改：改用 request 並換成相對路徑
+        const prodRes = await request.get('/api/products/list');
         productsList.value = prodRes.data.productList || [];
-        const catRes = await axios.get('http://localhost:8082/api/categories');
+        // ✨ 修改：改用 request 並換成相對路徑
+        const catRes = await request.get('/api/categories');
         categoriesList.value = catRes.data || [];
     } catch (error) { console.warn('資料取得失敗', error); }
 };
 
+// ✨ 新增：計算屬性，過濾出 categoryType === 3 的活動標籤
+const activityTags = computed(() => {
+    return categoriesList.value.filter(c => c.categoryType === 3);
+});
+
+// ✨ 新增：計算最後一步的索引值
 const isThreeStep = computed(() => formData.value.type === '3' || formData.value.type === '4');
+const lastStep = computed(() => isThreeStep.value ? 4 : 3);
 
 const todayDate = computed(() => {
     const today = new Date();
@@ -85,6 +99,7 @@ const checkStep1Valid = () => {
     let isValid = true;
 
     if (!f.name) { errors.value.name = '必填'; isValid = false; }
+    else if (f.name.length > 10) { errors.value.name = '活動名稱不可超過 10 個字'; isValid = false; }
     if (!t) { errors.value.type = '必填'; isValid = false; }
     if (!f.startDate) { errors.value.startDate = '必填'; isValid = false; }
     if (!f.endDate) { errors.value.endDate = '必填'; isValid = false; }
@@ -92,6 +107,7 @@ const checkStep1Valid = () => {
     
     if (f.min === null || f.min === '') { errors.value.min = '必填'; isValid = false; }
     else if (f.min < 0) { errors.value.min = '不得為負數'; isValid = false; }
+    else if (t === '2' && f.min == 0) { errors.value.min = '滿額折門檻不可為0'; isValid = false; }
 
     if (t === '1') { 
         if (f.val === null || f.val === '') { errors.value.val = '必填'; isValid = false; }
@@ -114,12 +130,15 @@ const checkStep1Valid = () => {
     return isValid;
 };
 
+// ✨ 修改：下一步按鈕文字邏輯，增加發布設定導向
 const nextButtonText = computed(() => {
     if (currentStep.value === 1) return isThreeStep.value ? '下一步：選擇主項 ➔' : '下一步：選擇適用清單 ➔';
-    if (currentStep.value === 2) return isThreeStep.value ? '下一步：選擇副項 ➔' : (formData.value.id ? '儲存修改' : '儲存並發布');
+    if (currentStep.value === 2) return isThreeStep.value ? '下一步：選擇副項 ➔' : '下一步：發布設定 ➔';
+    if (currentStep.value === 3 && isThreeStep.value) return '下一步：發布設定 ➔';
     return formData.value.id ? '儲存修改' : '儲存並發布';
 });
 
+// ✨ 修改：跳轉步驟邏輯，整合新增的發布設定頁籤
 const handleNextStep = async () => {
     if (currentStep.value === 1) {
         if (!checkStep1Valid()) { alert("⚠️ 請檢查紅框處，資料尚未填寫完整或數值錯誤。"); return; }
@@ -130,16 +149,28 @@ const handleNextStep = async () => {
         
         if (isThreeStep.value) {
             if (formData.value.scopeType === 1 && formData.value.type === '3') selectedAddonCategoryIds.value = [...selectedCategoryIds.value];
+            if (formData.value.scopeType === 2 && formData.value.type === '3') selectedAddonProductIds.value = [...selectedMainProductIds.value];
             currentStep.value = 3; 
-        } else { await saveActivity(); }
-    } else {
+        } else { 
+            currentStep.value = 3; // 直接進入發布設定 (無副商品時)
+        }
+    } else if (currentStep.value === 3 && isThreeStep.value) {
         const addonSelected = formData.value.scopeType === 1 ? selectedAddonCategoryIds.value.length > 0 : selectedAddonProductIds.value.length > 0;
         if (!addonSelected) { alert("⚠️ 請至少選擇一個副項。"); return; }
+        currentStep.value = 4; // 進入發布設定 (有副商品時)
+    } else {
+        // ✨ 修改：最後一步提交前，驗證必選標籤
+        if (!selectedTagId.value) { alert("⚠️ 請選擇此活動要發布到的活動標籤！"); return; }
         await saveActivity();
     }
 };
 
-const handlePrevStep = () => { currentStep.value--; };
+// ✨ 修改：回退步驟邏輯
+const handlePrevStep = () => { 
+    if (currentStep.value === 4) currentStep.value = 3;
+    else if (currentStep.value === 3) currentStep.value = isThreeStep.value ? 2 : 2; // 無論如何都回 step 2
+    else currentStep.value--;
+};
 
 const saveActivity = async () => {
     isSaving.value = true;
@@ -163,10 +194,13 @@ const saveActivity = async () => {
             categoryIds: formData.value.scopeType === 1 ? selectedCategoryIds.value : [],
             mainProductIds: formData.value.scopeType === 2 ? selectedMainProductIds.value : [],
             addonProductIds: (formData.value.scopeType === 2 && isThreeStep.value) ? selectedAddonProductIds.value : [],
-            addonCategoryIds: (formData.value.scopeType === 1 && isThreeStep.value) ? selectedAddonCategoryIds.value : []
+            addonCategoryIds: (formData.value.scopeType === 1 && isThreeStep.value) ? selectedAddonCategoryIds.value : [],
+            // ✨ 修改：將選取的標籤 ID 送入 Payload
+            tagCategoryId: selectedTagId.value ? parseInt(selectedTagId.value) : null
         };
-        if (formData.value.id) await axios.put(`${props.apiBaseUrl}/${formData.value.id}`, payload);
-        else await axios.post(`${props.apiBaseUrl}/save`, payload);
+        
+        if (formData.value.id) await request.put(`/api/discounts/${formData.value.id}`, payload);
+        else await request.post(`/api/discounts/save`, payload);
         emit('saved');
         bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();
     } catch (error) { alert("儲存失敗"); } finally { isSaving.value = false; }
@@ -184,6 +218,10 @@ defineExpose({
         currentStep.value = 1; errors.value = {};
         selectedCategoryIds.value = []; selectedMainProductIds.value = []; 
         selectedAddonProductIds.value = []; selectedAddonCategoryIds.value = [];
+        
+        // ✨ 新增：新增模式清空標籤
+        selectedTagId.value = '';
+
         searchCategory.value = ''; searchProduct.value = '';
         showSelectedCategoryOnly.value = false; showSelectedProductOnly.value = false;
         fetchOptions(); showFormModal();
@@ -204,17 +242,23 @@ defineExpose({
         selectedMainProductIds.value = item.discountProducts?.filter(p => p.productRole === 'Main').map(p => p.product?.productId) || [];
         selectedAddonProductIds.value = item.discountProducts?.filter(p => p.productRole === 'Addon').map(p => p.product?.productId) || [];
         
+        // ✨ 新增：修改模式抓取角色為 Tag 的標籤 ID
+        const tagCategory = item.discountCategories?.find(c => c.categoryRole === 'Tag');
+        selectedTagId.value = tagCategory ? tagCategory.category?.categoryId : '';
+
         searchCategory.value = ''; searchProduct.value = '';
         showSelectedCategoryOnly.value = false; showSelectedProductOnly.value = false;
         fetchOptions(); showFormModal();
     }
 });
 
-// ✨ 修正：加入篩選與搜尋的計算屬性
+// ✨ 修改：優化 filteredCategories 邏輯，排除活動標籤
 const filteredCategories = computed(() => {
-    let res = categoriesList.value;
+    // ✨ 新增：過濾邏輯最前端增加 categoryType !== 3 條件，確保標籤不會混入一般選單
+    let res = categoriesList.value.filter(c => c.categoryType !== 3);
+    
     if (currentStep.value === 2 && showSelectedCategoryOnly.value) res = res.filter(c => selectedCategoryIds.value.includes(c.categoryId));
-    if (currentStep.value === 3 && showSelectedCategoryOnly.value) res = res.filter(c => selectedAddonCategoryIds.value.includes(c.categoryId));
+    if (currentStep.value === 3 && showSelectedCategoryOnly.value && isThreeStep.value) res = res.filter(c => selectedAddonCategoryIds.value.includes(c.categoryId));
     if (searchCategory.value) res = res.filter(c => c.categoryName.includes(searchCategory.value));
     return res;
 });
@@ -222,7 +266,7 @@ const filteredCategories = computed(() => {
 const filteredProducts = computed(() => {
     let res = productsList.value;
     if (currentStep.value === 2 && showSelectedProductOnly.value) res = res.filter(p => selectedMainProductIds.value.includes(p.productId));
-    if (currentStep.value === 3 && showSelectedProductOnly.value) res = res.filter(p => selectedAddonProductIds.value.includes(p.productId));
+    if (currentStep.value === 3 && showSelectedProductOnly.value && isThreeStep.value) res = res.filter(p => selectedAddonProductIds.value.includes(p.productId));
     if (searchProduct.value) res = res.filter(p => p.productName.includes(searchProduct.value));
     return res;
 });
@@ -239,9 +283,18 @@ const filteredProducts = computed(() => {
                     </div>
                     <div class="modal-body p-0">
                         <ul class="nav nav-tabs px-4 pt-3 bg-light border-0">
-                            <li class="nav-item"><button class="nav-link fw-bold" :class="{active: currentStep===1}" @click="currentStep=1">📜 活動規則</button></li>
-                            <li class="nav-item"><button class="nav-link fw-bold" :class="{active: currentStep===2, 'pointer-events-none opacity-50': !formData.id && currentStep < 2}" @click="currentStep=2">📦 指定對象</button></li>
-                            <li class="nav-item" v-if="isThreeStep"><button class="nav-link fw-bold" :class="{active: currentStep===3, 'pointer-events-none opacity-50': !formData.id && currentStep < 3}" @click="currentStep=3">🎁 副商品</button></li>
+                            <li class="nav-item">
+                                <button class="nav-link fw-bold" :class="{active: currentStep===1}" @click="currentStep=1">📜 活動規則</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link fw-bold" :class="{active: currentStep===2, 'pointer-events-none opacity-50': !formData.id && currentStep < 2}" @click="currentStep=2">📦 指定對象</button>
+                            </li>
+                            <li class="nav-item" v-if="isThreeStep">
+                                <button class="nav-link fw-bold" :class="{active: currentStep===3, 'pointer-events-none opacity-50': !formData.id && currentStep < 3}" @click="currentStep=3">🎁 副商品</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link fw-bold" :class="{active: currentStep === lastStep, 'pointer-events-none opacity-50': !formData.id && currentStep < lastStep}" @click="currentStep = lastStep">📢 發布設定</button>
+                            </li>
                         </ul>
 
                         <div class="tab-content p-4 bg-white">
@@ -269,7 +322,7 @@ const filteredProducts = computed(() => {
                                         </div>
                                         <div class="col-md-9">
                                             <label class="form-label text-muted small fw-bold">活動名稱 <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control border-2" v-model.trim="formData.name" :class="{'is-invalid': errors.name}" placeholder="請輸入活動名稱">
+                                            <input type="text" class="form-control border-2" v-model.trim="formData.name" :class="{'is-invalid': errors.name}" placeholder="請輸入活動名稱" maxlength="10">
                                             <div class="invalid-feedback">{{ errors.name }}</div>
                                         </div>
                                     </div>
@@ -357,7 +410,7 @@ const filteredProducts = computed(() => {
                                 </div>
                                 <div class="table-responsive border rounded" style="max-height: 350px;">
                                     <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light"><tr><th style="width: 50px;"></th><th>名稱</th></tr></thead>
+                                        <thead class="table-light"><tr><th style="width: 50px;"></th><th>名稱</th><th v-if="formData.scopeType===2">庫存</th><th v-if="formData.scopeType===2">售價</th></tr></thead>
                                         <tbody>
                                             <template v-if="formData.scopeType === 1">
                                                 <tr v-for="c in filteredCategories" :key="c.categoryId">
@@ -372,6 +425,8 @@ const filteredProducts = computed(() => {
                                                 <tr v-for="p in filteredProducts" :key="p.productId">
                                                     <td><input type="checkbox" class="form-check-input ms-2" :value="p.productId" v-model="selectedMainProductIds" :disabled="isOngoing"></td>
                                                     <td>{{ p.productName }}</td>
+                                                    <td>{{ p.productStock }}</td>
+                                                    <td>$ {{ p.productPrice }}</td>
                                                 </tr>
                                             </template>
                                         </tbody>
@@ -379,7 +434,7 @@ const filteredProducts = computed(() => {
                                 </div>
                             </div>
 
-                            <div v-show="currentStep === 3">
+                            <div v-show="currentStep === 3 && isThreeStep">
                                 <div class="d-flex justify-content-between mb-3 align-items-center border-bottom pb-2">
                                     <h6 class="fw-bold mb-0 text-success">🎁 副商品選擇</h6>
                                     <div class="d-flex align-items-center gap-3">
@@ -396,7 +451,7 @@ const filteredProducts = computed(() => {
                                 </div>
                                 <div class="table-responsive border rounded" style="max-height: 350px;">
                                     <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light"><tr><th style="width: 50px;"></th><th>名稱</th></tr></thead>
+                                        <thead class="table-light"><tr><th style="width: 50px;"></th><th>名稱</th><th v-if="formData.scopeType===2">庫存</th><th v-if="formData.scopeType===2">售價</th></tr></thead>
                                         <tbody>
                                             <template v-if="formData.scopeType === 1">
                                                 <tr v-for="c in filteredCategories" :key="c.categoryId" :class="{'bg-light opacity-50': selectedCategoryIds.includes(c.categoryId) || (formData.type==='3' && !selectedCategoryIds.includes(c.categoryId))}">
@@ -405,13 +460,36 @@ const filteredProducts = computed(() => {
                                                 </tr>
                                             </template>
                                             <template v-else>
-                                                <tr v-for="p in filteredProducts" :key="p.productId" :class="{'bg-light opacity-50': selectedMainProductIds.includes(p.productId)}">
-                                                    <td><input type="checkbox" class="form-check-input ms-2" :value="p.productId" v-model="selectedAddonProductIds" :disabled="isOngoing || selectedMainProductIds.includes(p.productId)"></td>
+                                                <tr v-for="p in filteredProducts" :key="p.productId" :class="{'bg-light opacity-50': selectedMainProductIds.includes(p.productId) || (formData.type==='3' && !selectedMainProductIds.includes(p.productId))}">
+                                                    <td><input type="checkbox" class="form-check-input ms-2" :value="p.productId" v-model="selectedAddonProductIds" :disabled="isOngoing || formData.type==='3' || (formData.type==='4' && selectedMainProductIds.includes(p.productId))"></td>
                                                     <td>{{ p.productName }} <span v-if="selectedMainProductIds.includes(p.productId)" class="badge bg-secondary ms-2 small">[已選為主商品]</span></td>
+                                                    <td>{{ p.productStock }}</td>
+                                                    <td>$ {{ p.productPrice }}</td>
                                                 </tr>
                                             </template>
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+
+                            <div v-show="currentStep === lastStep">
+                                <div class="p-4 bg-light border rounded shadow-sm border-start border-4 border-warning">
+                                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-bullhorn me-2 text-warning"></i> 📢 活動發布與掛載設定</h5>
+                                    
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold text-secondary small">選擇前端活動標籤 <span class="text-danger">*</span></label>
+                                        <p class="small text-muted mb-2">請選擇此折扣活動要掛載到使用者介面的哪一個活動分頁（此為必選項目）。</p>
+                                        <select class="form-select border-2 py-3" v-model="selectedTagId" :disabled="isOngoing">
+                                            <option value="" disabled>-- 請選擇掛載標籤 --</option>
+                                            <option v-for="tag in activityTags" :key="tag.categoryId" :value="tag.categoryId">
+                                                📌 {{ tag.categoryName }} (ID: {{ tag.categoryId }})
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="alert alert-info py-2 mb-0 small">
+                                        <i class="fas fa-info-circle me-1"></i> 提示：若清單中沒有需要的標籤，請先至分類管理頁面快速新增「活動標籤」類型的分類。
+                                    </div>
                                 </div>
                             </div>
                         </div>

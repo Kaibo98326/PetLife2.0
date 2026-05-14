@@ -1,7 +1,9 @@
 package com.petlife.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,9 @@ import com.petlife.repository.ProductRepository;
 @Transactional 
 public class ProductService {
 
+	@Autowired
+	private com.petlife.repository.DiscountRepository discountRepository;
+	
     private final ProductRepository productRepository;
     private final com.petlife.repository.CategoryRepository categoryRepository;
 
@@ -125,6 +130,67 @@ public class ProductService {
     
     public void batchUpdateStatus(List<Integer> ids, Integer status) {
         productRepository.batchUpdateStatus(ids, status);
+    }
+    
+    
+ //  新增：透過活動標籤(Type 3)獲取適用的商品，並賦予活動徽章
+    @Transactional(readOnly = true)
+    public Page<Product> getProductsByActivityTag(Integer tagId, Pageable pageable) {
+        
+        // 1. 找出該標籤綁定的「進行中」活動
+        List<com.petlife.model.Discount> activeDiscounts = discountRepository.findActiveDiscountsByTagId(tagId, java.time.LocalDate.now());
+        
+        if (activeDiscounts.isEmpty()) {
+            return Page.empty(pageable); // 標籤下沒有進行中的活動，回傳空分頁
+        }
+        
+        // 2. 收集所有符合條件的商品 ID (使用 Set 避免重複)
+        java.util.Set<Integer> validProductIds = new java.util.HashSet<>();
+        java.util.Map<Integer, String> productBadgeMap = new java.util.HashMap<>(); // 紀錄商品對應的活動名稱
+        
+        for (com.petlife.model.Discount d : activeDiscounts) {
+            String badgeName = d.getDiscountName(); // 要顯示在前端的徽章文字 (活動名稱)
+            
+            if (d.getScopeType() == 1) { // 指定分類
+                List<Integer> catIds = d.getDiscountCategories().stream()
+                    .filter(dc -> "Main".equals(dc.getCategoryRole()))
+                    .map(dc -> dc.getCategory().getCategoryId())
+                    .collect(Collectors.toList());
+                
+                if (!catIds.isEmpty()) {
+                    List<Integer> pIds = productRepository.findProductIdsByCategoryIds(catIds);
+                    for (Integer pid : pIds) {
+                        validProductIds.add(pid);
+                        productBadgeMap.put(pid, badgeName); // 記錄徽章
+                    }
+                }
+            } else if (d.getScopeType() == 2) { // 指定單品
+                List<Integer> pIds = d.getDiscountProducts().stream()
+                    .filter(dp -> "Main".equals(dp.getProductRole()))
+                    .map(dp -> dp.getProduct().getProductId())
+                    .collect(Collectors.toList());
+                
+                for (Integer pid : pIds) {
+                    validProductIds.add(pid);
+                    productBadgeMap.put(pid, badgeName); // 記錄徽章
+                }
+            }
+        }
+        
+        // 如果這個標籤下的活動剛好都沒圈選到商品，直接回傳空
+        if (validProductIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        
+        // 3. 透過 ID 清單查詢商品並分頁
+        Page<Product> productPage = productRepository.findByProductIdIn(new java.util.ArrayList<>(validProductIds), pageable);
+        
+        // 4. 將活動名稱塞入虛擬欄位 activityBadge，讓 Vue 顯示
+        for (Product p : productPage.getContent()) {
+            p.setActivityBadge(productBadgeMap.get(p.getProductId()));
+        }
+        
+        return productPage;
     }
     
 }

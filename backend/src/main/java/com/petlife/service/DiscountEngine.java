@@ -2,175 +2,229 @@ package com.petlife.service;
 
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.petlife.model.*;
+import com.petlife.repository.*;
 
-import com.petlife.model.Discount;
-import com.petlife.repository.CartItemDTO; 
-//決定誰有資格參加活動、誰先執行、哪一個活動最划算 ---->大腦
 @Service
 public class DiscountEngine {
 
-	// 讓 Spring 幫我們注入剛剛寫好的會計部 (DiscountCalculationService)
     @Autowired
     private DiscountCalculationService calculationService;
 
-    // 執行整筆訂單折扣計算的核心大門 (Controller 會呼叫這裡)
-    public BigDecimal executeDiscount(List<CartItemDTO> cartItems, List<Discount> allActiveDiscounts) {
-        // 準備一個變數，用來累加這筆訂單「總共幫客人省下多少錢」
-        BigDecimal totalSaved = BigDecimal.ZERO;
+    @Autowired
+    private DiscountTemplateHelper templateHelper;
 
-        // 【核心邏輯 1：執行優先權 - 先分組】把所有活動依照 ScopeType 拆分成單品與分類兩大陣營
-        // 撈出所有「單品層級」的活動
+    public CartCalculateResponseDTO executeDiscount(List<CartItemDTO> originalItems, List<Discount> allActiveDiscounts) {
+        // --- 活動新增：1. 攤平商品 (把數量拆成多筆單件商品) ---
+        List<CartItemDTO> flattenedItems = flattenCartItems(originalItems);
+        
+        BigDecimal totalSaved = BigDecimal.ZERO;
+        List<DiscountDetailDTO> appliedDetails = new ArrayList<>();
+
+        // 2. 依照優先權分組 (單品 > 分類)
         List<Discount> productLevelDiscounts = allActiveDiscounts.stream()
                 .filter(d -> d.getScopeType() == 2).collect(Collectors.toList());
-
-        // 撈出所有「分類層級」的活動
         List<Discount> categoryLevelDiscounts = allActiveDiscounts.stream()
                 .filter(d -> d.getScopeType() == 1).collect(Collectors.toList());
 
-        // ==============================================================
-        // ✨ 補充邏輯 7：同層級最優解 (Intra-Level Best Offer)
-        // ==============================================================
-        
-        // 【第一梯次：處理單品層級】
-        // 1-1. 在真正打折之前，先對單品活動清單進行「假算」並排序
+        // 【單品層級擇優】
         productLevelDiscounts.sort((d1, d2) -> {
-            // 呼叫分發中心，最後一個參數帶入 true，代表開啟「假算(Dry Run)」模式
-            BigDecimal saved1 = dispatchCalculation(cartItems, d1, true); 
-            // 同樣對第二個活動假算
-            BigDecimal saved2 = dispatchCalculation(cartItems, d2, true);
-            // 比較兩者省下的金額，降冪排序（省最多的活動會被排在陣列的最前面）
+            BigDecimal saved1 = dispatchCalculation(flattenedItems, d1, true); 
+            BigDecimal saved2 = dispatchCalculation(flattenedItems, d2, true);
             return saved2.compareTo(saved1); 
         });
 
-        // 1-2. 排序完成後，最猛的活動已經排在最前面了，開始跑迴圈「真算」
         for (Discount discount : productLevelDiscounts) {
-            // 呼叫分發中心，最後一個參數帶 false，代表「真算且綁定標籤」
-            BigDecimal saved = dispatchCalculation(cartItems, discount, false); 
-            // 將算出來的錢，累加進總折扣金裡
-            totalSaved = totalSaved.add(saved);
+            Set<Integer> beforeProcessedIds = flattenedItems.stream()
+                .filter(CartItemDTO::isProcessed)
+                .map(CartItemDTO::getItemId).collect(Collectors.toSet());
+
+            BigDecimal saved = dispatchCalculation(flattenedItems, discount, false); 
+            if (saved.compareTo(BigDecimal.ZERO) > 0) {
+                totalSaved = totalSaved.add(saved);
+                appliedDetails.add(new DiscountDetailDTO(discount.getDiscountName(), templateHelper.generateDiscountDetailText(discount), saved));
+                
+                String badgeText = templateHelper.generateAppliedText(discount);
+                flattenedItems.stream()
+                    .filter(i -> i.isProcessed() && !beforeProcessedIds.contains(i.getItemId()))
+                    .forEach(i -> i.setAppliedDiscountText(badgeText));
+            }
         }
 
-        // 【第二梯次：處理分類層級】(邏輯同上，因為經過上一步，部分商品已被互斥標記，所以分類只會對剩下的商品發生作用)
-        // 2-1. 對分類活動進行假算排序
+        // 【分類層級擇優】
         categoryLevelDiscounts.sort((d1, d2) -> {
-            BigDecimal saved1 = dispatchCalculation(cartItems, d1, true); 
-            BigDecimal saved2 = dispatchCalculation(cartItems, d2, true);
-            // 省最多的分類活動排前面
+            BigDecimal saved1 = dispatchCalculation(flattenedItems, d1, true); 
+            BigDecimal saved2 = dispatchCalculation(flattenedItems, d2, true);
             return saved2.compareTo(saved1); 
         });
 
-        // 2-2. 依序真算並綁定
         for (Discount discount : categoryLevelDiscounts) {
-            BigDecimal saved = dispatchCalculation(cartItems, discount, false); 
-            // 累加分類活動省下的錢
-            totalSaved = totalSaved.add(saved);
+            Set<Integer> beforeProcessedIds = flattenedItems.stream()
+                .filter(CartItemDTO::isProcessed)
+                .map(CartItemDTO::getItemId).collect(Collectors.toSet());
+
+            BigDecimal saved = dispatchCalculation(flattenedItems, discount, false); 
+            if (saved.compareTo(BigDecimal.ZERO) > 0) {
+                totalSaved = totalSaved.add(saved);
+                appliedDetails.add(new DiscountDetailDTO(discount.getDiscountName(), templateHelper.generateDiscountDetailText(discount), saved));
+                
+                String badgeText = templateHelper.generateAppliedText(discount);
+                flattenedItems.stream()
+                    .filter(i -> i.isProcessed() && !beforeProcessedIds.contains(i.getItemId()))
+                    .forEach(i -> i.setAppliedDiscountText(badgeText));
+            }
         }
 
-        // ==============================================================
-        // ✨ 補充邏輯 8：最低結帳金額保護 (Minimum Checkout Protection)
-        // ==============================================================
-        
-        // 準備算出這筆訂單如果不打折，原本總共要多少錢
-        BigDecimal cartTotalAmount = BigDecimal.ZERO;
-        // 跑迴圈累加購物車商品總價
-        for(CartItemDTO item : cartItems) {
-            cartTotalAmount = cartTotalAmount.add(item.getPrice().multiply(new BigDecimal(item.getQuantity())));
-        }
-        
-        // 設定公司的底線：整筆訂單就算再怎麼疊加折扣，客人在結帳時「最少必須付 1 元」
-        BigDecimal minPayable = BigDecimal.ONE; 
-        // 算出系統「最多允許折掉多少錢」= (原本總價 - 老闆底線的 1 元)
-        BigDecimal maxAllowedDiscount = cartTotalAmount.subtract(minPayable);
+        // --- 活動新增：3. 計算門檻提醒並合併還原 ---
+        calculateReminders(flattenedItems, allActiveDiscounts);
+        List<CartItemDTO> mergedItems = mergeCartItems(flattenedItems);
 
-        // 如果剛剛所有活動算出來的總折扣，不小心超過了系統允許的極限
-        if (totalSaved.compareTo(maxAllowedDiscount) > 0) {
-            // 強制將總折扣縮水，鎖死在最大允許範圍內，防止毛利被擊穿！
-            totalSaved = maxAllowedDiscount;
-        }
-
-        // 最終防呆：避免總折扣不知為何變成負數，若是負數一律改回 0 元
-        return totalSaved.compareTo(BigDecimal.ZERO) > 0 ? totalSaved : BigDecimal.ZERO;
+        CartCalculateResponseDTO response = new CartCalculateResponseDTO();
+        response.setDiscountAmount(totalSaved);
+        response.setAppliedDiscounts(appliedDetails);
+        response.setCartItems(mergedItems); 
+        return response;
     }
 
-    /**
-     * 邏輯分發中心：判斷活動類型並呼叫對應算法
-     * ✨ 升級：多接收了一個 isDryRun 參數，負責往計算中心傳遞
-     */
+    // --- 活動新增：攤平邏輯 ---
+    private List<CartItemDTO> flattenCartItems(List<CartItemDTO> originalItems) {
+        List<CartItemDTO> flattened = new ArrayList<>();
+        for (CartItemDTO item : originalItems) {
+            for (int i = 0; i < item.getQuantity(); i++) {
+                CartItemDTO single = new CartItemDTO();
+                single.setItemId(item.getItemId()); // 保持同款商品 ID 一致
+                single.setProductId(item.getProductId());
+                single.setCategoryId(item.getCategoryId());
+                single.setPrice(item.getPrice());
+                single.setQuantity(1); // 強制變 1
+                flattened.add(single);
+            }
+        }
+        return flattened;
+    }
+
+    // --- 活動新增：合併邏輯 (只要部分有折抵就帶標籤) ---
+    private List<CartItemDTO> mergeCartItems(List<CartItemDTO> flattened) {
+        Map<Integer, CartItemDTO> map = new LinkedHashMap<>();
+        for (CartItemDTO f : flattened) {
+            if (!map.containsKey(f.getItemId())) {
+                map.put(f.getItemId(), f);
+            } else {
+                CartItemDTO existing = map.get(f.getItemId());
+                existing.setQuantity(existing.getQuantity() + 1);
+                // 只要子項目有標籤或提醒，就保留
+                if (f.getAppliedDiscountText() != null) existing.setAppliedDiscountText(f.getAppliedDiscountText());
+                if (f.getReminderText() != null) existing.setReminderText(f.getReminderText());
+            }
+        }
+        return new ArrayList<>(map.values());
+    }
+
+    // --- 活動新增：補齊 Filter 邏輯 (對接 Discount 實體) ---
+    private List<CartItemDTO> filterEligibleItems(List<CartItemDTO> items, Discount discount, String role) {
+        return items.stream()
+            .filter(i -> !i.isProcessed())
+            .filter(i -> {
+                if (discount.getScopeType() == 2) { // 單品
+                    Set<Integer> pIds = discount.getDiscountProducts().stream()
+                        .map(dp -> dp.getProduct().getProductId()).collect(Collectors.toSet());
+                    return pIds.contains(i.getProductId());
+                } else { // 分類
+                    Set<Integer> cIds = discount.getDiscountCategories().stream()
+                        .map(dc -> dc.getCategory().getCategoryId()).collect(Collectors.toSet());
+                    return cIds.contains(i.getCategoryId());
+                }
+            })
+            .collect(Collectors.toList());
+    }
+
     private BigDecimal dispatchCalculation(List<CartItemDTO> cartItems, Discount discount, boolean isDryRun) {
-        // 第一步先呼叫篩選器，撈出購物車裡「符合資格且還沒被用掉」的商品
         List<CartItemDTO> eligibleItems = filterEligibleItems(cartItems, discount, "Main");
-        // 若找不到符合對象，直接回傳 0
         if (eligibleItems.isEmpty()) return BigDecimal.ZERO;
-
-        // 取得活動是哪一種折扣代碼 (1~5)
         Integer typeId = discount.getDiscountType().getDiscountTypeId();
-        
-        // Switch 分流中心
         switch (typeId) {
-            case 1: 
-                // 百分比
-                return calculationService.calculatePercentageDiscount(eligibleItems, discount, isDryRun);
-            case 2: 
-                // 定額滿減
-                return calculationService.calculateFixedDiscount(eligibleItems, discount, isDryRun);
-            case 3: { 
-                // 買N送M (需額外撈取贈品)
-                List<CartItemDTO> freeItems = filterEligibleItems(cartItems, discount, "Addon");
-                return calculationService.calculateBuyNGetMDiscount(eligibleItems, freeItems, discount, isDryRun);
-            }
-            case 4: { 
-                // 條件加購 (需額外撈取加購品)
-                List<CartItemDTO> addonItems = filterEligibleItems(cartItems, discount, "Addon");
-                return calculationService.calculateAddOnDiscount(eligibleItems, addonItems, discount, isDryRun);
-            }
-            case 5: 
-                // 組合優惠價
-                return calculationService.calculateBundleDiscount(eligibleItems, discount, isDryRun);
-            default: 
-                // 未知代碼防呆
-                return BigDecimal.ZERO;
+            case 1: return calculationService.calculatePercentageDiscount(eligibleItems, discount, isDryRun);
+            case 2: return calculationService.calculateFixedDiscount(eligibleItems, discount, isDryRun);
+            case 3: return calculationService.calculateBuyNGetMDiscount(eligibleItems, filterEligibleItems(cartItems, discount, "Addon"), discount, isDryRun);
+            case 4: return calculationService.calculateAddOnDiscount(eligibleItems, filterEligibleItems(cartItems, discount, "Addon"), discount, isDryRun);
+            case 5: return calculationService.calculateBundleDiscount(eligibleItems, discount, isDryRun);
+            default: return BigDecimal.ZERO;
         }
     }
+        /**
+         * 計算未達標門檻提醒 (% 數最高者優先顯示)
+         * --- 活動新增 ---
+         */
+        private void calculateReminders(List<CartItemDTO> items, List<Discount> allActive) {
+            // 遍歷每一件攤平後的商品
+            for (CartItemDTO item : items) {
+                // 1. 【防禦】如果這件商品已經被某個活動「真算」處理過並標記了，就不再顯示提醒
+                if (item.isProcessed()) continue; 
 
-    /**
-     * 商品篩選器：最底層負責決定誰能參加活動的警衛
-     */
-    private List<CartItemDTO> filterEligibleItems(List<CartItemDTO> cartItems, Discount discount, String role) { 
-        // 先把購物車裡「還沒被標記過 (isProcessed == false)」的乾淨商品過濾出來
-        List<CartItemDTO> availableItems = cartItems.stream()
-                .filter(item -> !item.isProcessed())
-                .collect(Collectors.toList());
+                double bestProgress = -1; // 用於紀錄目前最高進度百分比
+                String bestReminder = null; // 用於紀錄最高進度的提醒文字
 
-        // 如果活動範圍是 1 (分類活動)
-        if (discount.getScopeType() == 1) {
-            // 從活動設定裡撈出所有目標分類的 ID
-            Set<Integer> targetCatIds = discount.getDiscountCategories().stream()
-                    .filter(dc -> role.equals(dc.getCategoryRole()))
-                    .map(dc -> dc.getCategory().getCategoryId())
-                    .collect(Collectors.toSet());
-            
-            // 回傳分類 ID 有中獎的商品
-            return availableItems.stream()
-                    .filter(item -> targetCatIds.contains(item.getCategoryId()))
-                    .collect(Collectors.toList());
-                    
-        } else {
-            // 如果活動範圍是 2 (單品活動)，從設定裡撈出目標商品 ID
-            Set<Integer> targetProdIds = discount.getDiscountProducts().stream()
-                    .filter(dp -> role.equals(dp.getProductRole()))
-                    .map(dp -> dp.getProduct().getProductId())
-                    .collect(Collectors.toSet());
-            
-            // 回傳商品 ID 有中獎的商品
-            return availableItems.stream()
-                    .filter(item -> targetProdIds.contains(item.getProductId()))
-                    .collect(Collectors.toList());
+                for (Discount discount : allActive) {
+                    // 2. 【資格過濾】檢查這件單一商品是否有資格參加該活動 (Main 商品)
+                    List<CartItemDTO> singleItemList = new ArrayList<>();
+                    singleItemList.add(item);
+                    if (filterEligibleItems(singleItemList, discount, "Main").isEmpty()) continue;
+
+                    // 3. 【進度計算】算出整個購物車中，符合該活動資格的所有「乾淨商品」總額/總件數
+                    List<CartItemDTO> eligibleList = filterEligibleItems(items, discount, "Main");
+                    BigDecimal totalAmt = BigDecimal.ZERO;
+                    int totalQty = 0;
+                    for (CartItemDTO e : eligibleList) {
+                        // 因為已攤平，e.getQuantity() 皆為 1
+                        totalAmt = totalAmt.add(e.getPrice());
+                        totalQty += 1;
+                    }
+
+                    // 4. 【類型判斷】根據活動類型 (Type ID) 判斷門檻差距
+                    int typeId = discount.getDiscountType().getDiscountTypeId();
+                    double currentProgress = 0;
+                    String reminderText = "";
+
+                    // A. 金額型門檻 (Type 1: 百分比, Type 2: 滿額折)
+                    if (typeId == 1 || typeId == 2) {
+                        BigDecimal minAmount = discount.getMinimumPurchaseAmount();
+                        if (minAmount != null && minAmount.compareTo(BigDecimal.ZERO) > 0 && totalAmt.compareTo(minAmount) < 0) {
+                            currentProgress = (totalAmt.doubleValue() / minAmount.doubleValue()) * 100;
+                            if (currentProgress >= 80) {
+                                BigDecimal diffAmount = minAmount.subtract(totalAmt);
+                                // 呼叫 Helper 生成文字：(活動名)：還差 $XXX 享 XXX
+                                reminderText = templateHelper.generateReminderText(discount, diffAmount, 0);
+                            }
+                        }
+                    } 
+                    // B. 件數型門檻 (Type 3: 買送, Type 4: 加購, Type 5: 組合)
+                    else {
+                        Integer minQty = discount.getBuyQuantity();
+                        if (minQty != null && minQty > 0 && totalQty < minQty) {
+                            currentProgress = ((double) totalQty / minQty) * 100;
+                            if (currentProgress >= 80) {
+                                int diffQty = minQty - totalQty;
+                                // 呼叫 Helper 生成文字：(活動名)：還差 X 件 享 XXX
+                                reminderText = templateHelper.generateReminderText(discount, BigDecimal.ZERO, diffQty);
+                            }
+                        }
+                    }
+
+                    // 5. 【擇優提醒】如果這個活動的進度比之前的更高，就取代它 (顯示最接近達標的)
+                    if (currentProgress > bestProgress && !reminderText.isEmpty()) {
+                        bestProgress = currentProgress;
+                        bestReminder = reminderText;
+                    }
+                }
+
+                // 6. 【貼上標籤】將贏得競爭的提醒文字存入 DTO，供後續合併並傳回前端
+                if (bestReminder != null) {
+                    item.setReminderText(bestReminder);
+                }
+            }
         }
     }
-}

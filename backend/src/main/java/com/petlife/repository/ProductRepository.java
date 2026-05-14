@@ -55,6 +55,16 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     @Query("UPDATE Product p SET p.productStatus = :status WHERE p.productId IN :ids")
     void batchUpdateStatus(@Param("ids") List<Integer> ids, @Param("status") Integer status);
     
+ // ✨ 新增：活動標籤查詢專用 ======================================================================================
+
+    // 透過多個商品 ID 取得分頁商品
+    @Query("SELECT p FROM Product p WHERE p.productId IN :ids")
+    Page<Product> findByProductIdIn(@Param("ids") List<Integer> ids, Pageable pageable);
+
+    // 透過多個分類 ID 撈取底下的所有商品 ID
+    @Query("SELECT p.productId FROM Product p JOIN p.categories c WHERE c.categoryId IN :catIds OR c.parentId IN :catIds")
+    List<Integer> findProductIdsByCategoryIds(@Param("catIds") List<Integer> catIds);
+    
 }
 
 

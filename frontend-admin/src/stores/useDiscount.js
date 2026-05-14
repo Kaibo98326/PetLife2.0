@@ -1,8 +1,10 @@
 import { ref, computed } from 'vue';
-import axios from 'axios';
+// ✨ 修改：移除 axios，改為引入你封裝的 request
+import request from '@/utils/request';
 
 export function useDiscount() {
-    const API_BASE_URL = 'http://localhost:8082/api/discounts';
+    // ✨ 修改：因為 request.js 已經定義了 baseURL，這裡只需寫相對路徑
+    const API_BASE_URL = '/api/discounts';
 
     const discounts = ref([]);
     const discountTypesList = ref([]);
@@ -44,7 +46,8 @@ export function useDiscount() {
     const fetchDiscounts = async () => {
         loading.value = true;
         try {
-            const response = await axios.get(API_BASE_URL);
+            // ✨ 修改：改用 request
+            const response = await request.get(API_BASE_URL);
             discounts.value = response.data;
         } catch (error) { console.error("無法取得活動:", error); }
         finally { loading.value = false; }
@@ -52,7 +55,8 @@ export function useDiscount() {
 
     const fetchDiscountTypes = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/types`);
+            // ✨ 修改：改用 request
+            const response = await request.get(`${API_BASE_URL}/types`);
             discountTypesList.value = response.data;
         } catch (error) { console.error("無法取得類型:", error); }
     };
@@ -91,8 +95,9 @@ export function useDiscount() {
                 discount: cleanDiscount,
                 categoryIds: catIds, mainProductIds: prodIds, addonProductIds: addProdIds, addonCategoryIds: addCatIds
             };
-
-            await axios.put(`${API_BASE_URL}/${item.discountId}`, payload);
+            
+            // ✨ 修改：改用 request
+            await request.put(`${API_BASE_URL}/${item.discountId}`, payload);
             alert('已成功移至垃圾桶 (軟刪除)！');
             fetchDiscounts();
         } catch (error) {

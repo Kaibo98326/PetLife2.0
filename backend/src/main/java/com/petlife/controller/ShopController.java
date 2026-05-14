@@ -53,14 +53,32 @@ public class ShopController {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(cp - 1, pageSize, sortObj);
         
         Page<Product> productPage;
-
+//  原先的
+//        if (categoryId != null && categoryId != 0) {
+//            // 【分類篩選】
+//            productPage = productService.getProductsByCategory(categoryId, pageable);
+//        } else {
+//            // 【關鍵字搜尋 / 全部商品】
+//            productPage = productService.searchProducts(keyword.trim(), pageable);
+//        }
+        
         if (categoryId != null && categoryId != 0) {
-            // 【分類篩選】
-            productPage = productService.getProductsByCategory(categoryId, pageable);
-        } else {
-            // 【關鍵字搜尋 / 全部商品】
-            productPage = productService.searchProducts(keyword.trim(), pageable);
-        }
+        	// 修改：取得分類，判斷是否為「活動標籤 (Type 3)」
+        	Category category = categoryService.getCategoryById(categoryId);
+        	if (category != null && category.getCategoryType() == 3) {
+        	// 是活動標籤：走活動跳轉查詢邏輯
+        	productPage = productService.getProductsByActivityTag(categoryId, pageable);
+        	} else {
+        	// 是一般分類篩選：走原生分類查詢邏輯
+        	productPage = productService.getProductsByCategory(categoryId, pageable);
+        	}
+        	} else {
+
+        	// 【關鍵字搜尋 / 全部商品】
+
+        	productPage = productService.searchProducts(keyword.trim(), pageable);
+
+        	}
 
         // 只取上架商品 (productStatus === 1)，並補齊分類名稱
         List<Product> activeProducts = productPage.getContent().stream()
