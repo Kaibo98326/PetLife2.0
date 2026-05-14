@@ -179,7 +179,11 @@ const confirmPayment = async () => {
 
     if (selectedPaymentMethod.value === 'LINE_PAY') {
       if (res.data.paymentUrl) {
-        window.location.href = res.data.paymentUrl
+        const currentHost = window.location.origin
+        const redirectUrl = `${currentHost}/stay/booking-success`
+        const paymentUrlWithRedirect = `${res.data.paymentUrl}&redirectUrl=${encodeURIComponent(redirectUrl)}`
+
+        window.location.href = paymentUrlWithRedirect
       } else {
         router.push({
           path: '/stay/booking-success',
@@ -267,17 +271,6 @@ onMounted(() => {
             <strong>{{ additionalPets.length }} 隻同行寵物</strong>
             的資料將顯示在訂單明細的備註欄
           </p>
-        </div>
-      </div>
-
-      <!-- 房間資訊 -->
-      <div class="section">
-        <h3 class="section-title">房間資訊</h3>
-        <div class="room-info">
-          <div class="info-item">
-            <span class="info-label">預約房號</span>
-            <span class="info-value room-no">{{ assignedRoomNo }}</span>
-          </div>
         </div>
       </div>
 

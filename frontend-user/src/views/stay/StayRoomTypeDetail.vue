@@ -162,7 +162,7 @@ onMounted(() => {
             <span class="price-value">{{ roomType.capacity }} 隻</span>
           </div>
           <div class="price-item">
-            <span class="price-label">目前剩餘</span>
+            <span class="price-label">房間數量</span>
             <span class="price-value available">{{ roomType.availableCount }} 間</span>
           </div>
         </div>

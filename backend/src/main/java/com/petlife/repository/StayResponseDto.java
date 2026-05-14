@@ -1,6 +1,7 @@
 package com.petlife.repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 
@@ -16,6 +17,12 @@ public class StayResponseDto {
     private Double sumPrice;
     private String stayStatus;
     private String stayRemark;
+    
+    private String memberName;
+    private String memberPhone;
+    private String memberEmail;
+    private LocalDateTime createdAt;   // 訂單成立時間
+    private LocalDateTime paidAt;      // 付款時間
     
     // 來自 Pet
     private String petName;

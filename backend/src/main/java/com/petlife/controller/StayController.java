@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.petlife.model.StayPayment;
 import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.RoomTypeDto;
 import com.petlife.repository.StayPaymentResponseDto;
 import com.petlife.service.IStayService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.cfg.DateTimeFeature;
 
@@ -103,30 +105,52 @@ public class StayController {
 	}
 	
 	// 確認預約
-	@GetMapping("/payment/confirm")
-	public ResponseEntity<?> confirmPayment(
-	        @RequestParam String merchantTradeNo,
-	        @RequestParam String transactionId) {
+@GetMapping("/payment/confirm")
+public ResponseEntity<?> confirmPayment(
+        @RequestParam String merchantTradeNo,
+        @RequestParam String transactionId,
+        HttpServletRequest request) {  // ✅ 注入 request
 
-	    try {
-	        String result = stayService.confirmPayment(merchantTradeNo, transactionId);
+    try {
+        String result = stayService.confirmPayment(merchantTradeNo, transactionId);
 
-	        if ("SUCCESS".equals(result)) {
-	            return ResponseEntity.status(302)
-	                    .header("Location",
-	                        "http://localhost:5173/stay/booking-success")
-	                    .build();
-	        } else {
-	            return ResponseEntity.status(302)
-	                    .header("Location", "http://localhost:5173/stay")
-	                    .build();
-	        }
-	    } catch (Exception e) {
-	        return ResponseEntity.status(302)
-	                .header("Location", "http://localhost:5173/stay")
-	                .build();
-	    }
-	}
+        if ("SUCCESS".equals(result)) {
+            Integer stayId = stayService.getStayIdByMerchantTradeNo(merchantTradeNo);
+            
+            // ✅ 從 Referer 取得前端的 origin
+            String referer = request.getHeader("Referer");
+            String origin = referer != null ? 
+                referer.substring(0, referer.indexOf("/", 8)) :
+                "http://localhost:5173";
+            
+            String finalUrl = origin + "/stay/booking-success?stayId=" + stayId;
+
+            return ResponseEntity.status(302)
+                    .header("Location", finalUrl)
+                    .build();
+        } else {
+            // ✅ 失敗也一樣
+            String referer = request.getHeader("Referer");
+            String origin = referer != null ? 
+                referer.substring(0, referer.indexOf("/", 8)) :
+                "http://localhost:5173";
+            
+            return ResponseEntity.status(302)
+                    .header("Location", origin + "/stay")
+                    .build();
+        }
+    } catch (Exception e) {
+        // ✅ 異常也一樣
+        String referer = request.getHeader("Referer");
+        String origin = referer != null ? 
+            referer.substring(0, referer.indexOf("/", 8)) :
+            "http://localhost:5173";
+        
+        return ResponseEntity.status(302)
+                .header("Location", origin + "/stay")
+                .build();
+    }
+}
 	
 	// 單筆訂單
 	@GetMapping("/{stayId}")

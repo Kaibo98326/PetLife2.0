@@ -71,7 +71,15 @@
         </el-icon>
         <span>寵物旅館管理</span>
       </template>
-      <el-menu-item index="/admin/hotel/room">房型管理</el-menu-item>
+
+      <!-- 對應您路由中的 path: 'stay-orders' -->
+      <el-menu-item index="/admin/stay-orders">住宿訂單管理</el-menu-item>
+
+      <!-- 對應您路由中的 path: 'stay-rooms' -->
+      <el-menu-item index="/admin/stay-rooms">房間狀態管理</el-menu-item>
+
+      <!-- 對應您路由中的 path: 'stay-calendar' -->
+      <el-menu-item index="/admin/stay-calendar">住宿預約日曆</el-menu-item>
     </el-sub-menu>
 
     <el-menu-item index="/admin/discount">

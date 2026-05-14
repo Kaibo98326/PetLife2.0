@@ -47,6 +47,11 @@ onMounted(() => {
         <span class="info-val">{{ stayInfo.stayEndDate }}</span>
       </div>
       <div class="info-row">
+        <span class="info-label">房號</span>
+        <span class="info-val">{{ stayInfo.roomNo }}</span>
+      </div>
+
+      <div class="info-row">
         <span class="info-label">住宿天數</span>
         <span class="info-val">{{ stayInfo.stayDay }} 晚</span>
       </div>
