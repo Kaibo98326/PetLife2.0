@@ -275,7 +275,7 @@ onMounted(() => {
 
 const fillMemberDemo = () => {
   loginForm.email = 'demo@test.com'
-  loginForm.password = '123456'
+  loginForm.password = '123'
 }
 
 const fillAdminDemo = () => {
@@ -286,7 +286,7 @@ const fillRegisterDemo = () => {
   registerForm.memberName = '測試會員'
   registerForm.phone = '0912345678'
   registerForm.email = 'demo@test.com'
-  registerForm.password = '123456'
+  registerForm.password = '123'
   registerForm.address = '台北市信義區松仁路100號'
 }
 
@@ -328,9 +328,9 @@ const goShop = () => {
           <p v-if="errorMsg" style="color:red; font-size:13px;">{{ errorMsg }}</p>
           <a href="#" @click.prevent="openForgotPasswordModal">忘記密碼？</a>
           <div class="login-btn-group">
-            <button type="button" class="demo-side-btn" @click="fillMemberDemo">Demo</button>
+            <button type="button" class="demo-side-btn" @click="fillMemberDemo">一鍵輸入</button>
             <button type="submit" class="main-login-btn"> 登入</button>
-            <button type="button" class="demo-side-btn" @click="fillAdminDemo">會員Demo</button>
+            <button type="button" class="demo-side-btn" @click="fillAdminDemo">一鍵輸入</button>
           </div>
           <button type="button" @click="goShop">回到賣場</button>
         </form>

@@ -17,6 +17,15 @@ const petForm = reactive({
     medicalHistory: ''
 })
 
+const fillRegisterDemo = () =>{
+    petForm.petName = '小黑',
+    petForm.species = '狗',
+    petForm.breed = '米克斯',
+    petForm.age = '3',
+    petForm.weight = '6.5',
+    petForm.medicalHistory = '已施打疫苗，無重大疾病紀錄'
+}
+
 const selectedFile = ref(null)
 const previewUrl = ref(null)
 
@@ -113,6 +122,7 @@ const addPet = async () => {
             </div>
 
             <div class="d-flex gap-2">
+                <button type="button" @click="fillRegisterDemo" class="btn btn-secondary">一鍵輸入</button>
                 <button type="submit" class="btn btn-primary">新增寵物</button>
                 <button type="button" class="btn btn-secondary" @click="router.push('/member/center/pets')">
                     返回
