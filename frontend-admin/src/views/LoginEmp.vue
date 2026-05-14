@@ -30,9 +30,15 @@ const login = async () => {
         const data = await res.json()
         employeeStore.login(data.token)
 
+        const roles = employeeStore.roles || []
+        if(roles.length === 0){
+            Swal.fire({ icon: 'warning', title: '警告', text: '您的帳號尚未設定角色，請聯繫管理員' })
+            return
+        }
+
         Swal.fire({ icon: 'success', title: '登入成功', text: '歡迎回來！' })
             .then(() => {
-                router.push('/admin/dashboard') // ✅ 建議加斜線，避免路由錯誤
+                router.push('/admin/dashboard') 
             })
     } catch (err) {
         Swal.fire({ icon: 'error', title: '錯誤', text: err.message })
