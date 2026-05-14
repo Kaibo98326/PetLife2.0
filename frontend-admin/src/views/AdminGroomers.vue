@@ -148,9 +148,9 @@ onMounted(() => {
       </div>
 
       <el-table v-loading="loading" :data="filteredGroomers" stripe>
-        <el-table-column prop="groomerId" label="員工ID" width="90" />
-        <el-table-column prop="displayName" label="顯示名稱" min-width="140" />
-        <el-table-column prop="seniorityYears" label="年資" width="80" align="center" />
+        <el-table-column prop="groomerId" label="美容師ID" width="90" />
+        <el-table-column prop="displayName" label="顯示名稱" width="180" />
+        <el-table-column prop="seniorityYears" label="年資" width="80" align="center" header-align="center" />
         <el-table-column prop="intro" label="簡介" min-width="240" show-overflow-tooltip />
         <el-table-column label="可預約" width="100" align="center">
           <template #default="{ row }">
