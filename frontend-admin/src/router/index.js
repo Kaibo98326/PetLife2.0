@@ -66,6 +66,11 @@ const routes = [
         name: '寵物管理',
         component: () => import('@/views/AdminPetList.vue'),
       },
+      {
+        path: 'chat-support',
+        name: '客服中心',
+        component: () => import('@/views/AdminChatSupport.vue'),
+      },
     ],
   },
 ]
