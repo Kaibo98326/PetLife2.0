@@ -1,13 +1,16 @@
 package com.petlife.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.petlife.repository.BeautyItemManageRequest;
 import com.petlife.repository.BeautyPriceRequest;
@@ -34,11 +37,26 @@ public class AdminBeautyItemController {
         return ResponseEntity.ok(beautyItemService.createItemWithPrices(request));
     }
 
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createItemWithImage(@Valid @RequestPart("request") BeautyItemManageRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
+
+        return ResponseEntity.ok(beautyItemService.createItemWithPrices(request, file));
+    }
+
     @PutMapping("/{beautyId}")
     public ResponseEntity<?> updateItem(@PathVariable Integer beautyId,
             @Valid @RequestBody BeautyItemManageRequest request) {
 
         return ResponseEntity.ok(beautyItemService.updateItemWithPrices(beautyId, request));
+    }
+
+    @PutMapping(value = "/{beautyId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateItemWithImage(@PathVariable Integer beautyId,
+            @Valid @RequestPart("request") BeautyItemManageRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
+
+        return ResponseEntity.ok(beautyItemService.updateItemWithPrices(beautyId, request, file));
     }
 
     @PutMapping("/{beautyId}/status")

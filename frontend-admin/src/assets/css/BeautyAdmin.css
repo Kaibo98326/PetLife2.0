@@ -84,6 +84,42 @@
   flex-wrap: wrap;
 }
 
+.beauty-thumb {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f8f2ec;
+  border: 1px solid #ece7e1;
+}
+
+.beauty-image-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #7a6a61;
+  font-size: 0.86rem;
+}
+
+.beauty-image-preview img {
+  width: 180px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f8f2ec;
+  border: 1px solid #ece7e1;
+}
+
+.beauty-file-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  color: #606266;
+  background: #fff;
+}
+
 .detail-lines {
   border: 1px solid #edf0f3;
   border-radius: 12px;

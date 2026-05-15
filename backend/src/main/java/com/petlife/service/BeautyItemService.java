@@ -15,7 +15,12 @@ import com.petlife.repository.BeautyItemPriceRepository;
 import com.petlife.repository.BeautyItemRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +32,9 @@ import java.util.stream.Collectors;
 public class BeautyItemService {
 
     private static final Set<String> REQUIRED_PRICE_SIZES = Set.of("小型", "中型", "大型");
+    private static final String DEFAULT_IMAGE_URL = "/images/beauty/default.jpg";
+    private static final String BEAUTY_IMAGE_URL_PREFIX = "/images/beauty/";
+    private static final Path BEAUTY_IMAGE_UPLOAD_DIR = Paths.get("C:/PetLife2.0/uploads/images/beauty/");
 
     private final BeautyItemRepository itemRepository;
     private final BeautyItemPriceRepository priceRepository;
@@ -109,6 +117,7 @@ public class BeautyItemService {
         BeautyItem item = new BeautyItem();
         item.setItemName(req.itemName());
         item.setItemDescription(req.itemDescription());
+        item.setImageUrl(req.imageUrl());
         item.setDurationSlots(req.durationSlots());
         item.setIsActive(req.isActive() == null ? true : req.isActive());
         return BeautyMapper.item(itemRepository.save(item));
@@ -121,6 +130,7 @@ public class BeautyItemService {
 
         item.setItemName(req.itemName());
         item.setItemDescription(req.itemDescription());
+        item.setImageUrl(req.imageUrl());
         item.setDurationSlots(req.durationSlots());
         item.setIsActive(req.isActive() == null ? item.getIsActive() : req.isActive());
         return BeautyMapper.item(itemRepository.save(item));
@@ -142,6 +152,27 @@ public class BeautyItemService {
     }
 
     @Transactional
+    public BeautyItemManageResponse createItemWithPrices(BeautyItemManageRequest req, MultipartFile file) {
+        validateManageRequest(req);
+
+        BeautyItem item = new BeautyItem();
+        applyItemFields(item, req);
+        BeautyItem savedItem = itemRepository.save(item);
+
+        if (hasImageFile(file)) {
+            savedItem.setImageUrl(saveBeautyImage(savedItem.getBeautyId(), file));
+            savedItem = itemRepository.save(savedItem);
+        }
+
+        Integer savedBeautyId = savedItem.getBeautyId();
+        List<BeautyItemPrice> prices = req.prices().stream()
+                .map(priceReq -> createPriceEntity(savedBeautyId, priceReq))
+                .toList();
+
+        return BeautyMapper.itemManage(savedItem, priceRepository.saveAll(prices));
+    }
+
+    @Transactional
     public BeautyItemManageResponse updateItemWithPrices(Integer beautyId, BeautyItemManageRequest req) {
         if (beautyId == null) {
             throw ApiException.badRequest("美容項目編號不可為空");
@@ -152,6 +183,32 @@ public class BeautyItemService {
                 .orElseThrow(() -> ApiException.notFound("找不到美容項目"));
 
         applyItemFields(item, req);
+        BeautyItem savedItem = itemRepository.save(item);
+
+        List<BeautyItemPrice> prices = req.prices().stream()
+                .map(priceReq -> priceRepository.findByBeautyIdAndPetSize(beautyId, priceReq.petSize())
+                        .map(existing -> applyPriceFields(existing, priceReq))
+                        .orElseGet(() -> createPriceEntity(beautyId, priceReq)))
+                .toList();
+
+        return BeautyMapper.itemManage(savedItem, priceRepository.saveAll(prices));
+    }
+
+    @Transactional
+    public BeautyItemManageResponse updateItemWithPrices(Integer beautyId, BeautyItemManageRequest req,
+            MultipartFile file) {
+        if (beautyId == null) {
+            throw ApiException.badRequest("美容項目編號不可為空");
+        }
+        validateManageRequest(req);
+
+        BeautyItem item = itemRepository.findById(beautyId)
+                .orElseThrow(() -> ApiException.notFound("找不到美容項目"));
+
+        applyItemFields(item, req);
+        if (hasImageFile(file)) {
+            item.setImageUrl(saveBeautyImage(beautyId, file));
+        }
         BeautyItem savedItem = itemRepository.save(item);
 
         List<BeautyItemPrice> prices = req.prices().stream()
@@ -255,8 +312,45 @@ public class BeautyItemService {
     private void applyItemFields(BeautyItem item, BeautyItemManageRequest req) {
         item.setItemName(req.itemName());
         item.setItemDescription(req.itemDescription());
+        item.setImageUrl(normalizeImageUrl(req.imageUrl()));
         item.setDurationSlots(req.durationSlots());
         item.setIsActive(req.isActive() == null ? true : req.isActive());
+    }
+
+    private boolean hasImageFile(MultipartFile file) {
+        return file != null && !file.isEmpty();
+    }
+
+    private String normalizeImageUrl(String imageUrl) {
+        return imageUrl == null || imageUrl.isBlank() ? DEFAULT_IMAGE_URL : imageUrl.trim();
+    }
+
+    private String saveBeautyImage(Integer beautyId, MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw ApiException.badRequest("請上傳圖片檔案");
+        }
+
+        try {
+            Files.createDirectories(BEAUTY_IMAGE_UPLOAD_DIR);
+
+            String originalName = file.getOriginalFilename();
+            String safeName = originalName == null ? "beauty.jpg" : originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
+            if (safeName.isBlank()) {
+                safeName = "beauty.jpg";
+            }
+
+            String fileName = "beauty_" + beautyId + "_" + System.currentTimeMillis() + "_" + safeName;
+            Path targetPath = BEAUTY_IMAGE_UPLOAD_DIR.resolve(fileName).normalize();
+            if (!targetPath.startsWith(BEAUTY_IMAGE_UPLOAD_DIR)) {
+                throw ApiException.badRequest("圖片檔名不合法");
+            }
+
+            Files.copy(file.getInputStream(), targetPath);
+            return BEAUTY_IMAGE_URL_PREFIX + fileName;
+        } catch (IOException e) {
+            throw ApiException.badRequest("圖片上傳失敗");
+        }
     }
 
     private BeautyItemPrice createPriceEntity(Integer beautyId, BeautyPriceLineRequest req) {

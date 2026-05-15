@@ -10,10 +10,16 @@ const dialogVisible = ref(false)
 const editingId = ref(null)
 const keyword = ref('')
 const statusFilter = ref('')
+const selectedImageFile = ref(null)
+const selectedImagePreview = ref('')
+const imageInputRef = ref(null)
+const IMG_BASE = 'http://localhost:8082'
+const DEFAULT_BEAUTY_IMAGE = '/images/beauty/default.jpg'
 
 const emptyForm = () => ({
   itemName: '',
   itemDescription: '',
+  imageUrl: '',
   durationSlots: 1,
   isActive: true,
   prices: [
@@ -24,6 +30,10 @@ const emptyForm = () => ({
 })
 
 const form = reactive(emptyForm())
+
+const previewImageUrl = computed(() => {
+  return selectedImagePreview.value || normalizeImageUrl(form.imageUrl)
+})
 
 const filteredItems = computed(() => {
   return items.value.filter(item => {
@@ -48,8 +58,12 @@ const loadItems = async () => {
 }
 
 const resetForm = () => {
+  clearSelectedImage()
   Object.assign(form, emptyForm())
   editingId.value = null
+  if (imageInputRef.value) {
+    imageInputRef.value.value = ''
+  }
 }
 
 const openAddDialog = () => {
@@ -62,6 +76,7 @@ const openEditDialog = item => {
   editingId.value = item.beautyId
   form.itemName = item.itemName
   form.itemDescription = item.itemDescription
+  form.imageUrl = item.imageUrl || ''
   form.durationSlots = item.durationSlots
   form.isActive = item.isActive
 
@@ -77,11 +92,20 @@ const openEditDialog = item => {
 
 const saveItem = async () => {
   try {
+    const formData = new FormData()
+    formData.append(
+      'request',
+      new Blob([JSON.stringify(form)], { type: 'application/json' })
+    )
+    if (selectedImageFile.value) {
+      formData.append('file', selectedImageFile.value)
+    }
+
     if (editingId.value) {
-      await request.put(`/api/admin/beauty/items/${editingId.value}`, form)
+      await request.put(`/api/admin/beauty/items/${editingId.value}`, formData)
       Swal.fire('成功', '美容項目已更新', 'success')
     } else {
-      await request.post('/api/admin/beauty/items', form)
+      await request.post('/api/admin/beauty/items', formData)
       Swal.fire('成功', '美容項目已新增', 'success')
     }
     dialogVisible.value = false
@@ -111,6 +135,29 @@ const priceOf = (item, petSize) => {
   return price ? `$${Number(price.itemPrice).toLocaleString()}` : '-'
 }
 
+const normalizeImageUrl = imageUrl => {
+  const url = imageUrl || DEFAULT_BEAUTY_IMAGE
+  if (/^https?:\/\//i.test(url)) return url
+  return url.startsWith('/') ? `${IMG_BASE}${url}` : `${IMG_BASE}/${url}`
+}
+
+const clearSelectedImage = () => {
+  if (selectedImagePreview.value) {
+    URL.revokeObjectURL(selectedImagePreview.value)
+  }
+  selectedImageFile.value = null
+  selectedImagePreview.value = ''
+}
+
+const handleImageChange = event => {
+  const file = event.target.files?.[0]
+  clearSelectedImage()
+  if (!file) return
+
+  selectedImageFile.value = file
+  selectedImagePreview.value = URL.createObjectURL(file)
+}
+
 onMounted(loadItems)
 </script>
 
@@ -135,6 +182,11 @@ onMounted(loadItems)
 
       <el-table v-loading="loading" :data="filteredItems" stripe>
         <el-table-column prop="beautyId" label="ID" width="80" />
+        <el-table-column label="圖片" width="110" align="center">
+          <template #default="{ row }">
+            <img class="beauty-thumb" :src="normalizeImageUrl(row.imageUrl)" :alt="row.itemName" />
+          </template>
+        </el-table-column>
         <el-table-column prop="itemName" label="項目名稱" min-width="150" />
         <el-table-column prop="itemDescription" label="說明" min-width="200" show-overflow-tooltip />
         <el-table-column prop="durationSlots" label="時段數" width="90" align="center" />
@@ -179,6 +231,19 @@ onMounted(loadItems)
           <el-form-item class="full" label="項目說明">
             <el-input v-model="form.itemDescription" type="textarea" :rows="3" />
           </el-form-item>
+          <el-form-item class="full" label="項目圖片">
+            <input
+              ref="imageInputRef"
+              class="beauty-file-input"
+              type="file"
+              accept="image/*"
+              @change="handleImageChange"
+            />
+          </el-form-item>
+          <div class="full beauty-image-preview">
+            <img :src="previewImageUrl" alt="beauty item preview" />
+            <span>{{ form.imageUrl || '尚未建立圖片路徑，儲存後會自動產生' }}</span>
+          </div>
           <el-form-item label="項目狀態">
             <el-switch v-model="form.isActive" active-text="啟用" inactive-text="停用" />
           </el-form-item>

@@ -34,6 +34,7 @@ public class BeautyMapper {
                 item.getBeautyId(),
                 item.getItemName(),
                 item.getItemDescription(),
+                item.getImageUrl(),
                 item.getDurationSlots(),
                 item.getIsActive(),
                 price == null ? null : price.getItemPrice(),
@@ -58,6 +59,7 @@ public class BeautyMapper {
                 item.getBeautyId(),
                 item.getItemName(),
                 item.getItemDescription(),
+                item.getImageUrl(),
                 item.getDurationSlots(),
                 item.getIsActive(),
                 prices.stream().map(BeautyMapper::price).toList());

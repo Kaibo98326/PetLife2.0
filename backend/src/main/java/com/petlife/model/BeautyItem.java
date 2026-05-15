@@ -34,6 +34,9 @@ public class BeautyItem {
     @Column(name = "item_description", length = 500)
     private String itemDescription;
 
+    @Column(name = "image_url", length = 255)
+    private String imageUrl;
+
     @Column(name = "duration_slots", nullable = false)
     private Integer durationSlots;
 

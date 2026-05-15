@@ -10,15 +10,7 @@ const loading = ref(false)
 
 const activeItems = computed(() => items.value.filter(item => item.isActive !== false))
 
-const beautyImageMap = {
-  '精緻小美容': '/images/beauty/Little_beauty.jpg',
-  '精緻大美容': '/images/beauty/Total_Beauty.jpg',
-  '膠原蛋白酵素養護': '/images/beauty/collagen.jpg',
-  '頂級純氧牛奶SPA': '/images/beauty/top_milk.jpg',
-  '法國玫瑰活膚SPA': '/images/beauty/Rose.jpg',
-  '冰河淨膚排毛泥SPA': '/images/beauty/lint.jpg',
-  '泡泡雲朵去油調理霜SPA': '/images/beauty/bubble_clouds.jpg',
-}
+const IMG_BASE = 'http://localhost:8082'
 
 const beautyImagePositionMap = {
   '膠原蛋白酵素養護': 'center 30%',
@@ -26,7 +18,13 @@ const beautyImagePositionMap = {
 
 const formatMoney = value => `$${Number(value || 0).toLocaleString()}`
 
-const beautyImageUrl = item => beautyImageMap[item.itemName?.trim()] || '/images/beauty/dafault.jpg'
+const normalizeImageUrl = imageUrl => {
+  if (!imageUrl) return `${IMG_BASE}/images/beauty/default.jpg`
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl
+  return imageUrl.startsWith('/') ? `${IMG_BASE}${imageUrl}` : `${IMG_BASE}/${imageUrl}`
+}
+
+const beautyImageUrl = item => normalizeImageUrl(item.imageUrl)
 const beautyImagePosition = item => beautyImagePositionMap[item.itemName?.trim()] || 'center center'
 
 const priceText = item => {

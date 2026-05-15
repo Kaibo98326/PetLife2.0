@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 public record BeautyItemManageRequest(
         @NotBlank String itemName,
         String itemDescription,
+        String imageUrl,
         @NotNull @Min(1) Integer durationSlots,
         Boolean isActive,
         @Valid @NotEmpty List<BeautyPriceLineRequest> prices) {
