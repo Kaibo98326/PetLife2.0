@@ -70,6 +70,10 @@ public class ProductService {
     }
 
     public Product updateProduct(Product product) {
+        if (product == null || product.getProductId() == null) {
+            return null;
+        }
+
         Product existing = productRepository.findById(product.getProductId()).orElse(null);
         if (existing == null) return null;
 
@@ -93,23 +97,25 @@ public class ProductService {
         }
 
         // 2. 處理分類關聯
-        if (product.getCategoryIds() != null) {
+        // 修正：只有在明確傳入 categoryIds 時才更新，避免被預設的空 List 誤導清空
+        if (product.getCategoryIds() != null && !product.getCategoryIds().isEmpty()) {
             java.util.List<Integer> validIds = product.getCategoryIds().stream()
                     .filter(id -> id != null)
                     .collect(java.util.stream.Collectors.toList());
             if (!validIds.isEmpty()) {
                 List<com.petlife.model.Category> cats = categoryRepository.findAllById(validIds);
                 existing.setCategories(cats);
-            } else {
-                existing.setCategories(new java.util.ArrayList<>());
             }
         }
 
-        // 3. 處理多圖關聯 (如果傳入的圖片列表不為空，則進行合併或替換)
+        // 3. 處理多圖關聯
+        // 修正：僅添加「新」圖片 (id 為 null 的)，避免重複添加已存在的圖片導致 500 錯誤
         if (product.getImages() != null && !product.getImages().isEmpty()) {
             for (com.petlife.model.ProductImage img : product.getImages()) {
-                img.setProduct(existing);
-                existing.getImages().add(img);
+                if (img.getId() == null) {
+                    img.setProduct(existing);
+                    existing.getImages().add(img);
+                }
             }
         }
 
