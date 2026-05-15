@@ -119,28 +119,36 @@ public class CartController {
                 .filter(d -> !today.isBefore(d.getStartDate()) && !today.isAfter(d.getEndDate()))
                 .collect(Collectors.toList());
 
-        // 3. 呼叫折扣引擎執行計算
-     // --- 活動新增：改為接收新的 Response DTO 格式 ---
-        CartCalculateResponseDTO calcResponse = discountEngine.executeDiscount(cartItems, activeDiscounts);
-        BigDecimal discountAmount = calcResponse.getDiscountAmount();
-        
-        //原先的
-    //    BigDecimal discountAmount = discountEngine.executeDiscount(cartItems, activeDiscounts);
+        try {
+            // 3. 呼叫折扣引擎執行計算
+            // --- 活動新增開始：改為接收新的 Response DTO 格式 ---
+            CartCalculateResponseDTO calcResponse = discountEngine.executeDiscount(cartItems, activeDiscounts);
+            BigDecimal discountAmount = calcResponse.getDiscountAmount();
+            // --- 活動新增結束 ---
 
-        // 4. 計算應付總額 (Final Amount)
-        BigDecimal finalAmount = originalTotal.subtract(discountAmount);
-        if (finalAmount.compareTo(BigDecimal.ZERO) < 0) finalAmount = BigDecimal.ZERO;
+            // 4. 計算應付總額 (Final Amount)
+            BigDecimal finalAmount = originalTotal.subtract(discountAmount);
+            if (finalAmount.compareTo(BigDecimal.ZERO) < 0) finalAmount = BigDecimal.ZERO;
 
-        // 5. 回傳結果給前端
-        Map<String, Object> result = new HashMap<>();
-        result.put("originalTotal", originalTotal);
-        result.put("discountAmount", discountAmount);
-        result.put("finalAmount", finalAmount);
+            // 5. 回傳結果給前端
+            Map<String, Object> result = new HashMap<>();
+            result.put("originalTotal", originalTotal);
+            result.put("discountAmount", discountAmount);
+            result.put("finalAmount", finalAmount);
+            
+            // --- 活動新增開始：將明細清單與綁好標籤的商品回傳給 Vue ---
+            result.put("appliedDiscounts", calcResponse.getAppliedDiscounts());
+            result.put("cartItems", calcResponse.getCartItems());
+            // --- 活動新增結束 ---
 
-     // --- 活動新增：將明細清單與綁好標籤的商品回傳給 Vue ---
-        result.put("appliedDiscounts", calcResponse.getAppliedDiscounts());
-        result.put("cartItems", calcResponse.getCartItems());
-        // --- 活動新增結束 ---
-        return ResponseEntity.ok(result);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+            e.printStackTrace(pw);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("error", sw.toString());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
+        }
     }
 }

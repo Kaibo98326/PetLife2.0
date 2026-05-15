@@ -1,6 +1,7 @@
 package com.petlife.controller;
 
 import com.petlife.model.OrderDiscount;
+import com.petlife.repository.OrderDiscountSummaryDTO;
 import com.petlife.service.OrderDiscountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -41,5 +42,15 @@ public class OrderDiscountController {
     public ResponseEntity<List<OrderDiscount>> getDiscountsByDiscountId(@PathVariable Integer discountId) {
         List<OrderDiscount> discounts = orderDiscountService.getDiscountsByDiscountId(discountId);
         return ResponseEntity.ok(discounts);
+    }
+
+    /**
+     * 活動修改：查詢某筆訂單的折扣摘要（含活動名稱），供結帳成功頁顯示
+     * 不重新計算折扣，直接從 OrderDiscount 表讀取已儲存的折扣金額
+     */
+    @GetMapping("/order/{orderId}/summary")
+    public ResponseEntity<List<OrderDiscountSummaryDTO>> getDiscountSummaryByOrderId(@PathVariable Integer orderId) {
+        List<OrderDiscountSummaryDTO> summary = orderDiscountService.getDiscountSummaryByOrderId(orderId);
+        return ResponseEntity.ok(summary);
     }
 }

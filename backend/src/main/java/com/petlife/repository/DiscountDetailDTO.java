@@ -28,4 +28,3 @@ public class DiscountDetailDTO {
  public BigDecimal getAmount() { return amount; }
  public void setAmount(BigDecimal amount) { this.amount = amount; }
 }
-//--- 活動新增結束 ---

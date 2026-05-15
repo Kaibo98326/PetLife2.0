@@ -9,15 +9,12 @@ const userStore = useUserStore()
 const router = useRouter()
 const cartItems = ref([])
 
-//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
-// --- 活動新增開始 ---
+  //  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
 const discountAmount = ref(0)
 const finalAmount = ref(0)
-const backendOriginalTotal = ref(0) // 紀錄後端傳回的原價總計，確保對齊
-const appliedDiscounts = ref([])    // 存活動折抵明細清單
-const isDiscountExpanded = ref(false) // 控制明細收合狀態
-// --- 活動新增結束 ---
-
+const backendOriginalTotal = ref(0) 
+const appliedDiscounts = ref([])    
+const isDiscountExpanded = ref(false)
 
 // 取得購物車資料
 const fetchCart = async () => {
@@ -51,42 +48,48 @@ const calculateDiscount = async () => {
   if (cartItems.value.length === 0) {
     discountAmount.value = 0
     finalAmount.value = 0
-    // --- 活動新增 ---
-    appliedDiscounts.value = []
     return
   }
 
   //防呆：先把應付金額預設為原價，避免 API 失敗時變成 0
   finalAmount.value = totalAmount.value
 
+
   try {
+    // 將前端的 cartItems 轉成後端需要的 DTO 格式
+    // ⚠️ 注意：請確保你的 res.data 裡面有 productId 和 categoryId，如果沒有，後端分類折扣會算不出來！
     const requestData = {
       cartItems: cartItems.value.map(item => ({
-        itemId: item.itemId, // 新增：供後端回傳後對應
         productId: item.productId,
         categoryId: item.categoryId, 
         price: item.productPrice,
         quantity: item.quantity
       }))
     }
-
+console.log("傳給後端的購物車資料：", requestData);
     const res = await axios.post('/cart/calculate', requestData)
     
-    // --- 活動新增：更新資料 ---
-    discountAmount.value = res.data.discountAmount
-    finalAmount.value = res.data.finalAmount
-    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value
+   // 將後端算好的金額存進變數
+    discountAmount.value = res.data.discountAmount || 0
+    finalAmount.value = res.data.finalAmount || 0
+    //   5/14更新：同步後端傳回的原始總額與明細清單
+    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新  
     appliedDiscounts.value = res.data.appliedDiscounts || []
-
-    cartItems.value = cartItems.value.map(item => {
-      const match = res.data.cartItems.find(i => i.itemId === item.itemId)
-      return {
-        ...item,
-        appliedDiscountText: match?.appliedDiscountText || '', 
-        reminderText: match?.reminderText || ''               
-      }
-    })
-    // --- 活動新增結束 ---
+    
+    // 更新原本的 cartItems 的標籤 (對應 itemId)
+    if (res.data.cartItems) {
+      cartItems.value = cartItems.value.map(item => {
+        const found = res.data.cartItems.find(i => i.itemId === item.itemId)
+        if (found) {
+          return {
+            ...item,
+            appliedDiscountText: found.appliedDiscountText,
+            reminderText: found.reminderText
+          }
+        }
+        return item
+      })
+    }
   } catch (error) {
     console.error('計算折扣失敗:', error)
   }
@@ -179,27 +182,12 @@ onMounted(() => {
 
         <tbody>
           <tr v-for="item in cartItems" :key="item.itemId">
-            <!-- <td style="text-align: left">{{ item.productName }}</td>              原先的            
-            <td class="price-text">$ {{ item.productPrice }}</td> -->
-
-            
-                                                     <!--                    活動新增              -->
             <td style="text-align: left">
-              {{ item.productName }}
-              <div v-if="item.reminderText" class="cart-reminder-text">
-                <i class="fas fa-circle-exclamation"></i> {{ item.reminderText }}
-              </div>
+              <div>{{ item.productName }}</div>
+              <div v-if="item.reminderText" class="cart-reminder-text" v-html="item.reminderText"></div>
+              <div v-if="item.appliedDiscountText" class="cart-discount-badge">{{ item.appliedDiscountText }}</div>
             </td>
-            <td class="price-text">
-              $ {{ item.productPrice.toLocaleString() }}
-              <span v-if="item.appliedDiscountText" class="cart-discount-badge">
-                ({{ item.appliedDiscountText }})
-              </span>
-            </td>
-
-
-
-
+            <td class="price-text">$ {{ item.productPrice }}</td>
             <td>
               <button class="btn-qty" @click="changeQty(item, -1)">-</button>
               <span class="qty-display">{{ item.quantity }}</span>
@@ -238,44 +226,44 @@ onMounted(() => {
 
       <!-- 因應活動新增 -->
 
-<!-- // 總計區塊                                  -->
-   <div class="total-section-enhanced" v-if="cartItems.length > 0">
-        
-        <div class="cart-summary-line">
-          <span class="cart-summary-label">商品總計：</span>
-          <span class="cart-summary-value">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
-        </div>
-        
-        <div v-if="discountAmount > 0" class="cart-discount-row" @click="isDiscountExpanded = !isDiscountExpanded">
-          <span class="cart-discount-label">
-            {{ isDiscountExpanded ? '▲' : '▼' }} 活動折抵明細：
-          </span>
-          <span class="cart-discount-value">- $ {{ discountAmount.toLocaleString() }}</span>
-        </div>
 
-        <div v-if="isDiscountExpanded && discountAmount > 0" class="cart-detail-box">
-          <template v-if="appliedDiscounts && appliedDiscounts.length > 0">
-            <div v-for="(disc, idx) in appliedDiscounts" :key="idx" class="cart-detail-line">
-              <span class="cart-detail-name">{{ disc.detailText }}</span>
-              <span class="cart-detail-amount">- $ {{ disc.amount.toLocaleString() }}</span>
+      <div class="total-section-enhanced" v-if="cartItems.length > 0">
+        <div class="cart-summary-container">
+          <div class="cart-summary-line" style="font-size: 0.9em; color: #666;">
+            <span class="cart-summary-label">商品總計：</span>
+            <span>$ {{ totalAmount.toLocaleString() }}</span>
+          </div>
+          
+          <div v-if="discountAmount > 0" class="cart-discount-row" @click="isDiscountExpanded = !isDiscountExpanded">
+            <span class="cart-discount-label">
+              <i :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="cart-chevron-icon"></i>
+              活動折抵明細：
+            </span>
+            <span class="cart-discount-value">- $ {{ discountAmount.toLocaleString() }}</span>
+          </div>
+          
+          <div v-if="isDiscountExpanded && appliedDiscounts.length > 0" class="cart-detail-box">
+            <div v-for="(ad, index) in appliedDiscounts" :key="index" class="cart-detail-line">
+              <span class="cart-detail-name">{{ ad.detailText }}</span>
+              <span class="cart-detail-amount">- $ {{ ad.amount.toLocaleString() }}</span>
             </div>
-          </template>
-        </div>
-
-        <div class="cart-final-line">
-          <span class="cart-final-label">總計金額：</span>
-          <span class="cart-final-value">$ {{ finalAmount.toLocaleString() }}</span>
+          </div>
+          
+          <div class="cart-final-line" style="margin-top: 5px;">
+            <span class="cart-final-label">總計金額：</span>
+            <span class="cart-final-value">$ {{ finalAmount.toLocaleString() }}</span>
+          </div>
         </div>
       </div>
 
-      <div class="action-buttons">
-        <router-link to="/" class="btn-orange no-underline">
-          <i class="fa-solid fa-house me-1"></i>返回首頁
-        </router-link>
+<div class="action-buttons">
+  <router-link to="/" class="btn-orange no-underline">
+    <i class="fa-solid fa-house me-1"></i>返回首頁
+  </router-link>
 
-        <button v-if="cartItems.length > 0" class="btn-orange" @click="goToCheckout">
-          <i class="fa-solid fa-credit-card me-1"></i>前往結帳
-        </button>
+  <button v-if="cartItems.length > 0" class="btn-orange" @click="goToCheckout">
+    <i class="fa-solid fa-credit-card me-1"></i>前往結帳
+  </button>
 </div>
 
 
@@ -288,5 +276,4 @@ onMounted(() => {
 
 <style scoped>
 @import '../assets/css/CartView.css';
-
 </style>

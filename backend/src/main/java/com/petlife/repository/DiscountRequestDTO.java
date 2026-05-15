@@ -26,11 +26,24 @@ public class DiscountRequestDTO {
  // 補上這個新欄位來接收前端的「加購分類」
     private List<Integer> addonCategoryIds;
 
-    // 補上對應的 Getter 與 Setter (如果沒用 @Data 的話)
+ // ✨ 新增：接收前端傳來的「活動標籤 ID」
+    private Integer tagCategoryId;
+
     public List<Integer> getAddonCategoryIds() {
         return addonCategoryIds;
     }
     public void setAddonCategoryIds(List<Integer> addonCategoryIds) {
         this.addonCategoryIds = addonCategoryIds;
     }
+
+    // ✨ 新增：標籤的 Getter 與 Setter
+    public Integer getTagCategoryId() {
+        return tagCategoryId;
+    }
+    public void setTagCategoryId(Integer tagCategoryId) {
+        this.tagCategoryId = tagCategoryId;
+    }
+    
+    
+    
 }

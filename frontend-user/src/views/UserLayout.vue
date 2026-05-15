@@ -12,6 +12,35 @@ const router = useRouter()
 
 // ── 搜尋 ──────────────────────────────────────────────────────────────────
 const keyword = ref('')
+const hotKeywords = ref([])
+
+async function fetchHotKeywords() {
+  try {
+    const res = await axios.get('/shop/search/hot')
+    hotKeywords.value = res.data || []
+  } catch (e) {
+    console.error('取得熱門關鍵字失敗', e)
+  }
+}
+
+/** 點擊熱門關鍵字 */
+function clickHotKeyword(kw) {
+  keyword.value = kw
+  searchProducts()
+}
+
+// 監聽網址的 keyword，如果被清空(例如點擊分類)，就同步清空上方的搜尋框
+import { watch } from 'vue'
+import { useRoute } from 'vue-router'
+const route = useRoute()
+
+watch(
+  () => route.query.keyword,
+  (newVal) => {
+    keyword.value = newVal || ''
+  },
+  { immediate: true }
+)
 
 /** 搜尋後跳回首頁並帶 query，讓 HomeView 接收 */
 function searchProducts() {
@@ -49,10 +78,20 @@ const mainAreas = computed(() => {
   return categories.value.filter(c => c.categoryType === 2)
 })
 
-// 動態活動標籤 (Type 3)
-const activityTags = computed(() => {
-  return categories.value.filter(c => c.categoryType === 3)
+// ✨ 新增/修改：上方選單優惠活動下拉式徽章 (拆分父標題與子選項)
+const activityParent = computed(() => {
+  return categories.value.find(c => c.categoryType === 3 && c.categoryId === 3)
 })
+
+const activityChildren = computed(() => {
+  return categories.value.filter(c => c.categoryType === 3 && c.categoryId !== 3)
+})
+
+/** ✨ 新增：分類跳轉功能 (供下拉選單使用) */
+function selectCategory(categoryId) {
+  keyword.value = ''
+  router.push({ path: '/', query: { catId: categoryId } })
+}
 
 const handleLogout = () => {
   Swal.fire({
@@ -86,6 +125,7 @@ onMounted(async () => {
     await userStore.fetchUser()
   }
   await fetchCategories()
+  await fetchHotKeywords()
 })
 </script>
 
@@ -100,24 +140,36 @@ onMounted(async () => {
               <img :src="logo" alt="PetLife Logo" />
             </a>
           </div>
-
           <!-- 搜尋框 -->
-          <div class="col px-lg-5">
+          <div class="col position-relative">
             <form @submit.prevent="searchProducts" class="shop-search-form">
               <div class="input-group">
                 <input
                   v-model="keyword"
                   type="text"
                   class="form-control search-input"
-                  placeholder="搜尋毛孩好物..."
+                  placeholder="請輸入關鍵字"
                 />
                 <button type="submit" class="btn search-submit-btn">
                   <i class="fas fa-search text-muted"></i>
                 </button>
               </div>
             </form>
+            <!-- 熱門關鍵字 -->
+            <div class="hot-keywords-row d-none d-lg-flex">
+              <div class="hot-keyword-list">
+                <a
+                  v-for="item in hotKeywords"
+                  :key="item.id"
+                  href="#"
+                  class="hot-keyword-item"
+                  @click.prevent="clickHotKeyword(item.keyword)"
+                >
+                  {{ item.keyword }}
+                </a>
+              </div>
+            </div>
           </div>
-
           <!-- 頂端右側 -->
           <div class="col-auto">
             <nav class="shop-user-nav d-flex align-items-center">
@@ -127,23 +179,21 @@ onMounted(async () => {
                 class="nav-icon-item position-relative d-flex flex-column align-items-center text-decoration-none"
               >
                 <i class="fas fa-shopping-cart"></i>
-                <span style="font-size: 13px; color: #5a4a42;">購物車</span>
+                <span>購物車</span>
                 <span
                   v-if="userStore.cartCount > 0"
                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                   style="font-size: 0.7rem;"
                 >{{ userStore.cartCount }}</span>
               </router-link>
-
               <!-- 聊聊 -->
               <a
                 href="#"
                 class="nav-icon-item d-flex flex-column align-items-center text-decoration-none"
               >
-                <i class="far fa-comment-dots" style="font-size: 1.2rem; color: #666;"></i>
-                <span style="font-size: 13px; color: #5a4a42;">聊聊</span>
+                <i class="far fa-comment-dots"></i>
+                <span>聊聊</span>
               </a>
-
               <!-- 登入判斷 -->
               <div class="user-action-zone">
                 <!-- 已登入 -->
@@ -157,11 +207,11 @@ onMounted(async () => {
                   </div>
                   <a
                     href="#"
-                    class="nav-icon-item d-flex flex-column align-items-center text-decoration-none text-danger"
+                    class="nav-icon-item logout-btn d-flex flex-column align-items-center text-decoration-none"
                     @click.prevent="handleLogout"
                   >
-                    <i class="fas fa-sign-out-alt" style="font-size: 1.2rem;"></i>
-                    <span style="font-size: 13px;">登出</span>
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>登出</span>
                   </a>
                 </div>
                 <!-- 尚未登入 -->
@@ -170,15 +220,14 @@ onMounted(async () => {
                     to="/login"
                     class="nav-icon-item d-flex flex-column align-items-center text-decoration-none"
                   >
-                    <i class="far fa-user-circle" style="font-size: 1.2rem; color: #666;"></i>
-                    <span style="font-size: 13px; color: #5a4a42;">登入 / 註冊</span>
+                    <i class="far fa-user-circle"></i>
+                    <span>登入 / 註冊</span>
                   </router-link>
                 </div>
               </div>
             </nav>
           </div>
         </div>
-
         <!-- 上層分類目錄 -->
         <nav class="header-nav mt-3">
           <div class="container-fluid px-lg-5">
@@ -189,14 +238,21 @@ onMounted(async () => {
                   {{ area.categoryName }}
                 </router-link>
               </li>
-
-              <!-- 動態活動標籤 (Type 3) -->
-              <li v-for="tag in activityTags" :key="tag.categoryId">
-                <router-link :to="{ path: '/', query: { catId: tag.categoryId } }" class="nav-menu-link">
-                  {{ tag.categoryName }}
-                </router-link>
+              <li v-if="activityParent" class="nav-item dropdown activity-nav-dropdown">
+                <div 
+                  class="nav-menu-link activity-hover-toggle"
+                >
+                  {{ activityParent.categoryName }} <i class="fas fa-caret-down ms-2"></i>
+                </div>
+                <ul class="dropdown-menu shadow border-0 dropdown-menu-hover">
+                  <!-- 動態活動標籤 (Type 3) -->
+                  <li v-for="tag in activityChildren" :key="tag.categoryId">
+                    <a class="dropdown-item py-2 text-dark" href="#" @click.prevent="selectCategory(tag.categoryId)">
+                      {{ tag.categoryName }}
+                    </a>
+                  </li>
+                </ul>
               </li>
-
               <!-- 靜態連結 (確保固定在最後面) -->
               <li><router-link to="/beauty-booking" class="nav-menu-link">🛁 寵物美容</router-link></li>
               <li><router-link to="/hotel" class="nav-menu-link">🏠 寵物旅館</router-link></li>
@@ -205,11 +261,7 @@ onMounted(async () => {
         </nav>
       </div>
     </header>
-
-    <!-- ========== 主內容區（子路由渲染） ========== -->
     <router-view />
-
-    <!-- ========== Footer ========== -->
     <footer class="container-fluid text-center py-4 border-top mt-5">
       <p class="mb-0">© 2026 PetLife 寵物複合式商店</p>
     </footer>
@@ -219,4 +271,6 @@ onMounted(async () => {
 <style>
 /* 引入商城主樣式 — 不加 scoped，讓 ShopPanel.css 的全域樣式生效 */
 @import '@/assets/css/ShopPanel.css';
+
+
 </style>

@@ -53,7 +53,20 @@
   <div v-else-if="loading" class="text-center py-5">
     <div class="spinner-border text-primary"></div>
     <p>載入中...</p>
+<!--                                           因應活動新增 -->
+<Transition name="zoom">
+      <div v-if="selectedOrderId" class="glass-overlay" @click.self="selectedOrderId = null">
+        <div class="glass-modal large">
+          </div>
+      </div>
+    </Transition>
+
+    <OrderDiscountModal ref="discountModalRef" />
+
   </div>
+<!--                                            因應活動新增 -->
+
+  <!-- </div>      原先的 -->
 </template>
 
 <script setup>

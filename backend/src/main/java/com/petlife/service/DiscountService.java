@@ -48,11 +48,13 @@ public class DiscountService {
     }
 
     //：加入 addonCategoryIds 參數，並區分 Main 與 Addon
+ // ✨ 修改：加入 tagCategoryId 參數，用來接收前端選取的標籤 ID
     public void saveDiscountWithDetails(Discount discount, 
                                         List<Integer> categoryIds, 
                                         List<Integer> mainProductIds, 
                                         List<Integer> addonProductIds,
-                                        List<Integer> addonCategoryIds) { // 接收前端傳來的新參數
+                                        List<Integer> addonCategoryIds,
+                                        Integer tagCategoryId) { // ✨ 新增：接收前端傳來的標籤 ID
         
         Discount savedDiscount = discountRepository.save(discount);
 
@@ -103,6 +105,19 @@ public class DiscountService {
                     }
                 }
             }
+        }
+
+        // ✨ 新增：處理活動標籤 (Tag) - 因為不管 scopeType 是 1 還是 2，都有可能掛載標籤，所以寫在 if-else 外面
+        if (tagCategoryId != null) {
+            Category tagCategory = categoryRepository.findById(tagCategoryId).orElse(null);
+            if (tagCategory != null) {
+                // 將這個分類的角色設定為 "Tag"
+                DiscountCategory dc = new DiscountCategory(savedDiscount, tagCategory, "Tag");
+                discountCategoryRepository.save(dc);
+            }
+        
+    
+
         }
     }
    //刪除

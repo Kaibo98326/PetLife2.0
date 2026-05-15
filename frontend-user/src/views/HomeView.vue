@@ -41,6 +41,8 @@ const totalPages = ref(1) // 總頁數
 const totalElements = ref(0) // 商品總數
 const loading = ref(false) // 載入狀態
 const errorMsg = ref('') // 錯誤訊息
+const viewHistory = ref([]) // 瀏覽紀錄
+const top10Products = ref([]) // TOP10 熱銷商品
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
 const sortBy = ref('newest') // 預設：最新上架
@@ -68,40 +70,43 @@ const showCarousel = computed(() => {
   return selectedCategoryId.value === null && !searchKeyword.value && route.query.view !== 'all'
 })
 
-/** TOP10 熱銷排行 */
-const top10Products = computed(() => {
-  return [...products.value].slice(0, 10)
-})
+/** TOP10 熱銷排行 (改用 API 取得) */
+// const top10Products = computed(() => {
+//   return [...products.value].slice(0, 10)
+// })
 
 /** 麵包屑導覽路徑 */
 const breadcrumbs = computed(() => {
-  const crumbs = [{ label: '', id: null }]
+  const crumbs = [{ label: '首頁', id: null }] // 起點為首頁
 
+  // 1. 處理搜尋邏輯
   if (searchKeyword.value) {
     crumbs.push({ label: `搜尋關鍵字：「${searchKeyword.value}」`, id: 'search' })
     return crumbs
   }
 
+  // 2. 處理分類邏輯
   if (selectedCategoryId.value) {
     const current = categories.value.find((c) => c.categoryId === selectedCategoryId.value)
     if (current) {
-      // 如果有父分類 (大專區)，先放進去
-      if (current.parentId) {
-        const parent = categories.value.find((c) => c.categoryId === current.parentId)
-        if (parent) {
-          crumbs.push({ label: parent.categoryName, id: parent.categoryId })
-        }
+      // 補回：Type 3 自動插入父層容器「🔥優惠活動」
+      if (current.categoryType === 3 && current.categoryId !== 3) {
+        const container = categories.value.find(c => c.categoryId === 3)
+        crumbs.push({ label: container ? container.categoryName : '🔥優惠活動', id: 3 })
       }
+      // ✨【修正】這裡原本多了一個 } 導致函數提早結束，現在已刪除多餘括號
       crumbs.push({ label: current.categoryName, id: current.categoryId })
     }
     return crumbs
   }
 
+  // 3. 處理「全部商品」邏輯
+  // ✨【修正】現在此段落已正確包含在 computed 函式的 { } 範圍內
   if (route.query.view === 'all') {
     crumbs.push({ label: '全部商品', id: 'all' })
   }
 
-  return crumbs
+  return crumbs // 最終統一回傳
 })
 
 /** 頁面標題文字 */
@@ -153,10 +158,13 @@ const categoryTree = computed(() => {
   })
 
   // 3. 處理「活動標籤」(Type 3) - 獨立成一個區塊
-  const activityTags = all.filter((c) => c.categoryType === 3)
+  // ✨ 新增/修改：活動特報標籤與功能修復 - 修復 categoryTree 邏輯
+  const systemContainer = all.find(c => c.categoryId === 3) || { categoryName: '🔥優惠活動', categoryId: 3 }
+  const activityTags = all.filter((c) => c.categoryType === 3 && c.categoryId !== 3)
 
   return {
     shopTree: tree,
+    systemContainer: systemContainer,
     activityTags: activityTags,
   }
 })
@@ -193,8 +201,32 @@ async function fetchProducts(page = 1) {
   }
 }
 
+// ── 取得 TOP10 熱銷排行 ──────────────────────────────────────────────────
+async function fetchTop10() {
+  try {
+    const res = await axios.get('/shop/products/top10')
+    top10Products.value = res.data || []
+  } catch (e) {
+    console.error('取得 TOP10 失敗', e)
+  }
+}
+
+// ── 取得瀏覽紀錄 ──────────────────────────────────────────────────────────
+async function fetchHistory() {
+  if (!userStore.token || !userStore.memberId) return
+  try {
+    const res = await axios.get(`/history/${userStore.memberId}`)
+    viewHistory.value = res.data || []
+  } catch (e) {
+    console.error('取得歷史紀錄失敗', e)
+  }
+}
+
 // ── 分類篩選 ──────────────────────────────────────────────────────────────
 function selectCategory(categoryId) {
+  // ✨ 新增/修改：活動特報標籤與功能修復 - 禁用核心容器(ID: 3)的跳轉功能
+  if (categoryId === 3) return;
+
   if (categoryId === null) {
     // 點擊「全部商品」
     router.push({ path: '/', query: { view: 'all' } })
@@ -327,6 +359,10 @@ onMounted(async () => {
   }
 
   await fetchProducts(1)
+  fetchTop10() // 【新增】取得真實熱銷排行
+
+  // ✨ 將這行註解掉，暫時不向後端請求歷史紀錄 API 我沒辦法跑商品
+  fetchHistory()
 
   const carouselElement = document.getElementById('shopCarousel')
 
@@ -342,12 +378,10 @@ onMounted(async () => {
 <template>
   <div class="shop-content container-fluid py-4 px-lg-5">
     <div class="row g-3">
-      <!-- ========== 左側欄：選單 + 未來歷史紀錄 ========== -->
       <aside class="col-lg-2">
         <div class="sticky-sidebar">
           <div class="category-sidebar">
             <nav class="sidebar-nav">
-              <!-- 全部商品 -->
               <a
                 href="#"
                 class="nav-item all-products-link"
@@ -357,7 +391,6 @@ onMounted(async () => {
                 全部商品
               </a>
 
-              <!-- 商城分類結構 (大專區 + 實體分類) -->
               <div v-for="area in categoryTree.shopTree" :key="area.categoryId" class="nav-group">
                 <div
                   class="group-title"
@@ -380,36 +413,51 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- 活動專區 -->
               <div v-if="categoryTree.activityTags.length > 0" class="nav-group mt-4">
-                <div class="group-title text-danger">
-                  <i class="fas fa-bullhorn me-2"></i>活動特報 (功能尚未完成)
-                </div>
-                <div class="group-content">
-                  <a v-for="tag in categoryTree.activityTags" 
-                     :key="tag.categoryId" 
-                     href="#" 
-                     class="sub-item activity-item"
-                     :class="{ 'active': selectedCategoryId === tag.categoryId }"
-                     @click.prevent="selectCategory(tag.categoryId)"
-                  >
-                    <i class="fas fa-tag me-2"></i>{{ tag.categoryName }}
+  <div class="activity-badge-header">
+    {{ categoryTree.systemContainer.categoryName }} <i class="fas fa-caret-down ms-2"></i>
+  </div>
+  
+  <div class="group-content">
+    <a v-for="tag in categoryTree.activityTags" 
+       :key="tag.categoryId" 
+       href="#" 
+       class="sub-item activity-item"
+       :class="{ 'active': selectedCategoryId === tag.categoryId }"
+       @click.prevent="selectCategory(tag.categoryId)"
+    >
+      <i class="fas fa-tag me-2"></i>{{ tag.categoryName }}
                   </a>
                 </div>
               </div>
             </nav>
           </div>
 
-          <!-- 這裡留給您未來放置「歷史紀錄」 -->
-          <div class="history-placeholder mt-4">
-            <!-- 未來放置歷史紀錄組件 -->
+          <div v-if="userStore.token && viewHistory.length > 0" class="recent-history-section mt-5">
+            <h6 class="history-title mb-3">
+              最近看過 ...
+            </h6>
+            <div class="history-list">
+              <router-link 
+                v-for="h in viewHistory.slice(0, 10)" 
+                :key="h.productId" 
+                :to="`/product/${h.productId}`"
+                class="history-item d-flex align-items-center text-decoration-none mb-3"
+              >
+                <div class="history-img-box me-2">
+                  <img :src="getImageUrl(h.productImage)" :alt="h.productName" />
+                </div>
+                <div class="history-info">
+                  <p class="history-name mb-0">{{ h.productName }}</p>
+                  <p class="history-price mb-0">$ {{ Number(h.productPrice).toLocaleString() }}</p>
+                </div>
+              </router-link>
+            </div>
           </div>
         </div>
       </aside>
 
-      <!-- ========== 右側主內容區 ========== -->
       <main class="col-lg-10">
-        <!-- 麵包屑 -->
         <nav v-if="!showCarousel" aria-label="breadcrumb" class="mb-3">
           <ol class="breadcrumb">
             <li
@@ -433,7 +481,6 @@ onMounted(async () => {
           </ol>
         </nav>
 
-        <!-- 廣告輪播 -->
         <div
           v-if="showCarousel"
           id="shopCarousel"
@@ -480,48 +527,21 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- TOP10 熱銷排行 -->
         <section
           v-if="!loading && top10Products.length > 0 && showCarousel"
-          class="top10-section mb-4"
+          class="top10-section mb-5"
         >
-          <h4 class="section-title"><i class="fas fa-fire text-danger me-2"></i>TOP10 熱銷排行</h4>
-          <div class="top10-scroll-wrapper">
-            <div class="top10-track">
-              <div v-for="(p, idx) in top10Products" :key="'a-' + p.productId" class="top10-card">
-                <div class="rank-badge"><i class="fas fa-fire"></i></div>
+          <h4 class="section-title mb-4">
+            <i class="fas fa-crown text-warning me-2"></i>TOP 5 熱門精選
+          </h4>
+          <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-3">
+            <div v-for="(p, idx) in top10Products.slice(0, 5)" :key="p.productId" class="col">
+              <div class="top10-card h-100 shadow-sm border-0">
+                <div class="rank-badge-static">TOP {{ idx + 1 }}</div>
                 <router-link
                   :to="`/product/${p.productId}`"
                   class="text-decoration-none"
                   style="color: inherit"
-                >
-                  <div class="top10-img">
-                    <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
-                  </div>
-                  <div class="top10-info">
-                    <p class="top10-name">{{ p.productName }}</p>
-                  </div>
-                </router-link>
-                <div class="top10-footer">
-                  <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
-                  <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                    <i class="fas fa-shopping-basket"></i>
-                  </button>
-                </div>
-              </div>
-              <!-- 複製一組無縫滾動 -->
-              <div
-                v-for="(p, idx) in top10Products"
-                :key="'b-' + p.productId"
-                class="top10-card"
-                aria-hidden="true"
-              >
-                <div class="rank-badge"><i class="fas fa-fire"></i></div>
-                <router-link
-                  :to="`/product/${p.productId}`"
-                  class="text-decoration-none"
-                  style="color: inherit"
-                  tabindex="-1"
                 >
                   <div class="top10-img">
                     <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
@@ -541,7 +561,6 @@ onMounted(async () => {
           </div>
         </section>
 
-        <!-- 商品列表 -->
         <section class="product-section">
           <div class="section-header d-flex justify-content-between align-items-center mb-2">
             <h4 class="section-title mb-0">
@@ -549,7 +568,6 @@ onMounted(async () => {
             </h4>
           </div>
 
-          <!-- 排序工具列 -->
           <div class="sort-toolbar">
             <div class="sort-left">
               <button
@@ -609,7 +627,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- 商品卡片列表 -->
           <div v-if="loading" class="text-center py-5">
             <div class="spinner-border text-warning" role="status"></div>
           </div>
@@ -625,12 +642,10 @@ onMounted(async () => {
                 : 'row-cols-1 list-mode'
             "
           >
-            <!-- 使用 products.value 渲染，因為後端已經排好序了 -->
             <div v-for="p in products" :key="p.productId" class="col">
               <article class="product-card shadow-sm">
                 <div class="product-category-badge">{{ p.categoryName || '寵物好物' }}</div>
 
-                <!-- 主要連結：包含圖片與名稱 -->
                 <router-link
                   :to="`/product/${p.productId}`"
                   class="product-main-area text-decoration-none"
@@ -644,7 +659,6 @@ onMounted(async () => {
                   </div>
                 </router-link>
 
-                <!-- 側邊或下方區域：包含價格與按鈕 -->
                 <div class="product-info product-action-area pt-0">
                   <div class="product-footer">
                     <span class="product-price"
@@ -659,7 +673,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- 分頁 -->
           <nav v-if="totalPages > 1" class="mt-5 d-flex justify-content-center">
             <ul class="pagination pagination-shop">
               <li class="page-item" :class="{ disabled: currentPage <= 1 }">
@@ -687,3 +700,32 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ✨ 新增/修改：優惠活動紅色勳章標題與禁用點擊邏輯 */
+.activity-badge-header {
+  background-color: #dc3545; /* 實心紅色 */
+  color: #ffffff !important; /* 白色文字 */
+  padding: 8px 15px; /* 勳章內距 */
+  border-radius: 8px; /* 圓角矩形 */
+  font-weight: bold; /* 粗體字 */
+  font-size: 1rem;
+  display: flex; /* 使用 flex 讓文字與圖示對齊 */
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  cursor: default; /* 禁用手型游標，提示不可點擊 */
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+  border: none;
+}
+
+/* 確保活動項目連結樣式整齊，呈現垂直列表外觀 */
+.activity-item {
+  border-left: 2px solid #dc3545;
+  margin-left: 5px;
+  padding-left: 15px !important;
+  display: block; /* 確保垂直排列 */
+}
+/* ✨ 新增/修改結束 */
+</style>

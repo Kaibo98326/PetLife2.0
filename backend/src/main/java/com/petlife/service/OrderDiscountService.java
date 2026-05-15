@@ -2,6 +2,7 @@ package com.petlife.service;
 
 import com.petlife.model.OrderDiscount;
 import com.petlife.repository.OrderDiscountRepository;
+import com.petlife.repository.OrderDiscountSummaryDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +31,13 @@ public class OrderDiscountService {
         return orderDiscountRepository.findByOrderId(orderId);
     }
     
- // 透過活動 ID 查詢該活動被哪些訂單使用 (給後台明細按鈕用)
+    // 透過活動 ID 查詢該活動被哪些訂單使用 (給後台明細按鈕用)
     public List<OrderDiscount> getDiscountsByDiscountId(Integer discountId) {
         return orderDiscountRepository.findByDiscountId(discountId);
+    }
+
+    // 活動修改：回傳含活動名稱的摘要，供結帳成功頁顯示折抵明細（不需重新計算）
+    public List<OrderDiscountSummaryDTO> getDiscountSummaryByOrderId(Integer orderId) {
+        return orderDiscountRepository.findSummaryByOrderId(orderId);
     }
 }

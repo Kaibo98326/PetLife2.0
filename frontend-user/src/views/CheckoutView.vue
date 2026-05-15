@@ -8,20 +8,20 @@ const userStore = useUserStore()
 const cartItems = ref([])
 const isProcessing = ref(false)
 
-//  因應活動新增  用來裝後端算好的折扣與最終金額              // --- 活動新增開始 ---
+//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
 const discountAmount = ref(0)
 const finalAmount = ref(0)
-const backendOriginalTotal = ref(0)
 const appliedDiscounts = ref([])
 const isDiscountExpanded = ref(false)
-// --- 活動新增結束 ---
+// 5/14更新：新增接收後端原始總額與明細清單的變數
+const backendOriginalTotal = ref(0) //   5/14更新
  
 //活動折扣邏輯                                              --->活動新增
 const calculateDiscount = async () => {
   try {
     const requestData = {
       cartItems: cartItems.value.map(item => ({
-        itemId: item.itemId, // --- 活動新增：補上 itemId 
+       itemId: item.itemId, //   5/14更新：補上 itemId 供後端對應
         productId: item.productId,
         categoryId: item.categoryId, 
         price: item.productPrice,
@@ -29,12 +29,11 @@ const calculateDiscount = async () => {
       }))
     }
     const res = await axios.post('/cart/calculate', requestData)
-    discountAmount.value = res.data.discountAmount
-    finalAmount.value = res.data.finalAmount
-    // --- 活動新增開始 ---
-    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value
+    discountAmount.value = res.data.discountAmount || 0
+    finalAmount.value = res.data.finalAmount || 0
+    //   5/14更新：同步後端傳回的原始總額與明細
+    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新
     appliedDiscounts.value = res.data.appliedDiscounts || []
-    // --- 活動新增結束 ---
   } catch (error) {
     console.error('結帳折扣計算失敗', error)
   }
@@ -128,7 +127,7 @@ const submitOrder = async () => {
     }
 
     console.log('準備送出的 cartId:', userStore.cartId)
-    const res = await axios.post('/orders/checkout', orderData, {
+   const res = await axios.post('/orders/checkout', orderData, {
       params: { cartId: userStore.cartId },
     })
 
@@ -137,16 +136,26 @@ const submitOrder = async () => {
       console.log('訂單 ID 已存入 sessionStorage:', res.data.order.orderId)
     }
 
+    // 2026-05-14 17:44 修改：優化綠界跳轉邏輯，強制設定 target 為 _self 解決「開新分頁」問題，並確保指令唯一
     if (res.data.form) {
       const div = document.createElement('div')
+      // 使用 innerHTML 插入時，HTML 內的 <script> 不會自動執行，這能精確控制由我們手動觸發一次提交
       div.innerHTML = res.data.form
       document.body.appendChild(div)
       const form = div.querySelector('form')
-      if (form) form.submit()
+      if (form) {
+        // 強制指定在當前視窗跳轉，避免瀏覽器因非同步延遲將其判定為彈出視窗
+        form.setAttribute('target', '_self')
+        form.submit()
+      }
     } else {
       const backupForm = document.getElementById('ecpayForm')
-      if (backupForm) backupForm.submit()
+      if (backupForm) {
+        backupForm.setAttribute('target', '_self')
+        backupForm.submit()
+      }
     }
+    // 2026-05-14 17:44 結束修改
   } catch (error) {
     console.error('下單失敗詳細資訊:', error.response?.data)
     Swal.fire('錯誤', '訂單處理失敗，請檢查後端 Console', 'error')
@@ -254,32 +263,35 @@ onMounted(async () => {
         </div>
       </div> -->
                                                 <!--                       活動新增                                  -->
-   <div class="checkout-footer">
-        <div class="checkout-total-wrapper">
+      <div class="checkout-footer">
+        <div class="total-amount-box" style="display: flex; flex-direction: column; align-items: flex-end;">
           
-          <div class="checkout-summary-line">
-            <span class="checkout-label">商品總額：</span>
-            <span class="checkout-amount">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
+          <div class="checkout-summary-row">
+            <span class="checkout-row-label">商品總額：</span>
+           
+  <span class="checkout-row-amount">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
           </div>
 
-          <div v-if="discountAmount > 0" class="checkout-discount-row" @click="isDiscountExpanded = !isDiscountExpanded">
-            <span class="checkout-discount-label">
-              {{ isDiscountExpanded ? '▲' : '▼' }} 活動折抵明細：
+          <div v-if="discountAmount > 0" class="checkout-summary-row checkout-discount-clickable" @click="isDiscountExpanded = !isDiscountExpanded">
+            <span class="checkout-row-label checkout-discount-label">
+              <i :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="checkout-chevron-icon"></i>
+              活動折抵明細：
             </span>
-            <span class="checkout-discount-amount">- $ {{ discountAmount.toLocaleString() }}</span>
+            <span class="checkout-row-amount checkout-discount-amount">- $ {{ discountAmount.toLocaleString() }}</span>
           </div>
 
-          <div v-if="isDiscountExpanded && discountAmount > 0" class="checkout-detail-box">
-            <div v-for="(disc, idx) in appliedDiscounts" :key="idx" class="checkout-detail-line">
-              <span>{{ disc.name }} - $ {{ disc.amount.toLocaleString() }}</span>
+          <div v-if="isDiscountExpanded && appliedDiscounts.length > 0" class="checkout-detail-box">
+            <div v-for="(ad, index) in appliedDiscounts" :key="index" class="checkout-detail-line">
+              <span class="checkout-detail-name">　　{{ ad.name }}</span>
+              <span class="checkout-detail-amount">- $ {{ ad.amount.toLocaleString() }}</span>
             </div>
           </div>
 
-          <div class="checkout-final-line">
-            <span class="checkout-label">應付總額：</span>
-            <span class="checkout-final-amount">$ {{ finalAmount.toLocaleString() }}</span>
+          <div class="checkout-summary-row checkout-final-row">
+            <span class="checkout-row-label checkout-final-label">應付總額：</span>
+            <span class="checkout-row-amount checkout-final-amount">$ {{ finalAmount.toLocaleString() }}</span>
           </div>
-          
+
         </div>
 
         <div class="button-group">
