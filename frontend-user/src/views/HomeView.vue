@@ -7,7 +7,6 @@ import { useUserStore } from '@/stores/user'
 import '@/assets/css/ShopPanel.css'
 import { Carousel } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
-
 // ── 使用者 Store（登入判斷、購物車） ──────────────────────────────────────
 const userStore = useUserStore()
 const route = useRoute()
@@ -43,6 +42,7 @@ const loading = ref(false) // 載入狀態
 const errorMsg = ref('') // 錯誤訊息
 const viewHistory = ref([]) // 瀏覽紀錄
 const top10Products = ref([]) // TOP10 熱銷商品
+const favoriteProducts = ref([]) // 收藏商品
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
 const sortBy = ref('newest') // 預設：最新上架
@@ -309,6 +309,73 @@ async function addToCart(product) {
   }
 }
 
+// -- 收藏小愛心 --
+async function toggleHeart(product) {
+  if (!userStore.token || !userStore.memberId) {
+    await Swal.fire({
+      icon: 'warning',
+      title: '請先登入',
+      text: '登入後才能收藏您心儀的毛孩好物喔！',
+      confirmButtonText: '前往登入',
+      confirmButtonColor: '#e67e22',
+    })
+    router.push('/login')
+    return
+  }
+
+  const pId = Number(product.productId)
+
+  try {
+    const res = await axios.post('/heart/toggle', null, {
+      params: {
+        memberId: userStore.memberId,
+        productId: pId,
+      },
+    })
+
+    if (res.data.includes('加入') || res.data.includes('收藏成功')) {
+      if (!favoriteProducts.value.includes(pId)) {
+        favoriteProducts.value.push(pId)
+      }
+    } else {
+      favoriteProducts.value = favoriteProducts.value.filter((id) => id !== pId)
+    }
+
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: res.data,
+      showConfirmButton: false,
+      timer: 1500,
+    })
+  } catch (e) {
+    console.error('收藏操作失敗', e)
+    Swal.fire({
+      icon: 'error',
+      title: '操作失敗',
+      text: '請稍後再試',
+    })
+  }
+}
+/* 抓取目前會員已收藏的所有商品 ID */
+async function fetchFavoriteIds() {
+  if (!userStore.memberId) return
+  try {
+    const res = await axios.get('/heart/list', {
+      params: {
+        memberId: userStore.memberId,
+      },
+    })
+    console.log('✅ 成功抓取收藏資料:', res.data)
+    if (Array.isArray(res.data)) {
+      favoriteProducts.value = res.data.map((item) => Number(item.productId))
+    }
+  } catch (e) {
+    console.error('❌ 抓取失敗，請確認參數格式:', e)
+  }
+}
+
 // ── 監聽 URL query 變化（Header 搜尋 / 分類連結點擊） ─────────────────────
 watch(
   () => route.query,
@@ -345,8 +412,16 @@ onMounted(async () => {
   if (route.query.catId) {
     selectedCategoryId.value = parseInt(route.query.catId)
   }
+  // 更新購物車數量
   if (userStore.token && userStore.memberId) {
     userStore.updateCartCount()
+  }
+  // 同步愛心狀態
+  if (userStore.token && userStore.memberId) {
+    console.log('✅ 偵測到會員登入，開始同步私有資料...')
+    await Promise.all([userStore.updateCartCount(), fetchFavoriteIds()])
+  } else {
+    console.log('ℹ️ 當前為訪客模式')
   }
 
   await fetchProducts(1)
@@ -427,13 +502,11 @@ onMounted(async () => {
 
           <!-- 這裡留給您未來放置「歷史紀錄」 -->
           <div v-if="userStore.token && viewHistory.length > 0" class="recent-history-section mt-5">
-            <h6 class="history-title mb-3">
-              最近看過 ...
-            </h6>
+            <h6 class="history-title mb-3">最近看過 ...</h6>
             <div class="history-list">
-              <router-link 
-                v-for="h in viewHistory.slice(0, 10)" 
-                :key="h.productId" 
+              <router-link
+                v-for="h in viewHistory.slice(0, 10)"
+                :key="h.productId"
                 :to="`/product/${h.productId}`"
                 class="history-item d-flex align-items-center text-decoration-none mb-3"
               >
@@ -549,9 +622,18 @@ onMounted(async () => {
                 </router-link>
                 <div class="top10-footer">
                   <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
-                  <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                    <i class="fas fa-shopping-basket"></i>
-                  </button>
+                  <div class="action-btns">
+                    <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                      <i
+                        :class="
+                          favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'
+                        "
+                      ></i>
+                    </button>
+                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                      <i class="fas fa-shopping-basket"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -667,9 +749,20 @@ onMounted(async () => {
                     <span class="product-price"
                       >$ {{ Number(p.productPrice).toLocaleString() }}</span
                     >
-                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                      <i class="fas fa-shopping-basket"></i>
-                    </button>
+                    <div class="action-btns">
+                      <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                        <i
+                          :class="
+                            favoriteProducts.some((id) => Number(id) === Number(p.productId))
+                              ? 'fas fa-heart'
+                              : 'far fa-heart'
+                          "
+                        ></i>
+                      </button>
+                      <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                        <i class="fas fa-shopping-basket"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>

@@ -52,13 +52,32 @@ public class OrderService {
 		// 計算購物車總金額
 		BigDecimal totalAmount = or.getCartTotal(order.getMemberId());
 		order.setOrderTotal(totalAmount);
-
 		// 儲存訂單，取得orderId
 		Order savedOrder = or.save(order);
 		Integer orderId = savedOrder.getOrderId();
 
-		// 轉移購物車商品到訂單明細
-		odr.transferCartToOrderDetails(orderId, order.getMemberId());
+		// 先抓出該會員購物車裡的所有項目
+		var cartItems = cir.findByCartId(cartId); // 或者是你對應抓購物車項目的方法
+
+		if (cartItems.isEmpty()) {
+			throw new RuntimeException("購物車是空的，無法結帳！");
+		}
+
+		List<OrderDetail> details = new ArrayList<>();
+		for (var item : cartItems) {
+			OrderDetail od = new OrderDetail();
+			od.setOrderBean(savedOrder); // 💡 重要：連結主檔
+			od.setProductId(item.getProduct().getProductId()); // 根據你 CartItem 的結構
+			od.setProductName(item.getProduct().getProductName());
+			od.setProductPrice(item.getProduct().getProductPrice());
+			od.setQuantity(item.getQuantity());
+			od.setSubtotal(item.getSubtotal());
+			details.add(od);
+		}
+
+		// 儲存明細到資料庫
+		odr.saveAll(details);
+		System.out.println("✅ 已成功存入 " + details.size() + " 筆明細");
 
 		// 清空購物車項目
 		cir.deleteByCartId(cartId);
@@ -108,7 +127,7 @@ public class OrderService {
 //		params.put("OrderResultURL", "http://localhost:5173/checkoutsuccess");// 結帳完導回的頁面
 		params.put("ClientBackURL", "http://localhost:5173/checkoutsuccess");
 		params.put("NeedExtraPaidInfo", "N");
-		
+
 		// 計算加密簽章CheckMacValue
 		String checkMacValue = calculateCheckMacValue(params);
 		params.put("CheckMacValue", checkMacValue);
@@ -152,7 +171,7 @@ public class OrderService {
 			throw new RuntimeException("加密失敗：" + ex.getMessage());
 		}
 	}
-	
+
 	// 處理綠界回傳的通知，自動化同步訂單狀態
 	@Transactional
 	public void updateOrderPaymentStatus(String merchantTradeNo) {
@@ -171,57 +190,58 @@ public class OrderService {
 			System.out.println("找不到對應的金流紀錄：" + merchantTradeNo);
 		}
 	}
-	
+
 	// 結帳成功要抓資料用的
 	public Map<String, Object> getOrderDetailWithItems(Integer orderId) {
-	    Order order = or.findById(orderId).orElse(null);
-	    if (order == null) return null;
+		Order order = or.findById(orderId).orElse(null);
+		if (order == null)
+			return null;
 
-	    Map<String, Object> result = new HashMap<>();
-	    result.put("orderId", order.getOrderId());
-	    result.put("orderDate", order.getOrderDate());
-	    result.put("orderAddress", order.getOrderAddress());
-	    result.put("orderName", order.getOrderName()); 
-	    result.put("orderTotal", order.getOrderTotal());
+		Map<String, Object> result = new HashMap<>();
+		result.put("orderId", order.getOrderId());
+		result.put("orderDate", order.getOrderDate());
+		result.put("orderAddress", order.getOrderAddress());
+		result.put("orderName", order.getOrderName());
+		result.put("orderTotal", order.getOrderTotal());
 
-	    // 抓取該訂單的所有明細
-	    List<OrderDetail> details = odr.findByOrderBean_OrderId(orderId); 
-	    
-	    List<Map<String, Object>> itemsList = new ArrayList<>();
-	    if (details != null && !details.isEmpty()) {
-	        for (OrderDetail detail : details) {
-	            Map<String, Object> itemMap = new HashMap<>();
-	            
-	            // 這裡請對應你資料庫 OrderDetail 表的欄位名稱
-	            itemMap.put("productName", detail.getProductName()); 
-	            itemMap.put("productPrice", detail.getProductPrice());
-	            itemMap.put("quantity", detail.getQuantity());
-	            itemMap.put("subtotal", detail.getSubtotal());
+		// 抓取該訂單的所有明細
+		List<OrderDetail> details = odr.findByOrderBean_OrderId(orderId);
+
+		List<Map<String, Object>> itemsList = new ArrayList<>();
+		if (details != null && !details.isEmpty()) {
+			for (OrderDetail detail : details) {
+				Map<String, Object> itemMap = new HashMap<>();
+
+				// 這裡請對應你資料庫 OrderDetail 表的欄位名稱
+				itemMap.put("productName", detail.getProductName());
+				itemMap.put("productPrice", detail.getProductPrice());
+				itemMap.put("quantity", detail.getQuantity());
+				itemMap.put("subtotal", detail.getSubtotal());
 //	            itemMap.put("discount", detail.getDiscount() != null ? detail.getDiscount() : 0);
-	           
-	            itemsList.add(itemMap);
-	        }
-	    } else {
-	        System.out.println("⚠️ 警告：資料庫中找不到訂單編號 " + orderId + " 的任何明細！");
-	    }
-	    
-	    result.put("items", itemsList); 
-	    return result;
+
+				itemsList.add(itemMap);
+			}
+		} else {
+			System.out.println("⚠️ 警告：資料庫中找不到訂單編號 " + orderId + " 的任何明細！");
+		}
+
+		result.put("items", itemsList);
+		return result;
 	}
-	
+
 	// 取得特定會員的所有訂單 (未刪除的)
 	public List<Order> findByMemberId(Integer memberId) {
-	    return or.findByMemberIdAndIsDeletedFalseOrderByOrderDateDesc(memberId);
+		return or.findByMemberIdAndIsDeletedFalseOrderByOrderDateDesc(memberId);
 	}
-	
-	// 查詢單筆訂單
-    public Order findById(Integer orderId) {
-        // findById 回傳的是 Optional，我們用 .orElse(null) 表示找不到就回傳 null
-        return or.findById(orderId).orElse(null);
-    }
 
-    // 儲存/更新訂單（取消訂單後需要存回去）
-    public void save(Order order) {
-        or.save(order);
-    }
+	// 查詢單筆訂單
+	public Order findById(Integer orderId) {
+		// findById 回傳的是 Optional，我們用 .orElse(null) 表示找不到就回傳 null
+		return or.findById(orderId).orElse(null);
+	}
+
+	// 儲存/更新訂單（取消訂單後需要存回去）
+	public void save(Order order) {
+		or.save(order);
+	}
 }

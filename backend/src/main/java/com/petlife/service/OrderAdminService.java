@@ -34,8 +34,18 @@ public class OrderAdminService {
         Order order = orderRepository.findById(id).orElse(null);
         List<OrderDetail> details = orderDetailRepository.findByOrderBean_OrderId(id);
 
+        List<Map<String, Object>> detailList = new ArrayList<>();
+        for (OrderDetail d : details) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("productName", d.getProductName());
+            item.put("productPrice", d.getProductPrice());
+            item.put("quantity", d.getQuantity());
+            item.put("subtotal", d.getSubtotal());
+            detailList.add(item);
+        }
+        
         map.put("order", order);
-        map.put("details", details);
+        map.put("details", detailList);
         return map;
     }
  
@@ -56,4 +66,5 @@ public class OrderAdminService {
             return true;
         }).orElse(false);
     }
+    
 }

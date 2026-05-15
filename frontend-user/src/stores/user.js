@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', {
     token: null,
     memberId: null,
     user: null,
+    cartCount: 0,
   }),
   actions: {
     login(token) {
@@ -40,6 +41,7 @@ export const useUserStore = defineStore('user', {
       this.token = null
       this.memberId = null
       this.user = null
+      this.cartCount = 0
       localStorage.removeItem('jwtToken')
       Swal.fire({
             icon: 'success',
@@ -55,10 +57,15 @@ export const useUserStore = defineStore('user', {
         this.login(token)
         await this.fetchUser()
         this.updateCartCount()
+      } else {
+        this.cartCount = 0
       }
     },
     async updateCartCount() {
-      if (!this.memberId) return
+      if (!this.memberId) {
+        this.cartCount = 0
+        return
+      }
       try {
         const res = await fetch(`/api/cart/count/${this.memberId}`)
         if (res.ok) {
@@ -66,6 +73,7 @@ export const useUserStore = defineStore('user', {
         }
       } catch (e) {
         console.error('更新購物車數量失敗', e)
+        this.cartCount = 0
       }
     },
   },
