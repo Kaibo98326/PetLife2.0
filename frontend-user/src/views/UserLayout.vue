@@ -142,7 +142,8 @@ onMounted(async () => {
               <router-link to="/cart" class="nav-icon-item position-relative d-flex flex-column align-items-center text-decoration-none">
                 <i class="fas fa-shopping-cart"></i>
                 <span>購物車</span>
-                <span v-if="userStore.cartCount > 0" class="cart-count-simple">{{ userStore.cartCount }}</span>
+                <span v-if="userStore.cartCount > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger text-white"
+                  style="font-size: 0.7rem;">{{ userStore.cartCount }}</span>
               </router-link>
 
               <!-- 聊聊 (透過組件控制) -->

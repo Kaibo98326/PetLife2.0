@@ -301,7 +301,7 @@ const goShop = () => {
       <!-- 註冊表單 -->
       <div class="form-container sign-up">
         <form @submit.prevent="handleRegister">
-          <h1>🐾建立帳號🐾</h1>
+          <h1>🐾建立帳號</h1>
           <span>或使用電子郵件註冊</span>
           <div class="input-wrapper" v-for="field in registerFields" :key="field.name">
             <input :type="field.type" v-model="registerForm[field.name]" :placeholder="placeholders[field.name]"

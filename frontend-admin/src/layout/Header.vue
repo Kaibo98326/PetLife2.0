@@ -32,10 +32,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted,computed } from 'vue';
 import { useEmployeeStore } from '@/stores/employee';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const employeeStore = useEmployeeStore();
 const router = useRouter();
