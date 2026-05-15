@@ -28,8 +28,10 @@ public class OrderController {
 	@PostMapping("/checkout")
 	public ResponseEntity<Map<String, Object>> checkout(@RequestBody Order order, @RequestParam Integer cartId) {
 
-		// Service(存訂單、搬明細、清購物車、算加密)
-		Map<String, Object> result = orderService.processCheckoutAndReturnDetail(order, cartId);
+		// 呼叫 Service 取得包含更新後會員資料的結果(存訂單、搬明細、清購物車、算加密)
+				Map<String, Object> result = orderService.processCheckoutAndReturnDetail(order, cartId);
+		
+		
 
 		// 2. 回傳給 Vue
 		return ResponseEntity.ok(result);
@@ -99,11 +101,49 @@ public class OrderController {
 
 		// 變更狀態並存檔
 		try {
-			order.setOrderStatus("已取消");
-			orderService.save(order);
+//			order.setOrderStatus("已取消");
+//			orderService.save(order);
+			
+			// 呼叫 Service 執行包含退點
+            orderService.cancelOrder(orderId);
+			
 			return ResponseEntity.ok("訂單取消成功");
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("更新失敗：" + e.getMessage());
 		}
 	}
+	
+	// 會員確認收貨 API
+    @PostMapping("/complete/{orderId}")
+    public ResponseEntity<?> completeOrder(@PathVariable Integer orderId) {
+        try {
+            // 呼叫 Service 執行狀態變更與發放點數
+            orderService.completeOrder(orderId);
+            return ResponseEntity.ok("訂單已完成，紅利點數已發放");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+    
+ // 取得會員紅利點數明細 API
+    @GetMapping("/bonus-history")
+    public ResponseEntity<?> getBonusHistory(@RequestHeader("Authorization") String token) {
+        try {
+            // 從 Header 解析 JWT
+            String jwt = token.replace("Bearer ", "");
+            String memberIdStr = jwtUtils.validateToken(jwt);
+            if (memberIdStr == null || memberIdStr.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("無效的憑證");
+            }
+            
+            Integer mid = Integer.valueOf(memberIdStr);
+            // 呼叫 Service 取得動態聚合的明細
+            List<Map<String, Object>> history = orderService.getBonusHistory(mid);
+            return ResponseEntity.ok(history);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("登入資訊已過期或錯誤");
+        }
+    }
+    
 }

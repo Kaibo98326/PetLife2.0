@@ -52,25 +52,29 @@ public class DiscountCalculationService {
         int buyN = discount.getBuyQuantity();
         int freeM = discount.getFreeQuantity();
         
-        int sets = mainItems.size() / buyN; 
-        if (sets == 0 || freeItems.isEmpty()) return BigDecimal.ZERO;
+        // ✨ 新增/修改：正確的套組門檻必須是 (買 N 件 + 送 M 件)
+        int requiredPerSet = buyN + freeM; 
+        
+        // ✨ 新增/修改：用總件數來計算符合的組數 Math.floor(quantity / (X + Y))
+        int sets = mainItems.size() / requiredPerSet; 
+        if (sets == 0) return BigDecimal.ZERO; // 未達門檻直接回傳 0
 
-        freeItems.sort((i1, i2) -> i1.getPrice().compareTo(i2.getPrice()));
-        int actualItemsToFree = Math.min(sets * freeM, freeItems.size());
+        // 依價格由低到高排序，確保贈送的是最便宜的商品
+        mainItems.sort((i1, i2) -> i1.getPrice().compareTo(i2.getPrice()));
+        
+        // ✨ 新增/修改：實際要折抵(免費)的件數 = 組數 * 贈送件數 M
+        int actualItemsToFree = sets * freeM;
         
         BigDecimal discountAmount = BigDecimal.ZERO;
         for (int i = 0; i < actualItemsToFree; i++) {
-            discountAmount = discountAmount.add(freeItems.get(i).getPrice());
+            discountAmount = discountAmount.add(mainItems.get(i).getPrice());
         }
 
         // --- 活動新增：判斷是否為假算 ---
         if (!isDryRun) {
-            List<CartItemDTO> markedMain = markItems(mainItems, sets * buyN);
-            List<CartItemDTO> markedFree = markItems(freeItems, actualItemsToFree);
-            
-            List<CartItemDTO> allBundled = new ArrayList<>(markedMain);
-            allBundled.addAll(markedFree);
-            apportionDiscount(allBundled, discountAmount); 
+            // ✨ 新增/修改：將一整組 (N+M) 的商品標記為已處理
+            List<CartItemDTO> markedItems = markItems(mainItems, sets * requiredPerSet);
+            apportionDiscount(markedItems, discountAmount); 
         }
         return discountAmount.setScale(0, RoundingMode.HALF_UP);
     }

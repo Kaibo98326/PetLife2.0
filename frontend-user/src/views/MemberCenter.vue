@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'; // 引入 ref
 import { useUserStore } from '@/stores/user';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
@@ -6,10 +7,38 @@ import logo from '@/assets/images/logo01.png';
 import Cropper from "cropperjs";
 import "cropperjs/dist/cropper.css";
 
-
+import axios from '@/axios'; // 引入 axios 以呼叫明細 API
+import { Modal } from 'bootstrap'; // 引入 Bootstrap Modal
 
 const userStore = useUserStore()
 const router = useRouter()
+
+// 紅利明細的狀態與邏輯
+const bonusHistory = ref([])
+let bonusModal = null
+
+const openBonusModal = async () => {
+    try {
+        // 呼叫後端聚合的明細 API
+        const res = await axios.get('/orders/bonus-history')
+        bonusHistory.value = res.data
+        
+        // 顯示 Modal
+        if (!bonusModal) {
+            const modalElement = document.getElementById('bonusHistoryModal')
+            if (modalElement) {
+                bonusModal = new Modal(modalElement)
+            }
+        }
+        bonusModal?.show()
+    } catch (err) {
+        console.error('取得明細失敗:', err)
+        Swal.fire('錯誤', '無法取得紅利明細，請稍後再試', 'error')
+    }
+}
+
+// 日期格式化工具
+const formatDateTime = (str) => (str ? str.replace('T', ' ').substring(0, 16) : '')
 
 const openAvatarModal = () => {
     Swal.fire({
@@ -151,7 +180,10 @@ const handleLogout = () => {
                 <h2>會員中心</h2>
                 <p>會員編號：{{ userStore.user?.memberId }}</p>
                 <p>會員名稱：{{ userStore.user?.memberName }}</p>
-                <p>目前紅利點數：{{ userStore.user?.bonusPoints }}</p>
+                <p class="d-flex align-items-center gap-2 mb-0">
+                    目前紅利點數：<span class="text-danger fw-bold fs-5">{{ userStore.user?.bonusPoints || 0 }} 點</span>
+                    <button class="btn btn-sm btn-outline-warning rounded-pill px-3 ms-2" @click="openBonusModal">查看明細</button>
+                </p>
             </div>
         </section>
 
@@ -161,7 +193,7 @@ const handleLogout = () => {
             <div class="menu-item" @click="router.push('/member/center/profile')">👤 個人資料</div>
             <div class="menu-item" @click="router.push('/member/center/favorites')">❤️ 我的收藏</div>
             <div class="menu-item" @click="router.push('/member/center/pets')">🐕 寵物管理</div>
-            <div class="menu-item" @click="router.push('/member/points')">💎 紅利點數</div>
+            <div class="menu-item" @click="openBonusModal">💎 紅利點數</div>
             <div class="menu-item" @click="handleLogout">🔒 登出</div>
         </div>
 
@@ -179,6 +211,38 @@ const handleLogout = () => {
                 若遇可疑電話請勿理會，並撥打 165 反詐騙專線查證。
             </p>
         </section>
+
+        <!-- 紅利點數明細 Modal -->
+        <div class="modal fade" id="bonusHistoryModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title fw-bold" style="color: #e67e22;">
+                            <i class="fas fa-coins me-2"></i>紅利點數明細
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <ul class="list-group list-group-flush" v-if="bonusHistory.length > 0">
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-3" v-for="(item, index) in bonusHistory" :key="index">
+                                <div>
+                                    <div class="fw-bold text-dark">{{ item.description }}</div>
+                                    <small class="text-muted">{{ formatDateTime(item.date) }}</small>
+                                </div>
+                                <span :class="item.points > 0 ? 'text-success fw-bold fs-5' : 'text-danger fw-bold fs-5'">
+                                    {{ item.points > 0 ? '+' : '' }}{{ item.points }}
+                                </span>
+                            </li>
+                        </ul>
+                        <div v-else class="p-5 text-center text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3 text-light"></i>
+                            <p class="mb-0 fw-bold">目前尚無紅利紀錄</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </template>
 <style scoped>

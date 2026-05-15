@@ -15,6 +15,19 @@ const appliedDiscounts = ref([])
 const isDiscountExpanded = ref(false)
 // 5/14更新：新增接收後端原始總額與明細清單的變數
 const backendOriginalTotal = ref(0) //   5/14更新
+
+// ✨ 新增/修改：從購物車讀取使用者決定使用的紅利點數 (CheckoutView)
+const usedBonusPoints = ref(parseInt(sessionStorage.getItem('usedBonusPoints')) || 0)
+
+// ✨ 新增/修改：計算真正的應付總額 (活動折抵後，再扣紅利)
+const actualFinalAmount = computed(() => {
+  return Math.max(0, finalAmount.value - usedBonusPoints.value)
+})
+
+// ✨ 新增/修改：計算這筆訂單完成後可獲得的紅利 (實付總額 * 0.01，無條件捨去)
+const estimatedEarnPoints = computed(() => {
+  return Math.floor(actualFinalAmount.value * 0.01)
+})
  
 //活動折扣邏輯                                              --->活動新增
 const calculateDiscount = async () => {
@@ -38,9 +51,6 @@ const calculateDiscount = async () => {
     console.error('結帳折扣計算失敗', error)
   }
 }
-
-
-
 
 // 表單資料綁定
 const orderForm = ref({
@@ -122,7 +132,8 @@ const submitOrder = async () => {
       orderAddress: orderForm.value.shippingAddress,
       orderPayment: orderForm.value.paymentMethod,
       orderNote: orderForm.value.orderNotes,
-      usedPoint: 0,
+      // ✨ 新增/修改：將前台計算的紅利數值帶給後端 (後端將以此進行原子化扣除)
+      usedPoint: usedBonusPoints.value,
       remainingPoint: 0,
     }
 
@@ -249,27 +260,12 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- <div class="checkout-footer">             原先的
-        <div class="total-amount-box">
-          <span class="label">應付總額：</span>
-          <span class="amount">$ {{ totalAmount.toLocaleString() }}</span>
-        </div>
-
-        <div class="button-group">
-          <router-link to="/cart" class="btn-cancel">返回修改購物車</router-link>
-          <button class="btn-confirm" @click="submitOrder" :disabled="isProcessing">
-            {{ isProcessing ? '處理中...' : '確認下單' }}
-          </button>
-        </div>
-      </div> -->
-                                                <!--                       活動新增                                  -->
       <div class="checkout-footer">
         <div class="total-amount-box" style="display: flex; flex-direction: column; align-items: flex-end;">
           
           <div class="checkout-summary-row">
             <span class="checkout-row-label">商品總額：</span>
-           
-  <span class="checkout-row-amount">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
+            <span class="checkout-row-amount">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
           </div>
 
           <div v-if="discountAmount > 0" class="checkout-summary-row checkout-discount-clickable" @click="isDiscountExpanded = !isDiscountExpanded">
@@ -287,9 +283,18 @@ onMounted(async () => {
             </div>
           </div>
 
+          <div v-if="usedBonusPoints > 0" class="checkout-summary-row">
+            <span class="checkout-row-label" style="color: #666;">紅利點數折抵：</span>
+            <span class="checkout-row-amount" style="color: #ff4d4f;">- $ {{ usedBonusPoints.toLocaleString() }}</span>
+          </div>
+
           <div class="checkout-summary-row checkout-final-row">
             <span class="checkout-row-label checkout-final-label">應付總額：</span>
-            <span class="checkout-row-amount checkout-final-amount">$ {{ finalAmount.toLocaleString() }}</span>
+            <span class="checkout-row-amount checkout-final-amount">$ {{ actualFinalAmount.toLocaleString() }}</span>
+          </div>
+
+          <div style="text-align: right; margin-top: 5px; color: #e67e22; font-size: 0.95em; font-weight: 700;">
+            <i class="fas fa-coins me-1"></i> 此單預計獲得紅利：{{ estimatedEarnPoints }} 點
           </div>
 
         </div>

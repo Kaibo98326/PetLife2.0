@@ -1,6 +1,5 @@
 package com.petlife.service;
 
-
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -125,7 +124,7 @@ public class DiscountEngine {
     }
 
     // --- 活動新增：補齊 Filter 邏輯 (對接 Discount 實體) ---
-    private List<CartItemDTO> filterEligibleItems(List<CartItemDTO> items, Discount discount, String role) {
+    private List<CartItemDTO> filterEligibleItems(List<CartItemDTO> items, Discount discount, String String_role) {
         return items.stream()
             .filter(i -> !i.isProcessed())
             .filter(i -> {
@@ -155,76 +154,85 @@ public class DiscountEngine {
             default: return BigDecimal.ZERO;
         }
     }
-        /**
-         * 計算未達標門檻提醒 (% 數最高者優先顯示)
-         * --- 活動新增 ---
-         */
-        private void calculateReminders(List<CartItemDTO> items, List<Discount> allActive) {
-            // 遍歷每一件攤平後的商品
-            for (CartItemDTO item : items) {
-                // 1. 【防禦】如果這件商品已經被某個活動「真算」處理過並標記了，就不再顯示提醒
-                if (item.isProcessed()) continue; 
 
-                double bestProgress = -1; // 用於紀錄目前最高進度百分比
-                String bestReminder = null; // 用於紀錄最高進度的提醒文字
+    /**
+     * 計算未達標門檻提醒 (% 數最高者優先顯示)
+     * --- 活動新增 ---
+     */
+    private void calculateReminders(List<CartItemDTO> items, List<Discount> allActive) {
+        // 遍歷每一件攤平後的商品
+        for (CartItemDTO item : items) {
+            // 1. 【防禦】如果這件商品已經被某個活動「真算」處理過並標記了，就不再顯示提醒
+            if (item.isProcessed()) continue; 
 
-                for (Discount discount : allActive) {
-                    // 2. 【資格過濾】檢查這件單一商品是否有資格參加該活動 (Main 商品)
-                    List<CartItemDTO> singleItemList = new ArrayList<>();
-                    singleItemList.add(item);
-                    if (filterEligibleItems(singleItemList, discount, "Main").isEmpty()) continue;
+            double bestProgress = -1; // 用於紀錄目前最高進度百分比
+            String bestReminder = null; // 用於紀錄最高進度的提醒文字
 
-                    // 3. 【進度計算】算出整個購物車中，符合該活動資格的所有「乾淨商品」總額/總件數
-                    List<CartItemDTO> eligibleList = filterEligibleItems(items, discount, "Main");
-                    BigDecimal totalAmt = BigDecimal.ZERO;
-                    int totalQty = 0;
-                    for (CartItemDTO e : eligibleList) {
-                        // 因為已攤平，e.getQuantity() 皆為 1
-                        totalAmt = totalAmt.add(e.getPrice());
-                        totalQty += 1;
-                    }
+            for (Discount discount : allActive) {
+                // 2. 【資格過濾】檢查這件單一商品是否有資格參加該活動 (Main 商品)
+                List<CartItemDTO> singleItemList = new ArrayList<>();
+                singleItemList.add(item);
+                if (filterEligibleItems(singleItemList, discount, "Main").isEmpty()) continue;
 
-                    // 4. 【類型判斷】根據活動類型 (Type ID) 判斷門檻差距
-                    int typeId = discount.getDiscountType().getDiscountTypeId();
-                    double currentProgress = 0;
-                    String reminderText = "";
+                // 3. 【進度計算】算出整個購物車中，符合該活動資格的所有「乾淨商品」總額/總件數
+                List<CartItemDTO> eligibleList = filterEligibleItems(items, discount, "Main");
+                BigDecimal totalAmt = BigDecimal.ZERO;
+                int totalQty = 0;
+                for (CartItemDTO e : eligibleList) {
+                    totalAmt = totalAmt.add(e.getPrice());
+                    totalQty += 1;
+                }
 
-                    // A. 金額型門檻 (Type 1: 百分比, Type 2: 滿額折)
-                    if (typeId == 1 || typeId == 2) {
-                        BigDecimal minAmount = discount.getMinimumPurchaseAmount();
-                        if (minAmount != null && minAmount.compareTo(BigDecimal.ZERO) > 0 && totalAmt.compareTo(minAmount) < 0) {
-                            currentProgress = (totalAmt.doubleValue() / minAmount.doubleValue()) * 100;
-                            if (currentProgress >= 80) {
-                                BigDecimal diffAmount = minAmount.subtract(totalAmt);
-                                // 呼叫 Helper 生成文字：(活動名)：還差 $XXX 享 XXX
-                                reminderText = templateHelper.generateReminderText(discount, diffAmount, 0);
-                            }
-                        }
-                    } 
-                    // B. 件數型門檻 (Type 3: 買送, Type 4: 加購, Type 5: 組合)
-                    else {
-                        Integer minQty = discount.getBuyQuantity();
-                        if (minQty != null && minQty > 0 && totalQty < minQty) {
-                            currentProgress = ((double) totalQty / minQty) * 100;
-                            if (currentProgress >= 80) {
-                                int diffQty = minQty - totalQty;
-                                // 呼叫 Helper 生成文字：(活動名)：還差 X 件 享 XXX
-                                reminderText = templateHelper.generateReminderText(discount, BigDecimal.ZERO, diffQty);
-                            }
+                // 4. 【類型判斷】根據活動類型 (Type ID) 判斷門檻差距
+                int typeId = discount.getDiscountType().getDiscountTypeId();
+                double currentProgress = 0;
+                String reminderText = "";
+
+                // A. 金額型門檻 (Type 1: 百分比, Type 2: 滿額折)
+                if (typeId == 1 || typeId == 2) {
+                    BigDecimal minAmount = discount.getMinimumPurchaseAmount();
+                    if (minAmount != null && minAmount.compareTo(BigDecimal.ZERO) > 0 && totalAmt.compareTo(minAmount) < 0) {
+                        currentProgress = (totalAmt.doubleValue() / minAmount.doubleValue()) * 100;
+                        // ✨ 新增/修改：百分比與滿額折維持 80% 才提醒
+                        if (currentProgress >= 80) {
+                            BigDecimal diffAmount = minAmount.subtract(totalAmt);
+                            reminderText = templateHelper.generateReminderText(discount, diffAmount, 0);
                         }
                     }
+                } 
+                // B. 件數型門檻 (Type 3: 買送, Type 4: 加購, Type 5: 組合)
+                else {
+                    // ✨ 新增/修改：修復提醒文字顯示邏輯 (依據活動定義目標件數)
+                    int targetQty = 0;
+                    if (discount.getBuyQuantity() != null) {
+                        targetQty = discount.getBuyQuantity();
+                    }
+                    
+                    // 如果是買N送M，湊單門檻為 N + M
+                    if (typeId == 3 && discount.getFreeQuantity() != null) {
+                        targetQty += discount.getFreeQuantity();
+                    }
 
-                    // 5. 【擇優提醒】如果這個活動的進度比之前的更高，就取代它 (顯示最接近達標的)
-                    if (currentProgress > bestProgress && !reminderText.isEmpty()) {
-                        bestProgress = currentProgress;
-                        bestReminder = reminderText;
+                    if (targetQty > 0 && totalQty < targetQty) {
+                        currentProgress = ((double) totalQty / targetQty) * 100;
+                        // ✨ 新增/修改：修復提醒文字顯示邏輯 (移除 80% 限制，只要未達標一律無條件提醒)
+                        int diffQty = targetQty - totalQty;
+                        reminderText = templateHelper.generateReminderText(discount, BigDecimal.ZERO, diffQty);
                     }
                 }
 
-                // 6. 【貼上標籤】將贏得競爭的提醒文字存入 DTO，供後續合併並傳回前端
-                if (bestReminder != null) {
-                    item.setReminderText(bestReminder);
+                // 5. 【擇優提醒】如果這個活動的進度比之前的更高，就取代它 (顯示最接近達標的)
+                // ✨ 新增/修改：修復提醒文字顯示邏輯 (改為 >=，確保 currentProgress 為 0 時也能大於 -1 並寫入)
+                if (currentProgress >= bestProgress && reminderText != null && !reminderText.isEmpty()) {
+                    bestProgress = currentProgress;
+                    bestReminder = reminderText;
                 }
+            }
+
+            // 6. 【貼上標籤】將贏得競爭的提醒文字存入 DTO，供後續合併並傳回前端
+            if (bestReminder != null) {
+                item.setReminderText(bestReminder);
             }
         }
     }
+}

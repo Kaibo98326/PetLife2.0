@@ -40,11 +40,14 @@ public class DiscountTemplateHelper {
      } else if (type == 2) {
          return name + "：還差 <b>$" + diffAmt.intValue() + "</b> 現折 <b>" + discount.getDiscountValue().intValue() + "</b>";
      } else if (type == 3) {
-         return name + "：還差 <b>" + diffQty + "件</b> 享 <b>買" + discount.getBuyQuantity() + "送" + discount.getFreeQuantity() + "</b>";
+         // ✨ 新增/修改：修復提醒文字顯示邏輯 (套用精準格式)
+         return name + "：還差 <b>" + diffQty + "</b> 件 享 <b>買" + discount.getBuyQuantity() + "送" + discount.getFreeQuantity() + "</b>";
      } else if (type == 4) {
-         return name + "：還差 <b>" + diffQty + "件</b> 享加購 <b>$" + discount.getDiscountValue().intValue() + "</b>";
+         // ✨ 新增/修改：修復提醒文字顯示邏輯 (套用精準格式)
+         return name + "：還差 <b>" + diffQty + "</b> 件 享加購只要 <b>$" + discount.getDiscountValue().intValue() + "</b>";
      } else if (type == 5) {
-         return name + "：還差 <b>" + diffQty + "件</b> 任選" + discount.getBuyQuantity() + "件 <b>$" + discount.getDiscountValue().intValue() + "</b>";
+         // ✨ 新增/修改：修復提醒文字顯示邏輯 (套用精準格式)
+         return name + "：還差 <b>" + diffQty + "</b> 件 享任選" + discount.getBuyQuantity() + "件 <b>$" + discount.getDiscountValue().intValue() + " 元</b>";
      }
      return "";
  }

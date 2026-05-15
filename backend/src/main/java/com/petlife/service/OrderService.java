@@ -22,6 +22,7 @@ import com.petlife.model.Order;
 import com.petlife.model.OrderDetail;
 import com.petlife.model.OrderDiscount;
 import com.petlife.model.OrderPaymentRecord;
+import com.petlife.model.Member; // ✨ 新增/修改：引入 Member 實體
 import com.petlife.repository.CartItemRepository;
 import com.petlife.repository.CartItemDTO;
 import com.petlife.repository.CartCalculateResponseDTO;
@@ -31,6 +32,7 @@ import com.petlife.repository.OrderPaymentRecordRepository;
 import com.petlife.repository.OrderRepository;
 import com.petlife.repository.ProductRepository;
 import com.petlife.repository.DiscountRepository;
+import com.petlife.repository.MemberRepository; // ✨ 新增/修改：引入 MemberRepository
 import com.petlife.model.Discount;
 import com.petlife.model.Product;
 import com.petlife.service.DiscountEngine;
@@ -54,6 +56,10 @@ public class OrderService {
 	@Autowired
 	private ProductRepository productRepository;
 
+	// ✨ 新增/修改：注入 MemberRepository 以執行原子化扣點
+	@Autowired
+	private MemberRepository memberRepository;
+
 	// --- 活動折扣相關：注入所需服務 ---
 	@Autowired
 	private DiscountEngine discountEngine;
@@ -71,10 +77,17 @@ public class OrderService {
 	private final String HASH_IV = "EkRm7iFT261dpevs";
 	private final String SERVICE_URL = "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
 
+	/**
+	 * ✨ 階段 2 修正：執行完整結帳邏輯，包含原子化扣點與綠界明細串接
+	 */
 	@Transactional
 	public String processCheckout(Order order, Integer cartId) {
 		// 計算購物車總金額（原始金額）
 		BigDecimal totalAmount = or.getCartTotal(order.getMemberId());
+		
+		// ✨ 新增/修改：取得前端傳入的預計扣除點數
+		Integer pointsToUse = order.getUsedPoint() != null ? order.getUsedPoint() : 0;
+
 		// 預設最終付款金額 = 原始金額
 		BigDecimal finalPaymentAmount = totalAmount;
 		List<DiscountDetailDTO> appliedDiscountsForEcPay = new ArrayList<>();
@@ -82,7 +95,7 @@ public class OrderService {
 		// 2026-05-14 修正：準備用來存折扣明細的暫存 List
 		List<OrderDiscount> pendingOrderDiscounts = new ArrayList<>();
 
-		// --- 2026-05-14 修正開始：將折扣計算移到 Order 存檔之前 ---
+		// --- 2026-05-14 修正：將折扣計算移到 Order 存檔之前 ---
 		try {
 			List<com.petlife.model.CartItem> cartItemList = cir.findByCartId(cartId);
 			if (cartItemList != null && !cartItemList.isEmpty()) {
@@ -122,7 +135,6 @@ public class OrderService {
 						for (Discount discount : activeDiscounts) {
 							if (discount.getDiscountName().equals(detail.getName())) {
 								OrderDiscount od = new OrderDiscount();
-								// 注意：這裡還沒有 OrderId，先暫存起來
 								if (!dtoList.isEmpty()) {
 									od.setProductId(dtoList.get(0).getProductId());
 								}
@@ -138,10 +150,26 @@ public class OrderService {
 			}
 		} catch (Exception e) {
 			System.out.println("警告: 折扣計算失敗 " + e.getMessage());
-			e.printStackTrace();
 		}
 
-		// 2026-05-14 修正：把算好的最終金額塞進訂單主檔中
+		// ✨ 新增/修改：進一步扣除紅利點數 (1點 = NT$1)
+		if (pointsToUse > 0) {
+			finalPaymentAmount = finalPaymentAmount.subtract(new BigDecimal(pointsToUse));
+			if (finalPaymentAmount.compareTo(BigDecimal.ZERO) < 0) finalPaymentAmount = BigDecimal.ZERO;
+		}
+
+		// ✨ 新增/修改：原子化扣除會員點數，若失敗則回滾
+		if (pointsToUse > 0) {
+			int rowsAffected = memberRepository.deductBonusPoints(order.getMemberId(), pointsToUse);
+			if (rowsAffected == 0) {
+				// 如果點數不足，丟出異常觸發 @Transactional Rollback
+				throw new RuntimeException("紅利點數不足，請重新確認。");
+			}
+		}
+
+		// ✨ 新增/修改：獲取扣點後的最新餘額並存入訂單紀錄
+		Member currentMember = memberRepository.findById(order.getMemberId()).orElseThrow();
+		order.setRemainingPoint(currentMember.getBonusPoints());
 		order.setOrderTotal(finalPaymentAmount);
 		
 		// 建立訂單，取得 orderId
@@ -155,43 +183,32 @@ public class OrderService {
 			}
 			orderDiscountService.saveAllOrderDiscounts(pendingOrderDiscounts);
 		}
-		// --- 2026-05-14 修正結束 ---
 		
-		// 轉移購物車資料到訂單明細 (此原生 SQL 預設將折扣填為 0)
-				odr.transferCartToOrderDetails(orderId, order.getMemberId());
+		// 轉移購物車資料到訂單明細
+		odr.transferCartToOrderDetails(orderId, order.getMemberId());
 
-				// --- 2026-05-14 18:12 修正開始：將折扣金額寫回 OrderDetail 以便前端顯示 ---
-				try {
-					// 從資料庫抓出剛轉移過去的訂單明細
-					List<OrderDetail> newlyCreatedDetails = odr.findByOrderBean_OrderId(orderId);
-					if (newlyCreatedDetails != null && !newlyCreatedDetails.isEmpty() && !pendingOrderDiscounts.isEmpty()) {
-						for (OrderDetail detail : newlyCreatedDetails) {
-							for (OrderDiscount od : pendingOrderDiscounts) {
-								// 依據商品 ID 比對，找到該商品的折扣紀錄
-								if (detail.getProductId().equals(od.getProductId())) {
-									// 1. 寫入折扣金額
-									detail.setDiscountAmount(od.getDiscountAmount());
-									
-									// 2. 重新計算小計：原本的 (單價*數量) 減去 折扣金額
-									BigDecimal newSubtotal = detail.getSubtotal().subtract(od.getDiscountAmount());
-									// 確保小計不會變成負數
-									detail.setSubtotal(newSubtotal.compareTo(BigDecimal.ZERO) > 0 ? newSubtotal : BigDecimal.ZERO);
-									
-									break; // 假設一個商品只配對一筆折扣，配對成功就換下一個明細
-								}
-							}
+		// --- 2026-05-14 18:12 修正：將折扣金額寫回 OrderDetail ---
+		try {
+			List<OrderDetail> newlyCreatedDetails = odr.findByOrderBean_OrderId(orderId);
+			if (newlyCreatedDetails != null && !newlyCreatedDetails.isEmpty() && !pendingOrderDiscounts.isEmpty()) {
+				for (OrderDetail detail : newlyCreatedDetails) {
+					for (OrderDiscount od : pendingOrderDiscounts) {
+						if (detail.getProductId().equals(od.getProductId())) {
+							detail.setDiscountAmount(od.getDiscountAmount());
+							BigDecimal newSubtotal = detail.getSubtotal().subtract(od.getDiscountAmount());
+							detail.setSubtotal(newSubtotal.compareTo(BigDecimal.ZERO) > 0 ? newSubtotal : BigDecimal.ZERO);
+							break; 
 						}
-						// 將更新好折扣與小計的明細，整批存回資料庫
-						odr.saveAll(newlyCreatedDetails);
 					}
-				} catch (Exception e) {
-					System.out.println("警告: 更新 OrderDetail 折扣金額失敗 " + e.getMessage());
-					e.printStackTrace();
 				}
-				// --- 2026-05-14 18:12 修正結束 ---
+				odr.saveAll(newlyCreatedDetails);
+			}
+		} catch (Exception e) {
+			System.out.println("警告: 更新 OrderDetail 折扣金額失敗 " + e.getMessage());
+		}
 
-				// 清空購物車資料
-				cir.deleteByCartId(cartId);
+		// 清空購物車資料
+		cir.deleteByCartId(cartId);
 
 		// 建立並儲存金流紀錄
 		String merchantTradeNo = "PET" + orderId + "T" + (System.currentTimeMillis() % 10000);
@@ -202,56 +219,46 @@ public class OrderService {
 		record.setPaymentType(order.getOrderPayment());
 		prr.save(record);
 
-		// 呼叫綠界產出HTML跳轉Form
-		return generateEcPayForm(savedOrder, merchantTradeNo, finalPaymentAmount, appliedDiscountsForEcPay);
+		// ✨ 新增/修改：將點數折抵資訊傳入表單產出方法
+		return generateEcPayForm(savedOrder, merchantTradeNo, finalPaymentAmount, appliedDiscountsForEcPay, pointsToUse);
 	}
 
-	// 用processCheckoutAndReturnDetail呼叫上面結帳流程然後回傳Map給Controller
-	@Transactional
-	public Map<String, Object> processCheckoutAndReturnDetail(Order order, Integer cartId) {
-		// 先執行原有的結帳流程(回傳HTML String)
-		String ecpayForm = processCheckout(order, cartId);
-
-		// 要回傳給前端的資料
-		Map<String, Object> response = new java.util.HashMap<>();
-		response.put("order", order);
-		response.put("form", ecpayForm); // 這是綠界產生的跳轉表單
-
-		return response;
-	}
-
-	// 活動修改：新增finalAmount參數，讓 ECPay 收到的是折扣後的最終金額
-	private String generateEcPayForm(Order order, String merchantTradeNo, BigDecimal finalAmount, List<DiscountDetailDTO> appliedDiscounts) {
-		// TreeMap會自動依字母A-Z排序參數
+	/**
+	 * ✨ 階段 2 修正：產出包含點數折抵明細的綠界跳轉表單
+	 */
+	private String generateEcPayForm(Order order, String merchantTradeNo, BigDecimal finalAmount, List<DiscountDetailDTO> appliedDiscounts, Integer pointsUsed) {
 		Map<String, String> params = new TreeMap<>();
 		params.put("MerchantID", MERCHANT_ID);
 		params.put("MerchantTradeNo", merchantTradeNo);
 		params.put("MerchantTradeDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")));
 		params.put("PaymentType", "aio");
-		// 活動修改：使用傳入的 finalAmount（折扣後金額），不再是 order.getOrderTotal()（原始金額）
 		params.put("TotalAmount", String.valueOf(finalAmount.intValue()));
 		params.put("TradeDesc", "PetLifeOrder");
+		
 		StringBuilder itemNameBuilder = new StringBuilder("PetLifeOrder");
+		
+		// 串接活動折扣明細
 		if (appliedDiscounts != null && !appliedDiscounts.isEmpty()) {
 			for (DiscountDetailDTO d : appliedDiscounts) {
 				itemNameBuilder.append("#").append(d.getName()).append(" -NT$").append(d.getAmount().intValue());
 			}
 		}
+		
+		// ✨ 新增/修改：在綠界項目清單中加入紅利折抵項目
+		if (pointsUsed != null && pointsUsed > 0) {
+			itemNameBuilder.append("#紅利點數折抵 -NT$").append(pointsUsed);
+		}
+		
 		params.put("ItemName", itemNameBuilder.toString());
 		params.put("ChoosePayment", "ALL");
-		params.put("EncryptType", "1"); // 1為SHA256加密
-		params.put("ClientBackURL", "http://localhost:5173/shop"); // 接收訂單完成後的付款結果回傳
-		// 內網穿透工具(ngrok) 要正式測試記得要來改網址!!!
-		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
-//		params.put("OrderResultURL", "http://localhost:5173/checkoutsuccess");// 結帳完成後的頁面
+		params.put("EncryptType", "1"); 
 		params.put("ClientBackURL", "http://localhost:5174/checkoutsuccess");
+		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
 		params.put("NeedExtraPaidInfo", "N");
 		
-		// 計算產生簽章CheckMacValue
 		String checkMacValue = calculateCheckMacValue(params);
 		params.put("CheckMacValue", checkMacValue);
 
-		// 組合產生Submit的HTML表單
 		StringBuilder form = new StringBuilder();
 		form.append("<form id=\"ecpayForm\" action=\"").append(SERVICE_URL).append("\" method=\"post\">");
 		for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -262,6 +269,24 @@ public class OrderService {
 		form.append("<script>document.getElementById(\"ecpayForm\").submit();</script>");
 
 		return form.toString();
+	}
+
+	/**
+	 * ✨ 階段 2 修正：回傳結果包含最新會員資訊，供前端 Store 即時同步
+	 */
+	@Transactional
+	public Map<String, Object> processCheckoutAndReturnDetail(Order order, Integer cartId) {
+		String ecpayForm = processCheckout(order, cartId);
+
+		// ✨ 新增/修改：獲取扣點後的最新會員物件
+		Member updatedMember = memberRepository.findById(order.getMemberId()).orElse(null);
+
+		Map<String, Object> response = new java.util.HashMap<>();
+		response.put("order", order);
+		response.put("form", ecpayForm);
+		response.put("member", updatedMember); // ✨ 新增：回傳會員物件
+
+		return response;
 	}
 
 	private String calculateCheckMacValue(Map<String, String> params) {
@@ -373,4 +398,102 @@ public class OrderService {
     public void save(Order order) {
         or.save(order);
     }
+ // 取消訂單並退回已使用的紅利點數
+    @Transactional
+    public void cancelOrder(Integer orderId) {
+        Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
+        
+        // 嚴格防呆
+        if ("已取消".equals(order.getOrderStatus())) {
+            throw new RuntimeException("訂單已經是取消狀態");
+        }
+        if ("已完成".equals(order.getOrderStatus())) {
+            throw new RuntimeException("訂單已完成，無法取消");
+        }
+
+        order.setOrderStatus("已取消");
+        
+        //  退回當初結帳時扣除的紅利點數
+        if (order.getUsedPoint() != null && order.getUsedPoint() > 0) {
+            memberRepository.addBonusPoints(order.getMemberId(), order.getUsedPoint());
+        }
+        
+        or.save(order);
+    }
+    
+    
+ // 確認收貨並發放紅利點數
+    @Transactional
+    public void completeOrder(Integer orderId) {
+        Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
+        
+        // 嚴格防呆，避免重複發放
+        if ("已完成".equals(order.getOrderStatus()) || "已取消".equals(order.getOrderStatus())) {
+            throw new RuntimeException("當前訂單狀態不允許確認收貨");
+        }
+
+        order.setOrderStatus("已完成");
+        
+        // 計算獲得點數：應付總額 * 0.01 (intValue() 自動無條件捨去小數)
+        if (order.getOrderTotal() != null) {
+            int earnedPoints = order.getOrderTotal().multiply(new BigDecimal("0.01")).intValue();
+            if (earnedPoints > 0) {
+                memberRepository.addBonusPoints(order.getMemberId(), earnedPoints);
+            }
+        }
+        
+        or.save(order);
+    }
+    
+ // 會員的紅利明細 (不需額外建表)
+    public List<Map<String, Object>> getBonusHistory(Integer memberId) {
+        // 取得該會員所有未刪除的訂單
+        List<Order> orders = findByMemberId(memberId);
+        List<Map<String, Object>> history = new ArrayList<>();
+
+        for (Order order : orders) {
+            // 1. 【扣除紀錄】只要當初結帳有使用點數，就一定會產生扣除紀錄
+            if (order.getUsedPoint() != null && order.getUsedPoint() > 0) {
+                Map<String, Object> useRecord = new HashMap<>();
+                useRecord.put("type", "扣除");
+                useRecord.put("description", "【紅利折抵】訂單 #" + order.getOrderId());
+                useRecord.put("points", -order.getUsedPoint()); // 負數
+                useRecord.put("date", order.getOrderDate());
+                history.add(useRecord);
+
+                // 2. 【退回紀錄】如果訂單後續被取消，且當初有扣點，就補上退回紀錄
+                if ("已取消".equals(order.getOrderStatus())) {
+                    Map<String, Object> refundRecord = new HashMap<>();
+                    refundRecord.put("type", "獲得");
+                    refundRecord.put("description", "【取消退回】訂單 #" + order.getOrderId());
+                    refundRecord.put("points", order.getUsedPoint()); // 正數
+                    refundRecord.put("date", order.getOrderDate());
+                    history.add(refundRecord);
+                }
+            }
+
+            // 3. 【獲得紀錄】如果訂單已完成，且計算出來的預計獲得點數 > 0
+            if ("已完成".equals(order.getOrderStatus()) && order.getOrderTotal() != null) {
+                int earned = order.getOrderTotal().multiply(new BigDecimal("0.01")).intValue();
+                if (earned > 0) {
+                    Map<String, Object> earnRecord = new HashMap<>();
+                    earnRecord.put("type", "獲得");
+                    earnRecord.put("description", "【消費回饋】訂單 #" + order.getOrderId());
+                    earnRecord.put("points", earned); // 正數
+                    earnRecord.put("date", order.getOrderDate());
+                    history.add(earnRecord);
+                }
+            }
+        }
+
+        // 依照日期由新到舊 (降冪) 排序
+        history.sort((a, b) -> {
+            LocalDateTime dateA = (LocalDateTime) a.get("date");
+            LocalDateTime dateB = (LocalDateTime) b.get("date");
+            return dateB.compareTo(dateA); 
+        });
+
+        return history;
+    }
+    
 }

@@ -117,7 +117,8 @@ body {
     right: 0;
     padding-top: 4px;
     display: flex;
-    justify-content: center; /* 置中關鍵字 */
+    justify-content: center;
+    /* 置中關鍵字 */
     overflow: hidden;
     z-index: 10;
 }
@@ -126,8 +127,10 @@ body {
     display: flex;
     gap: 12px;
     flex-wrap: nowrap;
-    justify-content: center; /* 置中內容 */
-    max-width: 550px; /* 同 .shop-search-form */
+    justify-content: center;
+    /* 置中內容 */
+    max-width: 550px;
+    /* 同 .shop-search-form */
     width: 100%;
 }
 
@@ -235,8 +238,11 @@ body {
     width: 100%;
     border-bottom: 1px solid var(--border-color);
     margin-top: 5px !important;
-    overflow-x: auto;
-    /* 💡 允許橫向滾動 */
+
+    /* ✨ 新增/修改：將原本的 overflow-x: auto 改為 visible，防止下拉選單被裁剪 */
+    overflow: visible !important;
+
+    /* 💡 允許橫向滾動原本的註解保留 */
     scrollbar-width: none;
     /* Firefox 隱藏捲軸 */
 }
@@ -329,7 +335,8 @@ body {
     display: flex;
     align-items: center;
     padding: 8px 25px;
-    color: #5d4037; /* 改回原本的深棕色 */
+    color: #5d4037;
+    /* 改回原本的深棕色 */
     text-decoration: none;
     font-weight: 700;
     font-size: 18px;
@@ -572,7 +579,7 @@ body {
     font-weight: 800;
     border-bottom-right-radius: 12px;
     z-index: 2;
-    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
     letter-spacing: 0.5px;
 }
 
@@ -770,13 +777,15 @@ body {
     background-color: var(--brand-orange);
     border-color: var(--brand-orange);
     color: #fff;
-}.cart-count {
-  background-color: red;
-  color: white;
-  border-radius: 50%;
-  padding: 2px 6px;
-  font-size: 12px;
-  margin-left: 4px;
+}
+
+.cart-count {
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 12px;
+    margin-left: 4px;
 }
 
 /* ── 最近看過商品區塊 ── */
@@ -846,52 +855,59 @@ body {
 }
 
 
-/* ✨ 新增/修改：上方選單優惠活動下拉式徽章                   活動的CSS  */ 
+/* ✨ 新增/修改：上方選單優惠活動下拉式徽章                   活動的CSS  */
 
 
 .activity-nav-dropdown {
-  position: relative; /* 確保下拉選單能相對於父層定位 */
-  list-style: none;
-  display: flex;
-  align-items: center;
+    position: relative;
+    /* 確保下拉選單能相對於父層定位 */
+    list-style: none;
+    display: flex;
+    align-items: center;
 }
 
 /* 標題樣式：讓按鈕的樣式與文字回歸自然，禁用點擊手勢 */
 .activity-hover-toggle {
-  cursor: default !important; /* 顯示預設游標，表示不可點擊 */
-  display: flex;
-  align-items: center;
-  transition: color 0.2s;
-  padding: 0 10px; /* 與左右選單對齊 */
-  /* 這裡不設定 background-color，會繼承 nav-menu-link 的透明背景 */
+    cursor: default !important;
+    /* 顯示預設游標，表示不可點擊 */
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    padding: 0 10px;
+    /* 與左右選單對齊 */
+    /* 這裡不設定 background-color，會繼承 nav-menu-link 的透明背景 */
 }
 
 /* 下拉選單容器：將 Bootstrap 預設隱藏改為可控 */
 .dropdown-menu-hover {
-  display: none; /* 預設隱藏 */
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 0;
-  border-radius: 8px;
-  z-index: 1000;
-  border: none;
-  background-color: #ffffff; /* 確保選單背景是純白 */
+    display: none;
+    /* 預設隱藏 */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0;
+    border-radius: 8px;
+    z-index: 1000;
+    border: none;
+    background-color: #ffffff;
+    /* 確保選單背景是純白 */
 }
 
 /* 核心觸發機制：滑鼠移入父元素時，顯示子選單 */
 .activity-nav-dropdown:hover .dropdown-menu-hover {
-  display: block;
+    display: block;
 }
 
 /* 下拉選單內的文字：預設黑色 */
 .dropdown-menu-hover .dropdown-item {
-  color: #212529 !important; /* 強制黑色字體 */
-  padding: 8px 20px;
+    color: #212529 !important;
+    /* 強制黑色字體 */
+    padding: 8px 20px;
 }
 
 /* 滑鼠移入子項目時的顏色反饋 */
 .dropdown-menu-hover .dropdown-item:hover {
-  background-color: #fff5f5;
-  color: #dc3545 !important; /* 移入時才變紅 */
+    background-color: #fff5f5;
+    color: #dc3545 !important;
+    /* 移入時才變紅 */
 }
