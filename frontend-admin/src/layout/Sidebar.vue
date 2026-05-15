@@ -66,6 +66,7 @@
       <span>訂單管理</span>
     </el-menu-item>
 
+
     <el-sub-menu index="beauty-group">
       <template #title>
         <el-icon>
@@ -108,6 +109,7 @@ import {
   PriceTag,
   UserFilled,
   MagicStick,
+  ChatLineSquare,
 } from '@element-plus/icons-vue'
 import { useProductStore } from '@/stores/product'
 

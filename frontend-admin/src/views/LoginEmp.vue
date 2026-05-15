@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import Swal from 'sweetalert2'
 import { useEmployeeStore } from '@/stores/employee'
 import { useRouter } from 'vue-router'
+import '@/assets/css/LoginEmp.css'
+
 
 const employeeStore = useEmployeeStore();
 const router = useRouter();
@@ -28,9 +30,15 @@ const login = async () => {
         const data = await res.json()
         employeeStore.login(data.token)
 
+        const roles = employeeStore.roles || []
+        if(roles.length === 0){
+            Swal.fire({ icon: 'warning', title: '警告', text: '您的帳號尚未設定角色，請聯繫管理員' })
+            return
+        }
+
         Swal.fire({ icon: 'success', title: '登入成功', text: '歡迎回來！' })
             .then(() => {
-                router.push('/admin/dashboard') // ✅ 建議加斜線，避免路由錯誤
+                router.push('/admin/dashboard') 
             })
     } catch (err) {
         Swal.fire({ icon: 'error', title: '錯誤', text: err.message })
@@ -45,11 +53,11 @@ const login = async () => {
             <form @submit.prevent="login">
                 <div class="input-box">
                     <input type="text" v-model="username" placeholder="帳號" required />
-                    <i class="fas fa-user"></i>
+                    <i class="fa-solid fa-user"></i>
                 </div>
                 <div class="input-box">
                     <input type="password" v-model="password" placeholder="密碼" required />
-                    <i class="fas fa-lock"></i>
+                    <i class="fa-solid fa-lock"></i>
                 </div>
                 <div class="remember-forgot">
                     <label><input type="checkbox" /> 記住我</label>

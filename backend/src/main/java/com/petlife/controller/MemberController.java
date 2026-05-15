@@ -17,16 +17,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 
 import com.petlife.model.Member;
+import com.petlife.repository.ForgotPasswordRequset;
 import com.petlife.repository.GoogleUserInfo;
 import com.petlife.repository.LoginRequest;
 import com.petlife.repository.MemberUpdateRequest;
 import com.petlife.repository.RegisterRequest;
+import com.petlife.repository.ResetPasswordRequest;
 import com.petlife.repository.SetPasswordRequest;
 import com.petlife.service.GoogleAuthService;
 import com.petlife.service.IMemberService;
@@ -191,6 +194,39 @@ public class MemberController {
 	    String token = JwtUtils.generateToken(member.getMemberId(), false);
 
 	    return ResponseEntity.ok(token);
+	}
+	
+	
+	//寄忘記密碼連結
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequset requset){
+		
+		try {
+			memberService.forgotPassword(requset.getEmail());
+			
+			return ResponseEntity.ok("重設密碼連結已寄出");
+		}catch (IllegalArgumentException e) {
+			
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+			
+		}
+		
+	}
+	
+	//忘記密碼
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request){
+		
+		try {
+			memberService.resetPassword(request.getToken(), request.getNewPassword());
+			
+			return ResponseEntity.ok("密碼重設成功");
+		}catch (IllegalArgumentException e) {
+			
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+			
+		}
+		
 	}
 	
 	

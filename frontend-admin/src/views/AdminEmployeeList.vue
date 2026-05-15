@@ -90,7 +90,15 @@ const addForm = ref({
     emergnecyPhone: ''
 })
 
-
+const fillRegisterDemo = () =>{
+    addForm.value.username = 'marylin'
+    addForm.value.passwordHash = '123'
+    addForm.value.empName = '瑪莉琳'
+    addForm.value.empPhone = '0912345678'
+    addForm.value.empAddress = '台北市信義區松仁路123號'
+    addForm.value.emergencyContact = '張小明'
+    addForm.value.emergencyPhone = '0987654321'
+}
 
 const openAddModal = () => {
     addForm.value = {
@@ -359,7 +367,7 @@ onMounted(() => {
                     <input v-else v-model="keyword" type="text" class="form-control w-auto" placeholder="請輸入搜尋內容"
                         @input="handleKeywordInput" />
                     <button class="btn btn-primary" @click="searchEmployees">搜尋</button>
-                    <button v-if="isSuperUser" class="btn btn-success" @click="openAddModal"> + 新增員工</button>
+                    <button v-if="isSuperUser" class="btn  btn-orange-action" @click="openAddModal"> + 新增員工</button>
                 </div>
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
@@ -439,7 +447,7 @@ onMounted(() => {
                         <input v-model="roleForm.description" type="text" class="form-control" placeholder="請輸入角色說明" />
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @click="submitRole">{{ isRoleEditing ? '儲存修改' : '新增角色'
+                        <button class="btn btn-orange-action" @click="submitRole">{{ isRoleEditing ? '儲存修改' : '新增角色'
                         }}</button>
                         <button v-if="isRoleEditing" class="btn btn-secondary" @click="resetRoleForm">取消修改</button>
                     </div>
@@ -573,8 +581,9 @@ onMounted(() => {
                             </div>
                         </div>
                         <div class="modal-footer">
+                            <button type="button" @click="fillRegisterDemo" class="btn btn-orange-action">一鍵輸入</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="submit" class="btn btn-success">新增員工</button>
+                            <button type="submit" class="btn btn-orange-action">新增員工</button>
                         </div>
                     </form>
                 </div>
@@ -693,5 +702,11 @@ onMounted(() => {
 }
 .employee-card:hover {
     transform: translateY(-2px);
+}
+.btn-orange-action {
+    background-color: #FF9800;
+    color: white;
+    border: none;
+    font-weight: bold;
 }
 </style>

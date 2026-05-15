@@ -12,6 +12,7 @@ import ProductDetailView from '@/views/ProductDetailView.vue'
 import PetListView from '@/views/PetListView.vue'
 import AddPetView from '@/views/AddPetView.vue'
 import { useUserStore } from '@/stores/user'
+import HeartView from '@/views/HeartView.vue'
 
 const routes = [
   {
@@ -42,6 +43,11 @@ const routes = [
         path: 'beauty-booking/appointments/:appointmentId',
         name: 'BeautyAppointmentDetail',
         component: () => import('@/views/BeautyAppointmentDetailView.vue'),
+      },
+      {
+        path: '/heart',
+        name: 'heart',
+        component: HeartView,
         meta: { requiresAuth: true },
       },
     ],
@@ -112,6 +118,22 @@ const routes = [
     name: 'SetPassword',
     component: () => import('@/views/SetPassword.vue'),
   },
+  {
+    // 會員中心
+    path: '/member/center',
+    name: 'MemberCenter',
+    component: MemberCenter,
+    children: [
+      { path: 'profile', component: ProfileView },
+      { path: 'pets', component: PetListView },
+      { path: 'pets/add', component: AddPetView },
+    ],
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue')
+  }
 ]
 
 const router = createRouter({

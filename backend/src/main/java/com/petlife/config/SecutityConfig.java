@@ -18,7 +18,7 @@ public class SecutityConfig {
 					.requestMatchers("/images/**").permitAll()
 					.requestMatchers("/api/admin/**").permitAll()
 					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
-					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2
+					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2 	
 	                .requestMatchers("/api/member/me").permitAll()
 	                .requestMatchers("/api/beauty/**").permitAll()
 	                .requestMatchers("/api/categories", "/api/categories/**").permitAll() 
@@ -32,6 +32,8 @@ public class SecutityConfig {
 	                .requestMatchers("/api/productorders/**").permitAll()
 	                .requestMatchers("/api/order/**").permitAll()
 	                .requestMatchers("/api/history/**").permitAll()
+	                .requestMatchers("/api/heart/**").permitAll()
+	                .requestMatchers("/api/chat/**").permitAll()
 	                
 					.anyRequest().authenticated()
 					);

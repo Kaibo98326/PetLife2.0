@@ -85,9 +85,14 @@ const routes = [
         path: 'beauty/schedules',
         name: '班表管理',
         component: () => import('@/views/AdminBeautySchedules.vue')
-      }
-    ]
-  }
+      },
+      {
+        path: 'chat-support',
+        name: '客服中心',
+        component: () => import('@/views/AdminChatSupport.vue'),
+      },
+    ],
+  },
 ]
 
 const router = createRouter({
