@@ -165,6 +165,7 @@ const handleRemove = async (productId) => {
       await axios.delete('/heart/remove', { params: { memberId: userStore.memberId, productId } })
       favoriteList.value = favoriteList.value.filter((i) => i.product.productId !== productId)
     } catch (err) {
+      console.error(err)
       Swal.fire('錯誤', '操作失敗', 'error')
     }
   }
@@ -183,6 +184,7 @@ const addToCart = async (product) => {
     if (userStore.updateCartCount) userStore.updateCartCount()
     Swal.fire({ icon: 'success', title: '已加入購物車', timer: 1000, showConfirmButton: false })
   } catch (e) {
+    console.error(e)
     Swal.fire({ icon: 'error', title: '加入失敗' })
   }
 }
