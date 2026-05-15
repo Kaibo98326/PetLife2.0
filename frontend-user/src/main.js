@@ -19,6 +19,10 @@ const userStore = useUserStore()
 
 await userStore.initFromLocalStorage()
 
+// 強制將購物車數量歸零，避免看到上一個人的紀錄
+if (!userStore.token) {
+  userStore.cartCount = 0
+}
 
 app.use(router)
 

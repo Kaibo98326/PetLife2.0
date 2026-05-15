@@ -52,6 +52,7 @@ public class CartService {
 
 		// 用真實的價格與名稱覆蓋掉前端傳來的不明數值
 		BigDecimal realPrice = realProduct.getProductPrice();
+		newItem.setProduct(realProduct);
 		newItem.setProductPrice(realPrice);
 		newItem.setProductName(realProduct.getProductName());
 		// ---------------------------------------
@@ -60,7 +61,7 @@ public class CartService {
 			newItem.setDiscountAmount(BigDecimal.ZERO);
 		}
 
-		List<CartItem> items = cir.findByCartId(cartId);
+		List<CartItem> items = cir.findByCartIdWithProduct(cartId);
 		Optional<CartItem> existingItem = items.stream().filter(i -> i.getProductId().equals(newItem.getProductId()))
 				.findFirst();
 
