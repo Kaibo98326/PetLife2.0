@@ -33,4 +33,9 @@ public interface IMemberService {
 	    
 	    //google帳號登入初次修改密碼
 	    Member setPassword(Integer memberId, String newpassword);
+	    
+	    //忘記密碼
+	    void resetPassword(String token,String newPassword);
+	    
+	    void forgotPassword(String email);
 }

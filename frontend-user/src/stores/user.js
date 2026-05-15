@@ -1,6 +1,7 @@
 // src/stores/user.js
 import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
+import Swal from 'sweetalert2'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -42,6 +43,13 @@ export const useUserStore = defineStore('user', {
       this.user = null
       this.cartCount = 0
       localStorage.removeItem('jwtToken')
+      Swal.fire({
+            icon: 'success',
+            title: '登出成功',
+            text: '歡迎下次再來!'
+        }).then(() => {
+                router.push('/')
+            })
     },
     async initFromLocalStorage() {
       const token = localStorage.getItem('jwtToken')

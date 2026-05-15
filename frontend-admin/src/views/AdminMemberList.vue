@@ -120,6 +120,27 @@ const addForm = reactive({
     address: ''
 });
 
+const fillMemberDemo = () => {
+    const randomNum = Math.floor(Math.random() * 90000) + 10000
+
+    addForm.memberName = '簡志豪'
+    addForm.email = `demo${randomNum}@gmail.com`
+    addForm.password = '123'
+
+    addForm.phone =
+        '09' + Math.floor(Math.random() * 100000000)
+            .toString()
+            .padStart(8, '0')
+
+    addForm.address = '台北市信義區信義路7號'
+
+    emailAvailable.value = true
+    phoneAvailable.value = true
+
+    emailCheckResult.value = '✓ Demo Email'
+    phoneCheckResult.value = '✓ Demo 電話'
+}
+
 const openAddModal = () => {
     addForm.memberName = ''
     addForm.email = ''
@@ -360,7 +381,7 @@ onMounted(loadMembers)
                 </select>
                 <button class="btn btn-orange-action" @click="searchMembers">搜尋</button>
                 <button class="btn btn-orange-secondary" @click="resetSearch">重置</button>
-                <button class="btn btn-success" @click="openAddModal">+新增會員</button>
+                <button class="btn btn-orange-action" @click="openAddModal">+新增會員</button>
             </div>
         </div>
         <div class="admin-table-container shadow-sm">
@@ -412,7 +433,7 @@ onMounted(loadMembers)
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">新增會員</h5>
+                        <h5 class="modal-title ">新增會員</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <form @submit.prevent="submitAddMember">
@@ -446,7 +467,8 @@ onMounted(loadMembers)
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="submit" class="btn btn-success">新增會員</button>
+                            <button type="button" @click="fillMemberDemo" class="btn btn-orange-action">一鍵輸入</button>
+                            <button type="submit" class="btn btn-orange-action">新增會員</button>
                         </div>
                     </form>
                 </div>

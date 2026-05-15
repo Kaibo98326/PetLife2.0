@@ -66,6 +66,18 @@ const addForm = ref({
 const addFile = ref(null)
 const addPreviewUrl = ref(null)
 
+const fillAddDemo = () => {
+    addForm.value = {
+        memberId: 201,
+        petName: '小白',
+        species: '貓',
+        breed: '布偶貓',
+        age: 3,
+        weight: 7.5,
+        medicalHistory: '無重大疾病紀錄'
+    }
+}
+
 const openAddModal = () => {
     addForm.value = {
         memberId: '',
@@ -206,7 +218,7 @@ onMounted(() => {
         <div class="card shadow-sm p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">寵物管理</h4>
-                <button class="btn btn-success" @click="openAddModal"> + 新增寵物</button>
+                <button class="btn btn-orange-action" @click="openAddModal"> + 新增寵物</button>
             </div>
             <div class="d-flex gap-2 mb-3">
                 <select v-model="searchType" class="form-select w-auto" @change="changeSearchType">
@@ -221,7 +233,7 @@ onMounted(() => {
                     </option>
                 </select>
                 <input v-else v-model="keyword" type="text" class="form-control w-auto" placeholder="請輸入搜尋內容" />
-                <button class="btn btn-primary" @click="searchPets">搜尋</button>
+                <button class="btn btn-orange-action" @click="searchPets">搜尋</button>
             </div>
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -324,8 +336,9 @@ onMounted(() => {
                             </div>
                         </div>
                         <div class="modal-footer">
+                            <button type="button" @click="fillAddDemo" class="btn btn-orange-action" >一鍵輸入</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="submit" class="btn btn-success"> 新增寵物</button>
+                            <button type="submit" class="btn btn-orange-action"> 新增寵物</button>
                         </div>
                     </form>
                 </div>
@@ -390,7 +403,7 @@ onMounted(() => {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="submit" class="btn btn-primary">儲存修改</button>
+                            <button type="submit" class="btn btn-orange-action">儲存修改</button>
                         </div>
                     </form>
                 </div>
@@ -413,5 +426,11 @@ onMounted(() => {
     object-fit: cover;
     border-radius: 12px;
     border: 1px solid #ddd;
+}
+.btn-orange-action {
+    background-color: #FF9800;
+    color: white;
+    border: none;
+    font-weight: bold;
 }
 </style>

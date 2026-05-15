@@ -189,7 +189,7 @@ async function addToCart() {
   }
 
   try {
-    await axios.post(`/api/cart/add/${userStore.memberId}`, {
+    await axios.post(`/cart/add/${userStore.memberId}`, {
       productId: product.value.productId,
       quantity: quantity.value
     })

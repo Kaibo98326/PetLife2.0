@@ -30,8 +30,18 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-
-      
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: petlifetest123@gmail.com
+    password: bfpt wkcr aaqe essi
+    
+    properties:
+      mail:
+       smtp:
+        auth: true
+        starttls:
+          enable: true
 
 server:
   port: 8082

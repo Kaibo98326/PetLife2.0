@@ -5,13 +5,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.petlife.model.Member;
+import com.petlife.model.PasswordResetToken;
 import com.petlife.repository.LoginRequest;
 import com.petlife.repository.MemberRepository;
 import com.petlife.repository.MemberUpdateRequest;
+import com.petlife.repository.PasswordResetTokenRepository;
 import com.petlife.repository.RegisterRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,10 @@ public class MemberService implements IMemberService{
 	private final MemberRepository memberRepos;
 	
 	private final JwtUtils jwtUtils;
+	
+	private final MailService mailService;
+	
+	private final PasswordResetTokenRepository passwordResetTokenRepository;
 	
 	//註冊
 	@Override
@@ -107,7 +114,7 @@ public class MemberService implements IMemberService{
 		
 		//檢查電話
 		memberRepos.findByPhone(req.getPhone())
-					.filter(m -> !m.getPhone().equals(req.getPhone()))
+					.filter(m -> !m.getMemberId().equals(req.getMemberId()))
 					.ifPresent(m ->{throw new IllegalArgumentException("此電話已被使用");});
 		
 		//可修改欄位
@@ -119,10 +126,7 @@ public class MemberService implements IMemberService{
 			member.setPasswordHash(PasswordUtils.hashPassword(req.getPassword()));
 		}
 		
-		if(member.getProvider() != null && member.getProviderUserId() != null) {
-			member.setProvider(req.getProvider());
-			member.setProviderUserId(req.getProviderUserId());
-		}
+	
 		// 4/29更新使用者大頭貼功能
 		if(req.getUserImage() != null && !req.getUserImage().isEmpty()) {
 			member.setUserImage(req.getUserImage());
@@ -180,6 +184,62 @@ public class MemberService implements IMemberService{
 		return memberRepos.save(member);
 	}
 	
+	
+	@Override
+	public void forgotPassword(String email) {
+		Member member = memberRepos.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("查無此 Eamil"));
+		
+		//產生token
+		String token = UUID.randomUUID().toString();
+		
+		PasswordResetToken resetToken = new PasswordResetToken();
+		
+		resetToken.setMember(member);
+		
+		resetToken.setToken(token);
+		
+		resetToken.setExpireAt(LocalDateTime.now().plusMinutes(5));
+		
+		resetToken.setUsed(false);
+		
+		passwordResetTokenRepository.save(resetToken);
+		
+		//前端重設頁面
+		
+		String resetLink = "http://localhost:5173/reset-password?token=" + token;
+		
+		
+		//寄信
+		mailService.sendResetPasswordEmail(member.getEmail(), resetLink);
+		
+		
+	}
+	
+	public void resetPassword(String token, String newPassword){
+		
+		PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+				.orElseThrow(() -> new IllegalArgumentException("無效連結"));
+		
+		
+		//連結已使用
+		if(resetToken.getUsed()) {
+			throw new IllegalArgumentException("連結已使用");
+		}
+		
+		Member member = resetToken.getMember();
+		
+		member.setPasswordHash(PasswordUtils.hashPassword(newPassword));
+		
+		memberRepos.save(member);
+		
+		
+		resetToken.setUsed(true);
+		
+		passwordResetTokenRepository.save(resetToken);
+		
+		
+	}
 	
 	
 	
