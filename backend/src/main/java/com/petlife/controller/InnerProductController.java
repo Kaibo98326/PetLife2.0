@@ -15,9 +15,23 @@ import com.petlife.model.Product;
 import com.petlife.service.CategoryService;
 import com.petlife.service.ProductService;
 
+import org.springframework.beans.propertyeditors.CustomNumberEditor;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+import java.math.BigDecimal;
+
 @RestController 
 @RequestMapping("/api/products") 
 public class InnerProductController {
+
+    // 修正 @ModelAttribute 綁定 Integer/BigDecimal 欄位時遇到 null 拋出 NumberFormatException 的問題
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        binder.registerCustomEditor(Integer.class, new CustomNumberEditor(Integer.class, true));
+        binder.registerCustomEditor(Long.class, new CustomNumberEditor(Long.class, true));
+        binder.registerCustomEditor(Double.class, new CustomNumberEditor(Double.class, true));
+        binder.registerCustomEditor(BigDecimal.class, new CustomNumberEditor(BigDecimal.class, true));
+    }
 
     @Autowired
     private ProductService productService;
@@ -97,6 +111,11 @@ public class InnerProductController {
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "extraFiles", required = false) MultipartFile[] extraFiles) {
         try {
+            // 防呆：如果沒傳 ID，直接報錯，避免後續 findById(null) 導致 500
+            if (product.getProductId() == null) {
+                return ResponseEntity.badRequest().body("fail: Missing product ID");
+            }
+
             // 先從資料庫取出原始物件
             Product existingProduct = productService.getProductById(product.getProductId());
             if (existingProduct == null) {
@@ -106,17 +125,14 @@ public class InnerProductController {
             // 處理分類：只有在真的有傳送新的 categoryIds 時才更新關聯
             if (categoryIds != null) {
                 existingProduct.setCategoryIds(categoryIds);
-            } else {
-                // 如果前端沒傳 categoryIds，我們絕對不準動到現有的 categories
-                // 這裡什麼都不做，保留 existingProduct 原本的 categories
             }
 
             // 更新其他基本欄位
             existingProduct.setProductName(product.getProductName());
             existingProduct.setProductPrice(product.getProductPrice());
             existingProduct.setProductStock(product.getProductStock());
-            existingProduct.setLowStock(product.getLowStock()); // 補上這行
-            existingProduct.setStoragePosition(product.getStoragePosition()); // 補上這行
+            existingProduct.setLowStock(product.getLowStock());
+            existingProduct.setStoragePosition(product.getStoragePosition());
             existingProduct.setProductDescription(product.getProductDescription());
             existingProduct.setProductStatus(product.getProductStatus());
 

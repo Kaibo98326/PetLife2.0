@@ -117,8 +117,8 @@ const IMG_BASE = 'http://localhost:8082'
 
 /** 組合商品圖片完整 URL */
 function getImageUrl(imagePath) {
-  if (!imagePath || imagePath === 'default_product.jpg') {
-    return `${IMG_BASE}/images/products/default_product.jpg`
+  if (!imagePath || imagePath === 'default.jpg' || imagePath === 'default_product.jpg') {
+    return `${IMG_BASE}/images/products/default.jpg`
   }
   return `${IMG_BASE}/${imagePath}`
 }
