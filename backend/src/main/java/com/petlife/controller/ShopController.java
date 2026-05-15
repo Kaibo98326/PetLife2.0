@@ -60,18 +60,22 @@ public class ShopController {
         Page<Product> productPage;
 
         if (categoryId != null && categoryId != 0) {
-            // 【分類篩選】(僅查上架)
-            productPage = productService.getActiveProductsByCategory(categoryId, pageable);
+            // ✨ 補回：判斷是否為活動標籤
+            Category category = categoryService.getCategoryById(categoryId);
+            if (category != null && category.getCategoryType() == 3) {
+                // 是活動標籤：走自動跳轉邏輯
+                productPage = productService.getProductsByActivityTag(categoryId, pageable);
+            } else {
+                // 一般分類：走組員新寫的 getActiveProductsByCategory
+                productPage = productService.getActiveProductsByCategory(categoryId, pageable);
+            }
         } else {
-            // 【關鍵字搜尋 / 全部商品】(僅查上架)
             productPage = productService.searchActiveProducts(keyword.trim(), pageable);
-            
-            // 【新增】紀錄熱門關鍵字
+            // ✨ 保留：組員新增的熱門關鍵字紀錄
             if (keyword != null && !keyword.trim().isEmpty()) {
                 searchKeywordService.recordKeyword(keyword);
             }
         }
-
         // 直接取得資料庫回傳的已上架商品
         List<Product> activeProducts = productPage.getContent();
         

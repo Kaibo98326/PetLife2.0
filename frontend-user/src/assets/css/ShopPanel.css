@@ -844,3 +844,54 @@ body {
     color: var(--brand-red);
     font-weight: 700;
 }
+
+
+/* ✨ 新增/修改：上方選單優惠活動下拉式徽章                   活動的CSS  */ 
+
+
+.activity-nav-dropdown {
+  position: relative; /* 確保下拉選單能相對於父層定位 */
+  list-style: none;
+  display: flex;
+  align-items: center;
+}
+
+/* 標題樣式：讓按鈕的樣式與文字回歸自然，禁用點擊手勢 */
+.activity-hover-toggle {
+  cursor: default !important; /* 顯示預設游標，表示不可點擊 */
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+  padding: 0 10px; /* 與左右選單對齊 */
+  /* 這裡不設定 background-color，會繼承 nav-menu-link 的透明背景 */
+}
+
+/* 下拉選單容器：將 Bootstrap 預設隱藏改為可控 */
+.dropdown-menu-hover {
+  display: none; /* 預設隱藏 */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  border-radius: 8px;
+  z-index: 1000;
+  border: none;
+  background-color: #ffffff; /* 確保選單背景是純白 */
+}
+
+/* 核心觸發機制：滑鼠移入父元素時，顯示子選單 */
+.activity-nav-dropdown:hover .dropdown-menu-hover {
+  display: block;
+}
+
+/* 下拉選單內的文字：預設黑色 */
+.dropdown-menu-hover .dropdown-item {
+  color: #212529 !important; /* 強制黑色字體 */
+  padding: 8px 20px;
+}
+
+/* 滑鼠移入子項目時的顏色反饋 */
+.dropdown-menu-hover .dropdown-item:hover {
+  background-color: #fff5f5;
+  color: #dc3545 !important; /* 移入時才變紅 */
+}
