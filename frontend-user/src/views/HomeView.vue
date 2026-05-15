@@ -323,18 +323,22 @@ async function toggleHeart(product) {
     return
   }
 
+  const pId = Number(product.productId)
+
   try {
     const res = await axios.post('/heart/toggle', null, {
       params: {
         memberId: userStore.memberId,
-        productId: product.productId,
+        productId: pId,
       },
     })
 
-    if (res.data.includes('已加入')) {
-      favoriteProducts.value.push(product.productId)
+    if (res.data.includes('加入') || res.data.includes('收藏成功')) {
+      if (!favoriteProducts.value.includes(pId)) {
+        favoriteProducts.value.push(pId)
+      }
     } else {
-      favoriteProducts.value = favoriteProducts.value.filter((id) => id !== product.productId)
+      favoriteProducts.value = favoriteProducts.value.filter((id) => id !== pId)
     }
 
     Swal.fire({
@@ -352,6 +356,23 @@ async function toggleHeart(product) {
       title: '操作失敗',
       text: '請稍後再試',
     })
+  }
+}
+/* 抓取目前會員已收藏的所有商品 ID */
+async function fetchFavoriteIds() {
+  if (!userStore.memberId) return
+  try {
+    const res = await axios.get('/heart/list', {
+      params: {
+        memberId: userStore.memberId,
+      },
+    })
+    console.log('✅ 成功抓取收藏資料:', res.data)
+    if (Array.isArray(res.data)) {
+      favoriteProducts.value = res.data.map((item) => Number(item.productId))
+    }
+  } catch (e) {
+    console.error('❌ 抓取失敗，請確認參數格式:', e)
   }
 }
 
@@ -394,6 +415,13 @@ onMounted(async () => {
   // 更新購物車數量
   if (userStore.token && userStore.memberId) {
     userStore.updateCartCount()
+  }
+  // 同步愛心狀態
+  if (userStore.token && userStore.memberId) {
+    console.log('✅ 偵測到會員登入，開始同步私有資料...')
+    await Promise.all([userStore.updateCartCount(), fetchFavoriteIds()])
+  } else {
+    console.log('ℹ️ 當前為訪客模式')
   }
 
   await fetchProducts(1)
@@ -725,7 +753,9 @@ onMounted(async () => {
                       <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
                         <i
                           :class="
-                            favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'
+                            favoriteProducts.some((id) => Number(id) === Number(p.productId))
+                              ? 'fas fa-heart'
+                              : 'far fa-heart'
                           "
                         ></i>
                       </button>
