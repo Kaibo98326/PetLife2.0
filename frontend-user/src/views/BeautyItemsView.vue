@@ -10,7 +10,24 @@ const loading = ref(false)
 
 const activeItems = computed(() => items.value.filter(item => item.isActive !== false))
 
+const beautyImageMap = {
+  '精緻小美容': '/images/beauty/Little_beauty.jpg',
+  '精緻大美容': '/images/beauty/Total_Beauty.jpg',
+  '膠原蛋白酵素養護': '/images/beauty/collagen.jpg',
+  '頂級純氧牛奶SPA': '/images/beauty/top_milk.jpg',
+  '法國玫瑰活膚SPA': '/images/beauty/Rose.jpg',
+  '冰河淨膚排毛泥SPA': '/images/beauty/lint.jpg',
+  '泡泡雲朵去油調理霜SPA': '/images/beauty/bubble_clouds.jpg',
+}
+
+const beautyImagePositionMap = {
+  '膠原蛋白酵素養護': 'center 30%',
+}
+
 const formatMoney = value => `$${Number(value || 0).toLocaleString()}`
+
+const beautyImageUrl = item => beautyImageMap[item.itemName?.trim()] || '/images/beauty/dafault.jpg'
+const beautyImagePosition = item => beautyImagePositionMap[item.itemName?.trim()] || 'center center'
 
 const priceText = item => {
   const prices = item.prices || []
@@ -54,8 +71,7 @@ onMounted(loadItems)
   <main class="beauty-page container py-4">
     <div class="beauty-heading">
       <div>
-        <h2>寵物美容預約</h2>
-        <p>選擇服務後進入預約頁，系統會依寵物資料、日期與美容師排班顯示可預約時段。</p>
+        <h2>服務項目</h2>
       </div>
       <button class="btn btn-outline-secondary" @click="loadItems">
         <i class="fas fa-rotate-right me-1"></i>重新整理
@@ -73,9 +89,12 @@ onMounted(loadItems)
     <div v-else class="row g-3">
       <div v-for="item in activeItems" :key="item.beautyId" class="col-md-6 col-xl-4">
         <article class="beauty-item-card">
-          <div class="beauty-item-icon">
-            <i class="fas fa-bath"></i>
-          </div>
+          <img
+            class="beauty-item-image"
+            :src="beautyImageUrl(item)"
+            :alt="item.itemName"
+            :style="{ objectPosition: beautyImagePosition(item) }"
+          />
           <div class="beauty-item-body">
             <h3>{{ item.itemName }}</h3>
             <p>{{ item.itemDescription || '專業美容師依照寵物狀況提供服務。' }}</p>
@@ -134,15 +153,12 @@ onMounted(loadItems)
   box-shadow: 0 8px 20px rgba(82, 60, 42, 0.08);
 }
 
-.beauty-item-icon {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
+.beauty-item-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
   border-radius: 8px;
-  background: #fff3df;
-  color: #d78021;
-  font-size: 22px;
+  background: #f8f2ec;
 }
 
 .beauty-item-body {

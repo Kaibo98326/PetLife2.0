@@ -43,7 +43,24 @@ const canSubmit = computed(() => {
       && selectedBeautyIds.value.length > 0
 })
 
+const beautyImageMap = {
+  '精緻小美容': '/images/beauty/Little_beauty.jpg',
+  '精緻大美容': '/images/beauty/Total_Beauty.jpg',
+  '膠原蛋白酵素養護': '/images/beauty/collagen.jpg',
+  '頂級純氧牛奶SPA': '/images/beauty/top_milk.jpg',
+  '法國玫瑰活膚SPA': '/images/beauty/Rose.jpg',
+  '冰河淨膚排毛泥SPA': '/images/beauty/lint.jpg',
+  '泡泡雲朵去油調理霜SPA': '/images/beauty/bubble_clouds.jpg',
+}
+
+const beautyImagePositionMap = {
+  '膠原蛋白酵素養護': 'center 30%',
+}
+
 const formatMoney = value => `$${Number(value || 0).toLocaleString()}`
+
+const beautyImageUrl = item => beautyImageMap[item.itemName?.trim()] || '/images/beauty/dafault.jpg'
+const beautyImagePosition = item => beautyImagePositionMap[item.itemName?.trim()] || 'center center'
 
 const itemPriceText = item => {
   const prices = item.prices || []
@@ -236,6 +253,12 @@ onMounted(loadBaseData)
           <div class="item-check-list">
             <label v-for="item in items" :key="item.beautyId" class="item-check">
               <input v-model="selectedBeautyIds" type="checkbox" :value="item.beautyId" />
+              <img
+                class="item-check-image"
+                :src="beautyImageUrl(item)"
+                :alt="item.itemName"
+                :style="{ objectPosition: beautyImagePosition(item) }"
+              />
               <span>
                 <strong>{{ item.itemName }}</strong>
                 <small>{{ Number(item.durationSlots || 0) * 30 }} 分鐘 / {{ itemPriceText(item) }}</small>
@@ -367,11 +390,20 @@ onMounted(loadBaseData)
 .item-check {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
   padding: 12px;
   border: 1px solid #eee3da;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.item-check-image {
+  width: 72px;
+  height: 56px;
+  flex: 0 0 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f8f2ec;
 }
 
 .item-check small {

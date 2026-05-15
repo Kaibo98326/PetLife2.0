@@ -12,6 +12,16 @@ const loading = ref(false)
 const details = computed(() => appointment.value?.details || [])
 const totalAmount = computed(() => `$${Number(appointment.value?.totalAmount || 0).toLocaleString()}`)
 const totalMinutes = computed(() => Number(appointment.value?.totalSlots || 0) * 30)
+const isOrderHistoryDetail = computed(() => route.name === 'prettyOrderDetail')
+const backButtonText = computed(() => (isOrderHistoryDetail.value ? '返回美容訂單' : '返回美容項目'))
+
+const goBack = () => {
+  router.push(isOrderHistoryDetail.value ? '/orderhistory/prettyorders' : '/beauty-booking')
+}
+
+const goBeautyOrders = () => {
+  router.push({ name: 'prettyorders' })
+}
 
 const loadAppointment = async () => {
   loading.value = true
@@ -20,7 +30,7 @@ const loadAppointment = async () => {
     appointment.value = res.data
   } catch (err) {
     console.log(err)
-    Swal.fire('讀取失敗', err.response?.data?.message || '預約明細讀取失敗', 'error')
+    Swal.fire('讀取失敗', err.response?.data?.message || '美容預約詳情讀取失敗', 'error')
   } finally {
     loading.value = false
   }
@@ -33,12 +43,9 @@ onMounted(loadAppointment)
   <main class="detail-page container py-4">
     <div class="detail-heading">
       <div>
-        <h2>美容預約明細</h2>
-        <p>如需取消或調整預約，請電話聯絡店家協助處理。</p>
+        <h2>預約明細</h2>
+        <p>訂單狀態</p>
       </div>
-      <button class="btn btn-outline-secondary" @click="router.push('/beauty-booking')">
-        回美容項目
-      </button>
     </div>
 
     <div v-if="loading" class="text-center py-5">
@@ -69,7 +76,7 @@ onMounted(loadAppointment)
           <strong>{{ appointment.startSlotName || appointment.startSlotId }}</strong>
         </div>
         <div>
-          <span>服務時間</span>
+          <span>總時長</span>
           <strong>{{ totalMinutes }} 分鐘</strong>
         </div>
         <div>
@@ -89,13 +96,27 @@ onMounted(loadAppointment)
         </div>
       </div>
 
+      <div class="detail-actions">
+        <button class="btn btn-outline-secondary" @click="goBack">
+          {{ backButtonText }}
+        </button>
+        <button v-if="!isOrderHistoryDetail" class="btn btn-warning" @click="goBeautyOrders">
+          查看美容訂單
+        </button>
+      </div>
+
       <div v-if="appointment.contactNote" class="detail-note">
         <span>備註</span>
         <p>{{ appointment.contactNote }}</p>
       </div>
 
+      <div v-if="appointment.cancelReason" class="detail-note">
+        <span>取消原因</span>
+        <p>{{ appointment.cancelReason }}</p>
+      </div>
+
       <div class="phone-note">
-        若需取消預約，請電話聯絡店家。
+        若需要調整預約內容，請聯繫店家協助處理。
       </div>
     </section>
   </main>
@@ -185,6 +206,49 @@ onMounted(loadAppointment)
   font-size: 14px;
 }
 
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #f0e7df;
+}
+
+.detail-actions .btn {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.detail-actions .btn-outline-secondary:hover,
+.detail-actions .btn-outline-secondary:focus-visible {
+  background: #6b5a50;
+  border-color: #6b5a50;
+  color: #fff;
+}
+
+.detail-actions .btn-warning:hover,
+.detail-actions .btn-warning:focus-visible {
+  background: #d78021;
+  border-color: #d78021;
+  color: #fff;
+}
+
+.detail-actions .btn:hover,
+.detail-actions .btn:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(82, 60, 42, 0.16);
+}
+
+.detail-actions .btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
 .detail-note {
   margin-top: 20px;
   padding: 14px;
@@ -207,7 +271,8 @@ onMounted(loadAppointment)
 
 @media (max-width: 768px) {
   .detail-heading,
-  .detail-status {
+  .detail-status,
+  .detail-actions {
     flex-direction: column;
   }
 

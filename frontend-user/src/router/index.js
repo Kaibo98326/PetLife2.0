@@ -80,6 +80,11 @@ const routes = [
         component: () => import('@/views/PrettyOrderView.vue'),
       },
       {
+        path: 'prettyorders/:appointmentId',
+        name: 'prettyOrderDetail',
+        component: () => import('@/views/BeautyAppointmentDetailView.vue'),
+      },
+      {
         path: 'stayorders',
         name: 'stayorders',
         component: () => import('@/views/StayOrderView.vue'),
