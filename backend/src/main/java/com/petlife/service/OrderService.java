@@ -78,14 +78,14 @@ public class OrderService {
 	private final String SERVICE_URL = "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
 
 	/**
-	 * ✨ 階段 2 修正：執行完整結帳邏輯，包含原子化扣點與綠界明細串接
+	 * 執行完整結帳邏輯，包含扣點與綠界明細串接
 	 */
 	@Transactional
 	public String processCheckout(Order order, Integer cartId) {
 		// 計算購物車總金額（原始金額）
 		BigDecimal totalAmount = or.getCartTotal(order.getMemberId());
 		
-		// ✨ 新增/修改：取得前端傳入的預計扣除點數
+		// 取得前端傳入的預計扣除點數
 		Integer pointsToUse = order.getUsedPoint() != null ? order.getUsedPoint() : 0;
 
 		// 預設最終付款金額 = 原始金額
@@ -152,13 +152,13 @@ public class OrderService {
 			System.out.println("警告: 折扣計算失敗 " + e.getMessage());
 		}
 
-		// ✨ 新增/修改：進一步扣除紅利點數 (1點 = NT$1)
+		// 進一步扣除紅利點數 (1點 = NT$1)
 		if (pointsToUse > 0) {
 			finalPaymentAmount = finalPaymentAmount.subtract(new BigDecimal(pointsToUse));
 			if (finalPaymentAmount.compareTo(BigDecimal.ZERO) < 0) finalPaymentAmount = BigDecimal.ZERO;
 		}
 
-		// ✨ 新增/修改：原子化扣除會員點數，若失敗則回滾
+		// 除會員點數，若失敗則回滾
 		if (pointsToUse > 0) {
 			int rowsAffected = memberRepository.deductBonusPoints(order.getMemberId(), pointsToUse);
 			if (rowsAffected == 0) {
@@ -167,7 +167,7 @@ public class OrderService {
 			}
 		}
 
-		// ✨ 新增/修改：獲取扣點後的最新餘額並存入訂單紀錄
+		// 獲取扣點後的最新餘額並存入訂單紀錄
 		Member currentMember = memberRepository.findById(order.getMemberId()).orElseThrow();
 		order.setRemainingPoint(currentMember.getBonusPoints());
 		order.setOrderTotal(finalPaymentAmount);
@@ -176,7 +176,7 @@ public class OrderService {
 		Order savedOrder = or.save(order);
 		Integer orderId = savedOrder.getOrderId();
 
-		// 2026-05-14 修正：取得 orderId 後，補上關聯並存入明細表
+		// 取得 orderId 後，補上關聯並存入明細表
 		if (!pendingOrderDiscounts.isEmpty()) {
 			for (OrderDiscount od : pendingOrderDiscounts) {
 				od.setOrderId(orderId);
@@ -187,7 +187,7 @@ public class OrderService {
 		// 轉移購物車資料到訂單明細
 		odr.transferCartToOrderDetails(orderId, order.getMemberId());
 
-		// --- 2026-05-14 18:12 修正：將折扣金額寫回 OrderDetail ---
+		// 將折扣金額寫回 OrderDetail ---
 		try {
 			List<OrderDetail> newlyCreatedDetails = odr.findByOrderBean_OrderId(orderId);
 			if (newlyCreatedDetails != null && !newlyCreatedDetails.isEmpty() && !pendingOrderDiscounts.isEmpty()) {
@@ -224,7 +224,7 @@ public class OrderService {
 	}
 
 	/**
-	 * ✨ 階段 2 修正：產出包含點數折抵明細的綠界跳轉表單
+	 * 產出包含點數折抵明細的綠界跳轉表單
 	 */
 	private String generateEcPayForm(Order order, String merchantTradeNo, BigDecimal finalAmount, List<DiscountDetailDTO> appliedDiscounts, Integer pointsUsed) {
 		Map<String, String> params = new TreeMap<>();
@@ -244,7 +244,7 @@ public class OrderService {
 			}
 		}
 		
-		// ✨ 新增/修改：在綠界項目清單中加入紅利折抵項目
+		// 在綠界項目清單中加入紅利折抵項目
 		if (pointsUsed != null && pointsUsed > 0) {
 			itemNameBuilder.append("#紅利點數折抵 -NT$").append(pointsUsed);
 		}
@@ -272,19 +272,19 @@ public class OrderService {
 	}
 
 	/**
-	 * ✨ 階段 2 修正：回傳結果包含最新會員資訊，供前端 Store 即時同步
+	 * 回傳結果包含最新會員資訊，供前端 Store 即時同步
 	 */
 	@Transactional
 	public Map<String, Object> processCheckoutAndReturnDetail(Order order, Integer cartId) {
 		String ecpayForm = processCheckout(order, cartId);
 
-		// ✨ 新增/修改：獲取扣點後的最新會員物件
+		// 獲取扣點後的最新會員物件
 		Member updatedMember = memberRepository.findById(order.getMemberId()).orElse(null);
 
 		Map<String, Object> response = new java.util.HashMap<>();
 		response.put("order", order);
 		response.put("form", ecpayForm);
-		response.put("member", updatedMember); // ✨ 新增：回傳會員物件
+		response.put("member", updatedMember); //回傳會員物件
 
 		return response;
 	}
@@ -423,6 +423,7 @@ public class OrderService {
                 useRecord.put("points", -order.getUsedPoint());
                 useRecord.put("balance", currentBalance);
                 useRecord.put("date", order.getOrderDate());
+                useRecord.put("orderStatus", order.getOrderStatus()); // ✨ 新增/修改：向前端傳遞訂單狀態以供連動顯示
                 history.add(useRecord);
 
                 // 2. 【退回紀錄】訂單取消後的紅利退回
@@ -435,15 +436,20 @@ public class OrderService {
                     refundRecord.put("points", order.getUsedPoint());
                     refundRecord.put("balance", currentBalance);
                     refundRecord.put("date", order.getOrderDate().plusSeconds(1)); // 避免同秒排序問題
+                    refundRecord.put("orderStatus", order.getOrderStatus()); // ✨ 新增/修改：向前端傳遞訂單狀態以供連動顯示
                     history.add(refundRecord);
                 }
             }
 
             // 3. 【獲取紀錄】訂單完成發放的紅利 (1%)
-            if ("已完成".equals(order.getOrderStatus()) && order.getOrderTotal() != null) {
+            // ✨ 新增/修改：改為所有未刪除訂單皆會產生回饋明細，但僅在狀態為「已完成」時才累加至實質 currentBalance 餘額中
+            if (order.getOrderTotal() != null) {
                 int earned = order.getOrderTotal().multiply(new BigDecimal("0.01")).intValue();
                 if (earned > 0) {
-                    currentBalance += earned;
+                    // 只有當訂單真正「已完成」，該筆點數才會實質計入使用者的存摺可用餘額
+                    if ("已完成".equals(order.getOrderStatus())) {
+                        currentBalance += earned;
+                    }
                     Map<String, Object> earnRecord = new HashMap<>();
                     earnRecord.put("orderId", order.getOrderId());
                     earnRecord.put("type", "獲取");
@@ -451,6 +457,7 @@ public class OrderService {
                     earnRecord.put("points", earned);
                     earnRecord.put("balance", currentBalance);
                     earnRecord.put("date", order.getOrderDate());
+                    earnRecord.put("orderStatus", order.getOrderStatus()); // ✨ 新增/修改：向前端傳遞訂單狀態以供連動顯示
                     history.add(earnRecord);
                 }
             }
@@ -461,7 +468,7 @@ public class OrderService {
         return history;
     }
 
-    // ✨ 新增/修改：取消訂單並執行原子化退回點數
+    // 取消訂單並執行退回點數
     @Transactional
     public void cancelOrder(Integer orderId) {
         Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
@@ -475,7 +482,7 @@ public class OrderService {
         or.save(order);
     }
 
-    // ✨ 新增/修改：確認收貨並發放紅利點數
+    // 確認收貨並發放紅利點數
     @Transactional
     public void completeOrder(Integer orderId) {
         Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));

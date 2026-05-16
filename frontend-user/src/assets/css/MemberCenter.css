@@ -1,4 +1,5 @@
 @charset "UTF-8";
+
 /* Reset */
 * {
   margin: 0;
@@ -76,11 +77,14 @@ header nav a {
 .notice {
   background-color: #ffe5e5;
   color: #b30000;
-  padding: 8px 12px;		/* 內距縮小 */
-  margin: 0;				/* 不要額外外距，緊貼 footer */
-  border-top:1px solid #add;
+  padding: 8px 12px;
+  /* 內距縮小 */
+  margin: 0;
+  /* 不要額外外距，緊貼 footer */
+  border-top: 1px solid #add;
   border-bottom: 1px solid #ddd;
-  font-size: 0.85rem;    /* 字體縮小 */
+  font-size: 0.85rem;
+  /* 字體縮小 */
   border-radius: 8px;
 }
 
@@ -93,58 +97,68 @@ header nav a {
 
 /* 錯誤提示樣式 */
 .input-error {
-  border: 1px solid red;   /* 框線紅色 */
+  border: 1px solid red;
+  /* 框線紅色 */
 }
 
 .input-error::placeholder {
-  color: red;              /* placeholder 變紅 */
+  color: red;
+  /* placeholder 變紅 */
 }
 
 .shop-logo {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    transition: 0.3s;
-    
-    /* 核心調整：確保容器緊貼左側 */
-    padding-left: 0; 
-    margin-left: -10px; /* 如果覺得還不夠靠左，可以微調負值 */
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  transition: 0.3s;
+
+  /* 核心調整：確保容器緊貼左側 */
+  padding-left: 0;
+  margin-left: -10px;
+  /* 如果覺得還不夠靠左，可以微調負值 */
 }
 
 /* 針對圖片的精確控制 */
 .shop-logo img {
-    height: 10px;       /* 這裡根據你的導覽列高度調整，建議 40px~60px */
-    width: auto;
-    object-fit: contain;
-    display: block;
+  height: 10px;
+  /* 這裡根據你的導覽列高度調整，建議 40px~60px */
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 /* 懸停效果：維持你原本的放大感 */
 .shop-logo:hover {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
-html, body {
-    height: 100%;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
+html,
+body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 body {
-    min-height: 100vh; /* 保證至少一個視窗高度 */
+  min-height: 100vh;
+  /* 保證至少一個視窗高度 */
 }
+
 .avatar-wrapper {
   position: relative;
   display: inline-block;
 }
+
 .avatar-img {
   width: 120px;
   height: 120px;
-  border-radius: 50%; /* 圓形顯示 */
+  border-radius: 50%;
+  /* 圓形顯示 */
   object-fit: cover;
   border: 2px solid #ccc;
 }
+
 .edit-btn {
   position: absolute;
   bottom: 0;
@@ -155,6 +169,7 @@ body {
   cursor: pointer;
   padding: 5px;
 }
+
 .member-details {
   flex: 1;
 }
@@ -162,8 +177,10 @@ body {
 .avatar-preview {
   width: 120px;
   height: 120px;
-  border-radius: 50%;   /* 圓形框 */
-  overflow: hidden;     /* 超出部分隱藏 */
+  border-radius: 50%;
+  /* 圓形框 */
+  overflow: hidden;
+  /* 超出部分隱藏 */
   margin: 10px auto;
   border: 2px solid #ccc;
 }
@@ -171,17 +188,20 @@ body {
 .avatar-preview img {
   width: 100%;
   height: 100%;
-  object-fit: cover;    /* 保持比例填滿 */
-  }
+  object-fit: cover;
+  /* 保持比例填滿 */
+}
+
 /* Footer */
 footer {
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    padding: 15px;
-    border-top: 1px solid #ddd;
-    padding: 10px;
-    margin-top: auto; /* 讓 footer 自動推到底部 */
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 15px;
+  border-top: 1px solid #ddd;
+  padding: 10px;
+  margin-top: auto;
+  /* 讓 footer 自動推到底部 */
 
 }
 
@@ -192,146 +212,191 @@ footer {
 
 /* 全域圓角一致性 */
 .custom-modal-border {
-    border-radius: 16px !important;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 15px 50px rgba(0,0,0,0.1);
+  border-radius: 16px !important;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
 }
 
 /* 1. Header 樣式優化 */
 .custom-modal-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eee;
 }
 
 .total-points-label {
-    font-size: 0.85rem;
-    color: #6c757d;
-    letter-spacing: 1px;
-    font-weight: 500;
+  font-size: 0.85rem;
+  color: #6c757d;
+  letter-spacing: 1px;
+  font-weight: 500;
 }
 
 .total-points-value {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #dc3545;
-    position: relative;
-    padding-bottom: 5px;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #dc3545;
+  position: relative;
+  padding-bottom: 5px;
 }
 
 .total-points-value .unit {
-    font-size: 1rem;
-    margin-left: 4px;
+  font-size: 1rem;
+  margin-left: 4px;
 }
 
 .accent-underline {
-    width: 40px;
-    height: 4px;
-    background: #dc3545;
-    border-radius: 10px;
-    margin: 0 auto;
+  width: 40px;
+  height: 4px;
+  background: #dc3545;
+  border-radius: 10px;
+  margin: 0 auto;
 }
 
 /* 2. Tabs 樣式優化 (按鈕化與縮放動畫) */
 .modern-pill {
-    border: 1px solid transparent;
-    border-radius: 12px;
-    padding: 10px 20px;
-    color: #495057;
-    background: #f1f3f5;
-    font-weight: 600;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 20px;
+  color: #495057;
+  background: #f1f3f5;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modern-pill:hover {
-    background: #e9ecef;
+  background: #e9ecef;
 }
 
 .modern-pill.active {
-    background-color: #ffc107 !important;
-    color: #000 !important;
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
-    transform: scale(1.05);
-    border-color: #ffc107 !important;
+  background-color: #ffc107 !important;
+  color: #000 !important;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+  transform: scale(1.05);
+  border-color: #ffc107 !important;
 }
 
 .tab-divider {
-    height: 1px;
-    background: linear-gradient(to right, transparent, #dee2e6, transparent);
-    margin-top: 15px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #dee2e6, transparent);
+  margin-top: 15px;
 }
 
 /* 3. Table 樣式優化 (表頭與間距) */
 .table-card {
-    border: 1px solid #eee;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  border: 1px solid #eee;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 .modern-thead {
-    background-color: #f0f4f8; /* 淺灰藍色 */
+  background-color: #f0f4f8;
+  /* 淺灰藍色 */
 }
 
 .modern-thead th {
-    padding: 14px;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #5a6a85;
-    border: none;
+  padding: 14px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #5a6a85;
+  border: none;
 }
 
 .modern-tr {
-    transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .modern-tr:hover {
-    background-color: #fff9e6 !important; /* 滑過變淡黃色 */
+  background-color: #fff9e6 !important;
+  /* 滑過變淡黃色 */
 }
 
 .modern-tr td {
-    padding: 16px 14px; /* 增加垂直內距 */
-    border-bottom: 1px solid #f8f9fa;
+  padding: 16px 14px;
+  /* 增加垂直內距 */
+  border-bottom: 1px solid #f8f9fa;
 }
 
 /* 訂單標籤 (Tag) 樣式 */
 .order-tag {
-    display: inline-block;
-    padding: 2px 8px;
-    background: #e7f1ff;
-    color: #0d6efd;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    text-decoration: none;
-    font-weight: 600;
-    margin-left: 6px;
-    border: 1px solid #cfe2ff;
-    transition: all 0.2s;
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e7f1ff;
+  color: #0d6efd;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 6px;
+  border: 1px solid #cfe2ff;
+  transition: all 0.2s;
 }
 
 .order-tag:hover {
-    background: #0d6efd;
-    color: #fff;
+  background: #0d6efd;
+  color: #fff;
+}
+
+/* ✨ 新增：自訂現代感粉彩膠囊狀態標籤，重設行高解決文字上下重疊問題 */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1 !important;
+  /* 強制重設行高，徹底解決文字上下重疊與擠壓問題 */
+  border-radius: 50px;
+  /* 完美扁平膠囊圓角 */
+  white-space: nowrap;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* ✨ 新增：已完成狀態（低飽和優雅綠） */
+.status-success {
+  background-color: #e6f4ea !important;
+  color: #137333 !important;
+}
+
+/* ✨ 新增：處理中狀態（柔和暖心黃） */
+.status-warning {
+  background-color: #fef7e0 !important;
+  color: #b06000 !important;
+}
+
+/* ✨ 新增：已取消狀態（質感文青灰） */
+.status-danger {
+  background-color: #f1f3f4 !important;
+  color: #5f6368 !important;
 }
 
 /* 4. 全域顏色與動畫 */
-.points-plus { color: #198754 !important; }
-.points-minus { color: #dc3545 !important; }
+.points-plus {
+  color: #198754 !important;
+}
+
+.points-minus {
+  color: #dc3545 !important;
+}
 
 /* Fade 動畫 */
-.fade-enter-active, .fade-leave-active {
-    transition: opacity 0.3s ease;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to {
-    opacity: 0;
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* 修正 Modal 置中與顯示 */
 :deep(.modal-dialog) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100% - 3.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100% - 3.5rem);
 }
-

@@ -160,13 +160,16 @@ const handleLogout = () => {
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg mx-auto">
             <div class="modal-content custom-modal-border">
                 <div class="modal-header custom-modal-header d-flex flex-column align-items-center position-relative py-4">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
-                    <span class="total-points-label">當前總點數</span>
-                    <div class="total-points-value">
-                        {{ userStore.user?.bonusPoints || 0 }} <span class="unit">點</span>
-                        <div class="accent-underline"></div>
-                    </div>
-                </div>
+    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+    <span class="total-points-label">當前總點數</span>
+    <div class="total-points-value">
+        {{ userStore.user?.bonusPoints || 0 }} <span class="unit">點</span>
+        <div class="accent-underline"></div>
+    </div>
+    <div class="text-secondary small mt-2 fw-medium">
+        * 溫馨提醒：消費獲得的點數將於訂單「已完成」後自動發放並計入餘額。
+    </div>
+</div>
 
                 <div class="modal-body p-4">
                     <div class="tabs-container mb-4">
@@ -188,14 +191,15 @@ const handleLogout = () => {
                         <div class="table-card" v-if="filteredBonusHistory.length > 0" :key="activeBonusTab">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="modern-thead">
-                                    <tr>
-                                        <th style="width: 25%">日期</th>
-                                        <th style="width: 35%" class="text-start">項目內容</th>
-                                        <th style="width: 20%">變動</th>
-                                        <th style="width: 20%">餘額</th>
-                                    </tr>
-                                </thead>
+    <tr>
+        <th style="width: 20%">日期</th>
+        <th style="width: 30%" class="text-start">項目內容</th>
+        <th style="width: 15%">變動</th>
+        <th style="width: 15%">餘額</th>
+        <th style="width: 20%">訂單狀態</th> </tr>
+</thead>
                                 <tbody>
+                                   
                                     <tr v-for="(item, index) in filteredBonusHistory" :key="index" class="modern-tr">
                                         <td class="text-muted small">{{ formatDateTime(item.date) }}</td>
                                         <td class="text-start">
@@ -209,8 +213,19 @@ const handleLogout = () => {
                                         <td :class="['fw-bold', item.points > 0 ? 'points-plus' : 'points-minus']">
                                             {{ item.points > 0 ? '+' : '' }}{{ item.points }} P
                                         </td>
+                                        
                                         <td class="fw-medium text-dark">{{ item.balance }} P</td>
+                                        
+                                        <td>
+                                            <span :class="['badge', 
+                                                item.orderStatus === '已完成' ? 'bg-success' : 
+                                                item.orderStatus === '已取消' ? 'bg-secondary' : 'bg-warning text-dark']">
+                                                {{ item.orderStatus || '處理中' }}
+                                            </span>
+                                        </td>
                                     </tr>
+                                
+                                    
                                 </tbody>
                             </table>
                         </div>
