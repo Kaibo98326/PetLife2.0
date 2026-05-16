@@ -24,8 +24,91 @@ const selectedGroomerId = ref('')
 const appointDate = ref('')
 const selectedSlotId = ref('')
 const contactNote = ref('')
+const calendarMonth = ref(new Date())
 
-const today = new Date().toISOString().slice(0, 10)
+const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六']
+
+const toDateInputValue = date => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const parseDateValue = value => {
+  if (!value) return null
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+const addDays = (date, amount) => {
+  const next = new Date(date)
+  next.setDate(next.getDate() + amount)
+  return next
+}
+
+const startOfMonth = date => new Date(date.getFullYear(), date.getMonth(), 1)
+
+const today = toDateInputValue(new Date())
+
+const calendarMonthLabel = computed(() => {
+  const value = calendarMonth.value
+  return `${value.getFullYear()} 年 ${value.getMonth() + 1} 月`
+})
+
+const selectedDateLabel = computed(() => {
+  const value = parseDateValue(appointDate.value)
+  if (!value) return '尚未選擇日期'
+  return `${value.getMonth() + 1} 月 ${value.getDate()} 日 週${weekdayLabels[value.getDay()]}`
+})
+
+const quickDateOptions = computed(() => {
+  const base = parseDateValue(today)
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(base, index)
+    const label = index === 0 ? '今天' : index === 1 ? '明天' : `週${weekdayLabels[date.getDay()]}`
+    return {
+      label,
+      dateText: `${date.getMonth() + 1}/${date.getDate()}`,
+      value: toDateInputValue(date),
+    }
+  })
+})
+
+const calendarWeeks = computed(() => {
+  const firstDay = startOfMonth(calendarMonth.value)
+  const start = addDays(firstDay, -firstDay.getDay())
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = addDays(start, index)
+    const value = toDateInputValue(date)
+    return {
+      value,
+      day: date.getDate(),
+      isCurrentMonth: date.getMonth() === calendarMonth.value.getMonth(),
+      isToday: value === today,
+      isSelected: value === appointDate.value,
+      isPast: value < today,
+    }
+  })
+
+  return Array.from({ length: 6 }, (_, index) => days.slice(index * 7, index * 7 + 7))
+})
+
+const selectAppointmentDate = value => {
+  if (value < today) return
+  appointDate.value = value
+}
+
+const changeCalendarMonth = amount => {
+  const next = new Date(calendarMonth.value)
+  next.setMonth(next.getMonth() + amount, 1)
+  calendarMonth.value = next
+}
+
+const showCurrentMonth = () => {
+  calendarMonth.value = startOfMonth(new Date())
+  appointDate.value = today
+}
 
 const selectedItems = computed(() => {
   const ids = new Set(selectedBeautyIds.value.map(Number))
@@ -252,6 +335,10 @@ const submitBooking = async () => {
 
 watch([selectedBeautyIds, appointDate], loadGroomers, { deep: true })
 watch(selectedGroomerId, loadSlots)
+watch(appointDate, value => {
+  const selected = parseDateValue(value)
+  if (selected) calendarMonth.value = startOfMonth(selected)
+})
 
 onMounted(loadBaseData)
 </script>
@@ -292,7 +379,66 @@ onMounted(loadBaseData)
           </div>
 
           <h3>3. 選擇日期</h3>
-          <input v-model="appointDate" type="date" class="form-control" :min="today" />
+          <div class="booking-date-picker">
+            <div class="date-picker-summary">
+              <span>預約日期</span>
+              <strong>{{ selectedDateLabel }}</strong>
+            </div>
+
+            <div class="quick-date-list" aria-label="快速選擇預約日期">
+              <button
+                v-for="option in quickDateOptions"
+                :key="option.value"
+                type="button"
+                class="quick-date-btn"
+                :class="{ active: appointDate === option.value }"
+                @click="selectAppointmentDate(option.value)"
+              >
+                <span>{{ option.label }}</span>
+                <strong>{{ option.dateText }}</strong>
+              </button>
+            </div>
+
+            <div class="calendar-box">
+              <div class="calendar-toolbar">
+                <button type="button" class="calendar-nav-btn" aria-label="上一個月" @click="changeCalendarMonth(-1)">
+                  ‹
+                </button>
+                <strong>{{ calendarMonthLabel }}</strong>
+                <div class="calendar-toolbar-actions">
+                  <button type="button" class="calendar-today-btn" @click="showCurrentMonth">今天</button>
+                  <button type="button" class="calendar-nav-btn" aria-label="下一個月" @click="changeCalendarMonth(1)">
+                    ›
+                  </button>
+                </div>
+              </div>
+
+              <div class="calendar-weekdays">
+                <span v-for="label in weekdayLabels" :key="label">{{ label }}</span>
+              </div>
+
+              <div class="calendar-grid">
+                <template v-for="(week, weekIndex) in calendarWeeks" :key="weekIndex">
+                  <button
+                    v-for="day in week"
+                    :key="day.value"
+                    type="button"
+                    class="calendar-day-btn"
+                    :class="{
+                      muted: !day.isCurrentMonth,
+                      today: day.isToday,
+                      active: day.isSelected,
+                      disabled: day.isPast,
+                    }"
+                    :disabled="day.isPast"
+                    @click="selectAppointmentDate(day.value)"
+                  >
+                    <span>{{ day.day }}</span>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
 
           <h3>4. 選擇美容師</h3>
           <div v-if="groomerLoading" class="form-hint">美容師讀取中...</div>
@@ -477,6 +623,164 @@ onMounted(loadBaseData)
   color: #7c6d64;
 }
 
+.booking-date-picker {
+  display: grid;
+  gap: 14px;
+}
+
+.date-picker-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #eadfd6;
+  border-radius: 8px;
+  background: #fffaf4;
+  color: #806f65;
+}
+
+.date-picker-summary strong {
+  color: #4f4037;
+  font-size: 18px;
+  text-align: right;
+}
+
+.quick-date-list {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quick-date-btn,
+.calendar-day-btn,
+.calendar-nav-btn,
+.calendar-today-btn {
+  border: 0;
+  background: transparent;
+  font: inherit;
+}
+
+.quick-date-btn {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  padding: 10px 6px;
+  border: 1px solid #eadfd6;
+  border-radius: 8px;
+  background: #fff;
+  color: #806f65;
+}
+
+.quick-date-btn strong {
+  color: #4f4037;
+  font-size: 18px;
+}
+
+.quick-date-btn:hover,
+.calendar-day-btn:not(:disabled):hover {
+  border-color: #e8a94f;
+  background: #fff7e8;
+}
+
+.quick-date-btn.active,
+.calendar-day-btn.active {
+  border-color: #e8a94f;
+  background: #fff0d3;
+  color: #4f4037;
+  box-shadow: 0 0 0 3px rgba(232, 169, 79, 0.18);
+}
+
+.calendar-box {
+  padding: 16px;
+  border: 1px solid #eadfd6;
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.calendar-toolbar,
+.calendar-toolbar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.calendar-toolbar {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: #4f4037;
+}
+
+.calendar-toolbar-actions {
+  gap: 8px;
+}
+
+.calendar-nav-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #eadfd6;
+  border-radius: 8px;
+  background: #fff;
+  color: #5a4a42;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.calendar-today-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #eadfd6;
+  border-radius: 8px;
+  background: #fff;
+  color: #806f65;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 8px;
+  color: #9a8b82;
+  font-size: 13px;
+  text-align: center;
+}
+
+.calendar-day-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  color: #4f4037;
+}
+
+.calendar-day-btn.muted {
+  color: #b9ada6;
+  background: #fbf7f2;
+}
+
+.calendar-day-btn.today::after {
+  position: absolute;
+  bottom: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #e8a94f;
+  content: "";
+}
+
+.calendar-day-btn.disabled {
+  color: #cfc6bf;
+  background: #f7f1ec;
+  cursor: not-allowed;
+}
+
 .slot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -611,6 +915,27 @@ onMounted(loadBaseData)
 @media (max-width: 768px) {
   .booking-heading {
     flex-direction: column;
+  }
+
+  .date-picker-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .date-picker-summary strong {
+    text-align: left;
+  }
+
+  .quick-date-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .calendar-box {
+    padding: 12px;
+  }
+
+  .calendar-day-btn {
+    min-height: 40px;
   }
 
   .booking-summary {

@@ -463,6 +463,16 @@
   z-index: 3000;
 }
 
+.swal2-icon.swal-google-icon {
+  border-color: #f5a623;
+  color: #f5a623;
+}
+
+.swal2-icon.swal-google-icon .material-symbols-outlined {
+  font-size: 42px;
+  line-height: 1;
+}
+
 @media (max-width: 1180px) {
   .schedule-workspace {
     grid-template-columns: 1fr;

@@ -115,6 +115,10 @@ const serviceNames = async groomer => {
       title: groomer.displayName || `美容師 ${groomer.groomerId}`,
       html: ids.map(id => itemMap.get(id) || `項目 ${id}`).join('<br>') || '尚未設定服務項目',
       icon: 'info',
+      iconHtml: '<span class="material-symbols-outlined">pets</span>',
+      customClass: {
+        icon: 'swal-google-icon',
+      },
     })
   } catch (err) {
     console.log(err)
