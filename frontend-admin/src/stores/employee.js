@@ -31,6 +31,7 @@ export const useEmployeeStore = defineStore('employee', {
       this.empName = null
       this.roles = []
       localStorage.removeItem('employeeToken')
+      
     }
   }
 })

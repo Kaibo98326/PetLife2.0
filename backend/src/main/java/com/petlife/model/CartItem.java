@@ -4,10 +4,14 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
 import org.springframework.stereotype.Component;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Table;
@@ -28,7 +32,8 @@ import lombok.RequiredArgsConstructor;
 public class CartItem implements Serializable {
     private static final long serialVersionUID = 1L;
 	
-    @Transient
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", insertable = false, updatable = false)
 	private Product product; // 這樣一條購物車明細就能直接帶出所有商品資訊
     
     //處理活動分類

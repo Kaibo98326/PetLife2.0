@@ -67,10 +67,15 @@ const routes = [
         component: () => import('@/views/AdminPetList.vue'),
       },
       {
-  path: '/admin/discount',  // 或是 /admin/discounts
-  name: 'DiscountManagement',
-  component: () => import('../views/DiscountView.vue')// 確保組件路徑正確
-}
+        path: '/admin/discount', // 或是 /admin/discounts
+        name: 'DiscountManagement',
+        component: () => import('../views/DiscountView.vue'), // 確保組件路徑正確
+      },
+      {
+        path: 'chat-support',
+        name: '客服中心',
+        component: () => import('@/views/AdminChatSupport.vue'),
+      },
     ],
   },
 ]

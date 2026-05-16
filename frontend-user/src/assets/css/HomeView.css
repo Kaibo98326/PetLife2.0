@@ -1,0 +1,25 @@
+/*優惠活動紅色勳章標題與禁用點擊邏輯 */
+.activity-badge-header {
+  background-color: #dc3545; /* 實心紅色 */
+  color: #ffffff !important; /* 白色文字 */
+  padding: 8px 15px; /* 勳章內距 */
+  border-radius: 8px; /* 圓角矩形 */
+  font-weight: bold; /* 粗體字 */
+  font-size: 1rem;
+  display: flex; /* 使用 flex 讓文字與圖示對齊 */
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  cursor: default; /* 禁用手型游標，提示不可點擊 */
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+  border: none;
+}
+
+/* 確保活動項目連結樣式整齊，呈現垂直列表外觀 */
+.activity-item {
+  border-left: 2px solid #dc3545;
+  margin-left: 5px;
+  padding-left: 15px !important;
+  display: block; /* 確保垂直排列 */
+}

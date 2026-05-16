@@ -75,7 +75,7 @@ public class AdminMemberService {
 		
 		return Map.of(
 					"content" , result.getContent(),
-					"currenPage",result.getNumber(),
+					"currentPage",result.getNumber(),
 					"totalPages",result.getTotalPages(),
 					"totalElements",result.getTotalElements(),
 					"size",result.getSize()

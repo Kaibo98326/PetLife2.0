@@ -18,7 +18,7 @@ public class SecutityConfig {
 					.requestMatchers("/images/**").permitAll()
 					.requestMatchers("/api/admin/**").permitAll()
 					.requestMatchers("/api/employee/login").permitAll() // ✅ 員工登入 API 開放
-					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2
+					.requestMatchers("/api/oauth2/**").permitAll()	//預留OAuth2 	
 	                .requestMatchers("/api/member/me").permitAll()
 	                .requestMatchers("/api/categories", "/api/categories/**").permitAll() 
 	                .requestMatchers("/api/products", "/api/products/**").permitAll()
@@ -33,6 +33,9 @@ public class SecutityConfig {
 	                .requestMatchers("/api/history/**").permitAll()
 	                .requestMatchers("/api/discounts", "/api/discounts/**").permitAll() //活動折扣選擇 //活動折扣選擇                 
 	                .requestMatchers("/api/order-discounts/**").permitAll() // 訂單折扣明細的 API 
+	                .requestMatchers("/api/heart/**").permitAll()
+	                .requestMatchers("/api/chat/**").permitAll()
+
 	                
 					.anyRequest().authenticated()
 					);

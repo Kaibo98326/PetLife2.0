@@ -160,7 +160,7 @@
   background: #fff3e0;
   color: #bf360c;
   padding: 1.2rem;
-  text-align: left;
+  /* text-align: left; */
 }
 .custom-table td {
   padding: 1.2rem;
