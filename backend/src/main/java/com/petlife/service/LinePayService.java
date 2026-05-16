@@ -87,6 +87,8 @@ public class LinePayService {
                 url, entity, Map.class
             );
             
+         
+            
             System.out.println("LINE Pay 回傳：" + response.getBody());
 
             // 6. 取出付款網址
@@ -97,7 +99,14 @@ public class LinePayService {
             return (String) paymentUrl.get("web");
 
         } catch (Exception e) {
+        
+            System.out.println("LINE Pay 錯誤類型: " + e.getClass().getName());
+            System.out.println("LINE Pay 錯誤訊息: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("LINE Pay 原因: " + e.getCause().getMessage());
+            }
             throw new RuntimeException("LINE Pay 請求失敗：" + e.getMessage());
+        
         }
     }
 
