@@ -38,27 +38,21 @@ public interface StayRepository extends JpaRepository<Stay, Integer>{
 		        @Param("endDate") LocalDate endDate
 		    );
 	
-	// ========== 新增方法（後台搜尋）==========
+	// 依照會員名字搜尋
+	@Query("SELECT s FROM Stay s WHERE s.pet.member.memberName LIKE %:name%")
+	List<Stay> findByMemberName(@Param("name") String name);
+
+	// 依照訂單編號搜尋
+	List<Stay> findByStayId(Integer stayId);
+
 	
-		/**
-		 * 後台訂單搜尋（複雜查詢）
-		 */
-		@Query("SELECT s FROM Stay s " +
-		       "WHERE 1=1 " +
-		       "AND (:stayId IS NULL OR s.stayId = :stayId) " +
-		       "AND (:stayStatus IS NULL OR s.stayStatus = :stayStatus) " +
-		       "AND (:memberName IS NULL OR s.pet.member.memberName LIKE %:memberName%) " +
-		       "AND (:memberPhone IS NULL OR s.pet.member.phone LIKE %:memberPhone%) " +
-		       "AND (:startDate IS NULL OR s.stayStartDate >= :startDate) " +
-		       "AND (:endDate IS NULL OR s.stayEndDate <= :endDate)")
-		Page<Stay> searchStays(
-		        @Param("stayId") Integer stayId,
-		        @Param("stayStatus") String stayStatus,
-		        @Param("memberName") String memberName,
-		        @Param("memberPhone") String memberPhone,
+	//	不過濾 roomTypeId 的空房狀態
+	@Query("SELECT s FROM Stay s " +
+		       "WHERE s.stayStartDate < :endDate " +
+		       "AND s.stayEndDate > :startDate " +
+		       "AND s.stayStatus != 'CANCELLED'")
+		List<Stay> findAllOverlappingStays(
 		        @Param("startDate") LocalDate startDate,
-		        @Param("endDate") LocalDate endDate,
-		        Pageable pageable
+		        @Param("endDate") LocalDate endDate
 		);
-	
 }

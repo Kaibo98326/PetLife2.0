@@ -4,8 +4,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -18,11 +20,9 @@ import com.petlife.model.Stay;
 import com.petlife.model.StayPayment;
 import com.petlife.model.StayRoom;
 import com.petlife.model.StayRoomType;
-import com.petlife.repository.AdminStayQueryDto;
-import com.petlife.repository.AdminStayResponseDto;
 import com.petlife.repository.CalendarDayDto;
 import com.petlife.repository.PetRepository;
-import com.petlife.repository.RoomCalendarDto;
+import com.petlife.repository.RoomStatusDto;
 import com.petlife.repository.RoomTypeDto;
 import com.petlife.repository.StayPaymentRepository;
 import com.petlife.repository.StayPaymentResponseDto;
@@ -67,7 +67,8 @@ public class StayService implements IStayService {
 		
 		StayRoomType roomType = stayRoomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RuntimeException("找不到房型") );
 	
-		int totalRooms = stayRoomRepository.findByStayRoomType_RoomTypeId(roomTypeId).size();
+		int totalRooms = stayRoomRepository
+		        .findByStayRoomType_RoomTypeIdAndRoomStatus(roomTypeId, "可預約").size();
 		
 		int bookedRooms = stayRepository.findOverlappingStays(roomTypeId, startDate, endDate).size();
 		
@@ -221,40 +222,8 @@ public class StayService implements IStayService {
 	    stayRepository.save(stay);
 	}
 
-	// 根據ID取得會員訂單
-	@Override
-	public List<StayResponseDto> getMyStays(Integer memberId) {
-
-	    List<Stay> stays = stayRepository.findByPet_Member_MemberId(memberId);
-	    List<StayResponseDto> result = new ArrayList<>();
-
-	    for (Stay stay : stays) {
-	        StayResponseDto dto = new StayResponseDto();
-	        dto.setMemberName(stay.getPet().getMember().getMemberName());
-	        dto.setMemberPhone(stay.getPet().getMember().getPhone());
-	        dto.setMemberEmail(stay.getPet().getMember().getEmail());
-	        dto.setStayId(stay.getStayId());
-	        dto.setPetName(stay.getPet().getPetName());
-	        dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
-	        dto.setRoomNo(stay.getStayRoom().getRoomNo());
-	        dto.setStayStartDate(stay.getStayStartDate());
-	        dto.setStayEndDate(stay.getStayEndDate());
-	        dto.setStayDay(stay.getStayDay());
-	        dto.setPetCount(stay.getPetCount());
-	        dto.setSumPrice(stay.getSumPrice());
-	        dto.setStayStatus(stay.getStayStatus());
-	        dto.setStayRemark(stay.getStayRemark());
-
-	        stayPaymentRepository.findByStay_StayId(stay.getStayId())
-	        .ifPresent(p -> {
-	            dto.setPaymentStatus(p.getPaymentStatus());
-	            dto.setCreatedAt(p.getCreatedAt());
-	            dto.setPaidAt(p.getPaidAt());
-	        });
-	        result.add(dto);
-	    }
-	    return result;
-	}
+	
+	
 
 	// 從前端得到 ? 年 ? 月 回傳 此月每一號可用空房
 	@Override
@@ -410,24 +379,7 @@ public class StayService implements IStayService {
 	    }
 	}
 	
-	// 查單筆訂單
-	@Override
-	public StayResponseDto getStayById(Integer stayId) {
-	    Stay stay = stayRepository.findById(stayId)
-	            .orElseThrow(() -> new RuntimeException("找不到此訂單"));
-
-	    StayResponseDto dto = new StayResponseDto();
-	    dto.setStayId(stay.getStayId());
-	    dto.setPetName(stay.getPet().getPetName());
-	    dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
-	    dto.setRoomNo(stay.getStayRoom().getRoomNo());
-	    dto.setStayStartDate(stay.getStayStartDate());
-	    dto.setStayEndDate(stay.getStayEndDate());
-	    dto.setStayDay(stay.getStayDay());
-	    dto.setSumPrice(stay.getSumPrice());
-	    dto.setStayStatus(stay.getStayStatus());
-	    return dto;
-	}
+	
 
 	//付款紀錄
 	@Override
@@ -437,318 +389,195 @@ public class StayService implements IStayService {
 	            .orElseThrow(() -> new RuntimeException("找不到付款紀錄"));
 	    return payment.getStay().getStayId();
 	}
+
 	
-	// ========== 後台訂單管理 ==========
+
+	// 修改訂單狀態
+	@Override
+	public void updateStayStatus(Integer stayId, String status) {
+		Stay stay = stayRepository.findById(stayId)
+	            .orElseThrow(() -> new RuntimeException("找不到此訂單"));
+
+	    stay.setStayStatus(status);
+	    stayRepository.save(stay);		
+	}
 	
-		/**
-		 * 後台查詢訂單列表（支援分頁、搜尋）
-		 */
+	// 查所有房間
+	@Override
+	public List<StayRoomDto> getAllRooms() {
+
+	    List<StayRoom> rooms = stayRoomRepository.findAll();
+	    List<StayRoomDto> result = new ArrayList<>();
+
+	    for (StayRoom room : rooms) {
+	        StayRoomDto dto = new StayRoomDto();
+	        dto.setRoomId(room.getRoomId());
+	        dto.setRoomNo(room.getRoomNo());
+	        dto.setRoomStatus(room.getRoomStatus());
+	        dto.setRoomTypeId(room.getStayRoomType().getRoomTypeId());
+	        dto.setRoomTypeName(room.getStayRoomType().getRoomName());
+	        result.add(dto);
+	    }
+	    return result;
+	}
+
+	// 修改房間狀態
+	@Override
+	public void updateRoomStatus(Integer roomId, String status) {
+	    StayRoom room = stayRoomRepository.findById(roomId)
+	            .orElseThrow(() -> new RuntimeException("找不到此房間"));
+	    room.setRoomStatus(status);
+	    stayRoomRepository.save(room);
+	}
+	
+	// 修改房型
+	@Override
+	public RoomTypeDto updateRoomType(Integer roomTypeId, Double newPrice, 
+	        String roomName, Integer capacity, String roomDescription) {
+	    StayRoomType roomType = stayRoomTypeRepository.findById(roomTypeId)
+	            .orElseThrow(() -> new RuntimeException("找不到此房型"));
+	
+	    roomType.setRoomPrice(newPrice);
+	    roomType.setRoomName(roomName);
+	    roomType.setCapacity(capacity);
+	    roomType.setRoomDescription(roomDescription);
+	    stayRoomTypeRepository.save(roomType);
+	
+	    RoomTypeDto dto = new RoomTypeDto();
+	    dto.setRoomTypeId(roomType.getRoomTypeId());
+	    dto.setRoomName(roomType.getRoomName());
+	    dto.setRoomPrice(roomType.getRoomPrice());
+	    dto.setRoomDescription(roomType.getRoomDescription());
+	    dto.setCapacity(roomType.getCapacity());
+	    return dto;
+	}
+	
+	// 私有方法to dto
+	private StayResponseDto toDto(Stay stay) {
+	    StayResponseDto dto = new StayResponseDto();
+	    dto.setMemberName(stay.getPet().getMember().getMemberName());
+	    dto.setMemberPhone(stay.getPet().getMember().getPhone());
+	    dto.setMemberEmail(stay.getPet().getMember().getEmail());
+	    dto.setStayId(stay.getStayId());
+	    dto.setPetName(stay.getPet().getPetName());
+	    dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
+	    dto.setRoomNo(stay.getStayRoom().getRoomNo());
+	    dto.setStayStartDate(stay.getStayStartDate());
+	    dto.setStayEndDate(stay.getStayEndDate());
+	    dto.setStayDay(stay.getStayDay());
+	    dto.setPetCount(stay.getPetCount());
+	    dto.setSumPrice(stay.getSumPrice());
+	    dto.setStayStatus(stay.getStayStatus());
+	    dto.setStayRemark(stay.getStayRemark());
+	
+	    stayPaymentRepository.findPaymentByStayId(stay.getStayId())
+	        .ifPresent(p -> {
+	            dto.setPaymentStatus(p.getPaymentStatus());
+	            dto.setCreatedAt(p.getCreatedAt());
+	            dto.setPaidAt(p.getPaidAt());
+	        });
+	
+	    return dto;
+	}
+	
+		// 查單筆訂單
 		@Override
-		public Page<AdminStayResponseDto> getAllStaysForAdmin(AdminStayQueryDto query) {
-		    Pageable pageable = PageRequest.of(
-		        query.getPage(), 
-		        query.getSize()
-		    );
+		public StayResponseDto getStayById(Integer stayId) {
+		    Stay stay = stayRepository.findById(stayId)
+		            .orElseThrow(() -> new RuntimeException("找不到此訂單"));
+		    return toDto(stay);  // ← 那一大串全部刪掉，改成這行
+		}
+		
+		//依會員名字搜尋
+		@Override
+		public List<StayResponseDto> searchByMemberName(String name) {
+		    return stayRepository.findByMemberName(name)
+		            .stream().map(this::toDto).collect(Collectors.toList());
+		}
+
+		//依訂單編號搜尋
+		@Override
+		public List<StayResponseDto> searchByStayId(Integer stayId) {
+		    return stayRepository.findByStayId(stayId)
+		            .stream().map(this::toDto).collect(Collectors.toList());
+		}
+
+		//依手機末三碼搜尋
+		@Override
+		public List<StayResponseDto> searchByPhone(String phone) {
+		    return stayRepository.findByPet_Member_PhoneEndingWith(phone)
+		            .stream().map(this::toDto).collect(Collectors.toList());
+		}
+		
+		// 查所有訂單
+		@Override
+		public List<StayResponseDto> getAllStays() {
+		    return stayRepository.findAll()
+		            .stream().map(this::toDto).collect(Collectors.toList());
+		}
+		
+		// 根據ID取得會員訂單
+		@Override
+		public List<StayResponseDto> getMyStays(Integer memberId) {
+		    return stayRepository.findByPet_Member_MemberId(memberId)
+		            .stream().map(this::toDto).collect(Collectors.toList());
+		}
+
+		
+		@Override
+		public List<RoomStatusDto> getRoomStatusByDate(LocalDate date) {
+
+		    // 拿所有房間
+		    List<StayRoom> allRooms = stayRoomRepository.findAll();
+
+		    // 查這天有重疊預約的 Stay
+		    List<Stay> occupiedStays = stayRepository.findAllOverlappingStays(date, date.plusDays(1));
 		    
-		    Integer stayIdParam = null;
-		    if (query.getStayId() != null && !query.getStayId().isEmpty()) {
-		        try {
-		            stayIdParam = Integer.parseInt(query.getStayId());
-		        } catch (NumberFormatException e) {
-		            throw new RuntimeException("訂單編號格式錯誤");
+		    System.out.println("=== DEBUG getRoomStatusByDate ===");
+		    System.out.println("查詢日期: " + date);
+		    System.out.println("重疊訂單數: " + occupiedStays.size());
+		    occupiedStays.forEach(s -> 
+		        System.out.println("訂單: " + s.getStayId() + " 狀態: " + s.getStayStatus() + " 房間: " + s.getStayRoom().getRoomId())
+		    );
+		    System.out.println("=================================");
+
+		 // 已被使用的狀態
+		    List<String> occupiedStatuses = List.of("CONFIRMED", "CHECKED_IN");
+
+		    Map<Integer, Stay> roomStayMap = new HashMap<>();
+		    for (Stay stay : occupiedStays) {
+			    // 只有 CHECKED_IN 才算使用中
+			    if ("CHECKED_IN".equals(stay.getStayStatus())) {
+			        roomStayMap.put(stay.getStayRoom().getRoomId(), stay);
+			    }
+			}
+
+		    List<RoomStatusDto> result = new ArrayList<>();
+
+		    for (StayRoom room : allRooms) {
+		        RoomStatusDto dto = new RoomStatusDto();
+		        dto.setRoomId(room.getRoomId());
+		        dto.setRoomNo(room.getRoomNo());
+		        dto.setRoomTypeName(room.getStayRoomType().getRoomName());
+		        dto.setRoomStatus(room.getRoomStatus());
+
+		        // 如果這間房這天有訂單，填入訂單資料
+		        Stay stay = roomStayMap.get(room.getRoomId());
+		        if (stay != null) {
+		            dto.setStayId(stay.getStayId());
+		            dto.setMemberName(stay.getPet().getMember().getMemberName());
+		            dto.setPetName(stay.getPet().getPetName());
+		            dto.setStayStartDate(stay.getStayStartDate());
+		            dto.setStayEndDate(stay.getStayEndDate());
+		            dto.setStayStatus(stay.getStayStatus());
+		            dto.setIsOccupied(true);
+		        } else {
+		            dto.setIsOccupied(false); // ← 加這行
 		        }
+
+		        result.add(dto);
 		    }
-		    
-		    Page<Stay> stays = stayRepository.searchStays(
-		        stayIdParam,
-		        query.getStayStatus(),
-		        query.getMemberName(),
-		        query.getMemberPhone(),
-		        query.getStartDate(),
-		        query.getEndDate(),
-		        pageable
-		    );
-		    
-		    return stays.map(stay -> getStayByIdForAdmin(stay.getStayId()));
+
+		    return result;
 		}
-		
-		/**
-		 * 後台查詢單筆訂單詳情
-		 */
-		@Override
-		public AdminStayResponseDto getStayByIdForAdmin(Integer stayId) {
-			Stay stay = stayRepository.findById(stayId)
-					.orElseThrow(() -> new RuntimeException("找不到此訂單"));
-			
-			AdminStayResponseDto dto = new AdminStayResponseDto();
-			dto.setStayId(stay.getStayId());
-			dto.setMemberId(stay.getPet().getMember().getMemberId());
-			dto.setMemberName(stay.getPet().getMember().getMemberName());
-			dto.setMemberPhone(stay.getPet().getMember().getPhone());
-			dto.setMemberEmail(stay.getPet().getMember().getEmail());
-			
-			// 主要寵物
-			dto.setMainPetName(stay.getPet().getPetName());
-			dto.setMainPetSpecies(stay.getPet().getSpecies());
-			dto.setMainPetBreed(stay.getPet().getBreed());
-			
-			// 其他寵物（從 JSON 備註中解析）
-			if (stay.getStayRemark() != null) {
-				try {
-					ObjectMapper mapper = new ObjectMapper();
-					StayRemarkDto remark = mapper.readValue(stay.getStayRemark(), StayRemarkDto.class);
-					if (remark.getPets() != null && remark.getPets().size() > 1) {
-						dto.setOtherPetNames(
-							remark.getPets().stream()
-								.skip(1) // 跳過第一隻
-								.map(StayRemarkDto.PetInfoDto::getPetName)
-								.collect(Collectors.toList())
-						);
-					}
-				} catch (Exception e) {
-					// 解析失敗就忽略
-				}
-			}
-			
-			// 房間資訊
-			dto.setRoomNo(stay.getStayRoom().getRoomNo());
-			dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
-			
-			// 訂單資訊
-			dto.setStayStartDate(stay.getStayStartDate());
-			dto.setStayEndDate(stay.getStayEndDate());
-			dto.setStayDay(stay.getStayDay());
-			dto.setPetCount(stay.getPetCount());
-			dto.setSumPrice(stay.getSumPrice());
-			dto.setStayStatus(stay.getStayStatus());
-			dto.setStayRemark(stay.getStayRemark());
-			
-			// 支付資訊
-			stayPaymentRepository.findByStay_StayId(stayId).ifPresent(payment -> {
-				dto.setPaymentMethod(payment.getPaymentMethod());
-				dto.setPaymentStatus(payment.getPaymentStatus());
-				dto.setPaidAt(payment.getPaidAt());
-				dto.setCreatedAt(payment.getCreatedAt());
-			});
-			
-			return dto;
-		}
-		
-		/**
-		 * 修改訂單狀態
-		 * PENDING_PAYMENT -> CONFIRMED -> CHECKED_IN -> CHECKED_OUT
-		 */
-		@Override
-		public AdminStayResponseDto updateStayStatus(Integer stayId, String newStatus) {
-			Stay stay = stayRepository.findById(stayId)
-					.orElseThrow(() -> new RuntimeException("找不到此訂單"));
-			
-			String currentStatus = stay.getStayStatus();
-			
-			// ✅ 狀態轉移驗證
-			validateStatusTransition(currentStatus, newStatus);
-			
-			// 更新狀態
-			stay.setStayStatus(newStatus);
-			stayRepository.save(stay);
-			
-			// 如果改成「已入住」，房間狀態改成「已預約」
-			if ("CHECKED_IN".equals(newStatus)) {
-				StayRoom room = stay.getStayRoom();
-				room.setRoomStatus("已預約");
-				stayRoomRepository.save(room);
-			}
-			
-			// 如果改成「已退房」，房間狀態改回「可預約」
-			if ("CHECKED_OUT".equals(newStatus)) {
-				StayRoom room = stay.getStayRoom();
-				room.setRoomStatus("可預約");
-				stayRoomRepository.save(room);
-			}
-			
-			return getStayByIdForAdmin(stayId);
-		}
-		
-		/**
-		 * 狀態轉移驗證
-		 */
-		private void validateStatusTransition(String currentStatus, String newStatus) {
-			if (currentStatus.equals(newStatus)) {
-				throw new RuntimeException("新狀態與現在狀態相同");
-			}
-			
-			if ("CANCELLED".equals(currentStatus)) {
-				throw new RuntimeException("已取消的訂單無法修改");
-			}
-			
-			if ("CHECKED_OUT".equals(currentStatus)) {
-				throw new RuntimeException("已退房的訂單無法修改");
-			}
-			
-			// 其他狀態轉移邏輯可自行調整
-		}
-		
-		/**
-		 * 後台取消訂單（會同時更新房間狀態為可預約）
-		 */
-		@Override
-		public AdminStayResponseDto cancelStayByAdmin(Integer stayId) {
-			Stay stay = stayRepository.findById(stayId)
-					.orElseThrow(() -> new RuntimeException("找不到此訂單"));
-			
-			// 檢查是否可以取消
-			if ("CHECKED_IN".equals(stay.getStayStatus())) {
-				throw new RuntimeException("已入住的訂單無法取消");
-			}
-			
-			if ("CHECKED_OUT".equals(stay.getStayStatus())) {
-				throw new RuntimeException("已退房的訂單無法取消");
-			}
-			
-			if ("CANCELLED".equals(stay.getStayStatus())) {
-				throw new RuntimeException("訂單已取消");
-			}
-			
-			// 取消訂單
-			stay.setStayStatus("CANCELLED");
-			stayRepository.save(stay);
-			
-			// 房間改回可預約
-			StayRoom room = stay.getStayRoom();
-			room.setRoomStatus("可預約");
-			stayRoomRepository.save(room);
-			
-			return getStayByIdForAdmin(stayId);
-		}
-		
-		// ========== 房間管理 ==========
-		
-		/**
-		 * 查詢所有房間
-		 */
-		@Override
-		public List<StayRoomDto> getAllRooms() {
-			List<StayRoom> rooms = stayRoomRepository.findAll();
-			
-			return rooms.stream().map(room -> {
-				StayRoomDto dto = new StayRoomDto();
-				dto.setRoomId(room.getRoomId());
-				dto.setRoomNo(room.getRoomNo());
-				dto.setRoomTypeId(room.getStayRoomType().getRoomTypeId());
-				dto.setRoomTypeName(room.getStayRoomType().getRoomName());
-				dto.setRoomStatus(room.getRoomStatus());
-				return dto;
-			}).collect(Collectors.toList());
-		}
-		
-		/**
-		 * 修改房間狀態（停權/啟用）
-		 */
-		@Override
-		public StayRoomDto updateRoomStatus(Integer roomId, String status) {
-			StayRoom room = stayRoomRepository.findById(roomId)
-					.orElseThrow(() -> new RuntimeException("找不到此房間"));
-			
-			// ✅ 驗證狀態值
-			if (!status.equals("可預約") && !status.equals("維護中")) {
-				throw new RuntimeException("無效的房間狀態：" + status);
-			}
-			
-			room.setRoomStatus(status);
-			StayRoom updated = stayRoomRepository.save(room);
-			
-			StayRoomDto dto = new StayRoomDto();
-			dto.setRoomId(updated.getRoomId());
-			dto.setRoomNo(updated.getRoomNo());
-			dto.setRoomTypeId(updated.getStayRoomType().getRoomTypeId());
-			dto.setRoomTypeName(updated.getStayRoomType().getRoomName());
-			dto.setRoomStatus(updated.getRoomStatus());
-			return dto;
-		}
-		
-		// ========== 房型管理 ==========
-		
-		/**
-		 * 修改房型價格
-		 */
-		@Override
-		public RoomTypeDto updateRoomTypePrice(Integer roomTypeId, Double newPrice) {
-			StayRoomType roomType = stayRoomTypeRepository.findById(roomTypeId)
-					.orElseThrow(() -> new RuntimeException("找不到此房型"));
-			
-			if (newPrice <= 0) {
-				throw new RuntimeException("價格必須大於 0");
-			}
-			
-			roomType.setRoomPrice(newPrice);
-			StayRoomType updated = stayRoomTypeRepository.save(roomType);
-			
-			RoomTypeDto dto = new RoomTypeDto();
-			dto.setRoomTypeId(updated.getRoomTypeId());
-			dto.setRoomName(updated.getRoomName());
-			dto.setRoomPrice(updated.getRoomPrice());
-			dto.setRoomDescription(updated.getRoomDescription());
-			dto.setCapacity(updated.getCapacity());
-			dto.setAvailableCount(stayRoomRepository
-				.findByStayRoomType_RoomTypeIdAndRoomStatus(roomTypeId, "可預約").size());
-			
-			return dto;
-		}
-		
-		// ========== 日期查詢 ==========
-		
-		/**
-		 * 查看日期範圍內所有房間狀態
-		 */
-		@Override
-		public List<RoomCalendarDto> getRoomCalendar(LocalDate startDate, LocalDate endDate) {
-			List<StayRoom> allRooms = stayRoomRepository.findAll();
-			List<RoomCalendarDto> result = new ArrayList<>();
-			
-			// 逐日逐房查詢
-			LocalDate current = startDate;
-			while (!current.isAfter(endDate)) {
-				for (StayRoom room : allRooms) {
-					// 查這個房間在這天是否被預約
-					List<Stay> overlappingStays = stayRepository
-						.findOverlappingStays(
-							room.getStayRoomType().getRoomTypeId(),
-							current,
-							current.plusDays(1)
-						);
-					
-					// 篩選該房間的預約
-					Stay booking = overlappingStays.stream()
-						.filter(s -> s.getStayRoom().getRoomId().equals(room.getRoomId()))
-						.findFirst()
-						.orElse(null);
-					
-					RoomCalendarDto dto = new RoomCalendarDto();
-					dto.setRoomId(room.getRoomId());
-					dto.setRoomNo(room.getRoomNo());
-					dto.setRoomTypeId(room.getStayRoomType().getRoomTypeId());
-					dto.setRoomTypeName(room.getStayRoomType().getRoomName());
-					dto.setDate(current);
-					
-					if ("維護中".equals(room.getRoomStatus())) {
-						dto.setStatus("維護中");
-					} else if (booking != null) {
-						dto.setStatus("已預約");
-						dto.setMemberName(booking.getPet().getMember().getMemberName());
-						dto.setStayId(booking.getStayId().toString());
-					} else {
-						dto.setStatus("可用");
-					}
-					
-					result.add(dto);
-				}
-				
-				current = current.plusDays(1);
-			}
-			
-			return result;
-		}
-	
-	
-	
 }

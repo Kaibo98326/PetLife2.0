@@ -3,12 +3,9 @@ package com.petlife.service;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.data.domain.Page;
 
-import com.petlife.repository.AdminStayQueryDto;
-import com.petlife.repository.AdminStayResponseDto;
 import com.petlife.repository.CalendarDayDto;
-import com.petlife.repository.RoomCalendarDto;
+import com.petlife.repository.RoomStatusDto;
 import com.petlife.repository.RoomTypeDto;
 import com.petlife.repository.StayPaymentResponseDto;
 import com.petlife.repository.StayRequestDto;
@@ -53,56 +50,37 @@ public interface IStayService {
 	// 付款紀錄
 	Integer getStayIdByMerchantTradeNo(String merchantTradeNo);
 	
-	// ========== 新增方法（後台訂單管理）==========
+	// ----------------------------後臺方法----------------------
 	
-		/**
-		 * 後台查詢訂單列表（支援分頁、搜尋）
-		 * 搜尋條件：訂單編號、會員名稱、電話末三碼、訂單狀態、日期範圍
-		 */
-		Page<AdminStayResponseDto> getAllStaysForAdmin(AdminStayQueryDto query);
+	// 全部訂單
+	List<StayResponseDto> getAllStays();
 		
-		/**
-		 * 後台查詢單筆訂單詳情
-		 */
-		AdminStayResponseDto getStayByIdForAdmin(Integer stayId);
-		
-		/**
-		 * 修改訂單狀態
-		 * 狀態轉移：PENDING_PAYMENT -> CONFIRMED -> CHECKED_IN -> CHECKED_OUT
-		 *         或 -> CANCELLED
-		 */
-		AdminStayResponseDto updateStayStatus(Integer stayId, String newStatus);
-		
-		/**
-		 * 後台取消訂單（會同時更新房間狀態為可預約）
-		 */
-		AdminStayResponseDto cancelStayByAdmin(Integer stayId);
-		
-		// ========== 新增方法（房間管理）==========
-		
-		/**
-		 * 查詢所有房間
-		 */
-		List<StayRoomDto> getAllRooms();
-		
-		/**
-		 * 修改房間狀態（停權/啟用）
-		 * 狀態：可預約、維護中
-		 */
-		StayRoomDto updateRoomStatus(Integer roomId, String status);
-		
-		// ========== 新增方法（房型管理）==========
-		
-		/**
-		 * 修改房型價格
-		 */
-		RoomTypeDto updateRoomTypePrice(Integer roomTypeId, Double newPrice);
-		
-		// ========== 新增方法（日期查詢）==========
-		
-		
-		List<RoomCalendarDto> getRoomCalendar(LocalDate startDate, LocalDate endDate);
-		
-	}
+	// 修改訂單狀態
+	void updateStayStatus(Integer stayId, String status);
+	
+	// 查所有房間
+	List<StayRoomDto> getAllRooms();
+
+	// 修改房間狀態
+	void updateRoomStatus(Integer roomId, String status);
+	
+	// 修改房型資料
+	RoomTypeDto updateRoomType(Integer roomTypeId, Double newPrice, 
+	        String roomName, Integer capacity, String roomDescription);
+
+
+	// 訂單的三個搜尋
+	// 會員名字 
+	List<StayResponseDto> searchByMemberName(String name);
+	// 訂單編號
+	List<StayResponseDto> searchByStayId(Integer stayId);
+	// 手機末三碼
+	List<StayResponseDto> searchByPhone(String phone);
+	
+	// 修改房間狀態邏輯
+	List<RoomStatusDto> getRoomStatusByDate(LocalDate date);
+}
+
+	
 	
 

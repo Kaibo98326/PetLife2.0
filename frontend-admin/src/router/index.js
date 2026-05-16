@@ -70,17 +70,17 @@ const routes = [
       {
         path: 'stay-orders',
         name: '住宿訂單管理',
-        component: () => import('@/views/AdminStayOrders.vue'),
+        component: () => import('@/views/stay/AdminStayOrders.vue'),
       },
       {
         path: 'stay-rooms',
         name: '房間狀態管理',
-        component: () => import('@/views/AdminStayRooms.vue'),
+        component: () => import('@/views/stay/AdminStayRooms.vue'),
       },
       {
         path: 'stay-calendar',
         name: '住宿預約日曆',
-        component: () => import('@/views/AdminStayCalendar.vue'),
+        component: () => import('@/views/stay/AdminStayCalendar.vue'),
       },
     ],
   },
