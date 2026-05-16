@@ -68,12 +68,7 @@ onMounted(loadItems)
 <template>
   <main class="beauty-page container py-4">
     <div class="beauty-heading">
-      <div>
-        <h2>服務項目</h2>
-      </div>
-      <button class="btn btn-outline-secondary" @click="loadItems">
-        <i class="fas fa-rotate-right me-1"></i>重新整理
-      </button>
+      <h2>服務列表</h2>
     </div>
 
     <div v-if="loading" class="text-center py-5">

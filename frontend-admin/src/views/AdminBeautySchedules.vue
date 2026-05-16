@@ -8,11 +8,14 @@ const groomers = ref([])
 const selectedGroomerId = ref(null)
 const calendarDate = ref(new Date())
 const selectedDate = ref(formatDate(new Date()))
+const overviewHalf = ref('first')
 const monthlyData = ref([])
+const overviewMonths = ref(new Map())
 const daySlots = ref([])
 const scheduleStatus = ref('未排班')
 const scheduleNote = ref('')
 const loading = ref(false)
+const overviewLoading = ref(false)
 const dayLoading = ref(false)
 const scheduleDialogVisible = ref(false)
 const blockDialogVisible = ref(false)
@@ -42,6 +45,28 @@ const dayMap = computed(() => {
   return new Map(monthlyData.value.map(day => [day.workDate, day]))
 })
 
+const monthDays = computed(() => {
+  const value = calendarDate.value instanceof Date ? calendarDate.value : new Date(calendarDate.value)
+  const year = value.getFullYear()
+  const month = value.getMonth()
+  const lastDate = new Date(year, month + 1, 0).getDate()
+
+  return Array.from({ length: lastDate }, (_, index) => {
+    const day = new Date(year, month, index + 1)
+    return {
+      date: formatDate(day),
+      label: `${index + 1}`,
+      weekday: ['日', '一', '二', '三', '四', '五', '六'][day.getDay()],
+    }
+  })
+})
+
+const visibleMonthDays = computed(() => {
+  return overviewHalf.value === 'first'
+    ? monthDays.value.slice(0, 15)
+    : monthDays.value.slice(15)
+})
+
 const currentGroomerName = computed(() => {
   const groomer = groomers.value.find(item => item.groomerId === selectedGroomerId.value)
   return groomer?.displayName || (selectedGroomerId.value ? `美容師 ${selectedGroomerId.value}` : '-')
@@ -59,6 +84,29 @@ const tagType = status => {
   if (status === '排班關閉') return 'info'
   if (status === '可預約') return 'success'
   return 'info'
+}
+
+const overviewDay = (groomerId, workDate) => {
+  return overviewMonths.value.get(groomerId)?.get(workDate) || null
+}
+
+const overviewStatusClass = day => {
+  if (!day) return 'not-set'
+  if (day.scheduleStatus === '上班') return 'work'
+  if (day.scheduleStatus === '休假') return 'off'
+  return 'not-set'
+}
+
+const overviewCellTitle = (groomer, day) => {
+  const data = overviewDay(groomer.groomerId, day.date)
+  const name = groomer.displayName || `美容師 ${groomer.groomerId}`
+  if (!data) return `${name} ${day.date} 未排班`
+  return `${name} ${day.date} ${data.scheduleStatus} 可約 ${data.availableSlotCount} 預約 ${data.bookedSlotCount} 封鎖 ${data.blockedSlotCount}`
+}
+
+const syncOverviewHalfByDate = workDate => {
+  const day = Number(String(workDate).slice(-2))
+  overviewHalf.value = day <= 15 ? 'first' : 'second'
 }
 
 const loadGroomers = async () => {
@@ -94,6 +142,34 @@ const loadMonth = async () => {
   }
 }
 
+const loadOverviewMonth = async () => {
+  if (groomers.value.length === 0) return
+  overviewLoading.value = true
+  try {
+    const yearMonth = formatYearMonth(calendarDate.value)
+    const responses = await Promise.all(groomers.value.map(groomer =>
+      request.get('/api/admin/beauty/schedules/month', {
+        params: {
+          groomerId: groomer.groomerId,
+          yearMonth,
+        },
+      }),
+    ))
+
+    const nextMap = new Map()
+    responses.forEach((res, index) => {
+      const groomerId = groomers.value[index].groomerId
+      nextMap.set(groomerId, new Map((res.data.days || []).map(day => [day.workDate, day])))
+    })
+    overviewMonths.value = nextMap
+  } catch (err) {
+    console.log(err)
+    Swal.fire('錯誤', err.response?.data?.message || '排班總覽載入失敗', 'error')
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
 const loadDaySlots = async () => {
   if (!selectedGroomerId.value || !selectedDate.value) return
   dayLoading.value = true
@@ -117,7 +193,18 @@ const loadDaySlots = async () => {
 
 const selectDate = day => {
   selectedDate.value = day
+  syncOverviewHalfByDate(day)
   loadDaySlots()
+}
+
+const selectOverviewCell = (groomerId, workDate) => {
+  const groomerChanged = selectedGroomerId.value !== groomerId
+  selectedGroomerId.value = groomerId
+  selectedDate.value = workDate
+  syncOverviewHalfByDate(workDate)
+  if (!groomerChanged) {
+    loadDaySlots()
+  }
 }
 
 const openScheduleDialog = () => {
@@ -149,6 +236,7 @@ const saveSchedule = async () => {
     Swal.fire('成功', '排班已儲存', 'success')
     scheduleDialogVisible.value = false
     await loadMonth()
+    await loadOverviewMonth()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', err.response?.data?.message || '排班儲存失敗', 'error')
@@ -180,6 +268,7 @@ const saveBlock = async () => {
     blockSelectedSlotIds.value = []
     blockNote.value = ''
     await loadMonth()
+    await loadOverviewMonth()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', err.response?.data?.message || '封鎖失敗', 'error')
@@ -204,6 +293,7 @@ const saveBlockNote = async row => {
     Swal.fire('成功', '封鎖備註已更新', 'success')
     cancelEditBlock()
     await loadMonth()
+    await loadOverviewMonth()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', err.response?.data?.message || '封鎖備註更新失敗', 'error')
@@ -225,6 +315,7 @@ const deleteBlock = async row => {
     Swal.fire('成功', '封鎖已解除', 'success')
     cancelEditBlock()
     await loadMonth()
+    await loadOverviewMonth()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', err.response?.data?.message || '解除封鎖失敗', 'error')
@@ -235,7 +326,15 @@ watch([selectedGroomerId, calendarDate], () => {
   loadMonth()
 })
 
-onMounted(loadGroomers)
+watch(calendarDate, () => {
+  overviewHalf.value = 'first'
+  loadOverviewMonth()
+})
+
+onMounted(async () => {
+  await loadGroomers()
+  await loadOverviewMonth()
+})
 </script>
 
 <template>
@@ -244,7 +343,6 @@ onMounted(loadGroomers)
       <div class="beauty-toolbar">
         <div>
           <h3 class="beauty-title">班表管理</h3>
-          <div class="beauty-subtitle">以月曆查看排班，並管理單日時段封鎖</div>
         </div>
         <div class="beauty-filter">
           <el-select v-model="selectedGroomerId" filterable placeholder="選擇美容師" style="width: 220px">
@@ -257,6 +355,75 @@ onMounted(loadGroomers)
           </el-select>
         </div>
       </div>
+
+      <section class="schedule-overview" v-loading="overviewLoading">
+        <div class="beauty-toolbar schedule-overview-head">
+          <div>
+            <h3 class="beauty-title">美容師排班總覽</h3>
+          </div>
+          <el-tag type="info">{{ formatYearMonth(calendarDate) }}</el-tag>
+        </div>
+
+        <div class="schedule-matrix-wrap">
+          <table class="schedule-matrix">
+            <thead>
+              <tr>
+                <th class="groomer-head">美容師</th>
+                <th v-for="day in visibleMonthDays" :key="day.date" class="date-head">
+                  <span>{{ day.label }}</span>
+                  <small>{{ day.weekday }}</small>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="groomer in groomers" :key="groomer.groomerId">
+                <th class="groomer-cell">
+                  {{ groomer.displayName || `美容師 ${groomer.groomerId}` }}
+                </th>
+                <td v-for="day in visibleMonthDays" :key="`${groomer.groomerId}-${day.date}`">
+                  <button
+                    type="button"
+                    class="matrix-cell"
+                    :class="[
+                      overviewStatusClass(overviewDay(groomer.groomerId, day.date)),
+                      {
+                        selected: selectedGroomerId === groomer.groomerId && selectedDate === day.date,
+                      },
+                    ]"
+                    :title="overviewCellTitle(groomer, day)"
+                    @click="selectOverviewCell(groomer.groomerId, day.date)"
+                  >
+                    <template v-if="overviewDay(groomer.groomerId, day.date)">
+                      <strong>{{ overviewDay(groomer.groomerId, day.date).scheduleStatus }}</strong>
+                      <span>可 {{ overviewDay(groomer.groomerId, day.date).availableSlotCount }}</span>
+                      <span>約 {{ overviewDay(groomer.groomerId, day.date).bookedSlotCount }}</span>
+                    </template>
+                    <template v-else>
+                      <strong>未排</strong>
+                      <span>-</span>
+                    </template>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="schedule-half-switch">
+          <el-radio-group v-model="overviewHalf" size="small">
+            <el-radio-button label="first">上半月 1-15</el-radio-button>
+            <el-radio-button label="second">下半月 16-月底</el-radio-button>
+          </el-radio-group>
+        </div>
+
+        <div class="schedule-matrix-legend">
+          <span><i class="legend-dot work"></i>上班</span>
+          <span><i class="legend-dot off"></i>休假</span>
+          <span><i class="legend-dot not-set"></i>未排班</span>
+          <span>可：可預約時段數</span>
+          <span>約：已預約時段數</span>
+        </div>
+      </section>
 
       <div class="schedule-shell">
         <div v-loading="loading">

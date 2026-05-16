@@ -32,8 +32,45 @@ const selectedItems = computed(() => {
   return items.value.filter(item => ids.has(item.beautyId))
 })
 
+const selectedPet = computed(() => {
+  return pets.value.find(pet => Number(pet.petId) === Number(selectedPetId.value)) || null
+})
+
+const selectedPetSize = computed(() => {
+  const weight = Number(selectedPet.value?.weight)
+  if (!selectedPet.value || selectedPet.value.weight === null || selectedPet.value.weight === undefined || Number.isNaN(weight)) {
+    return ''
+  }
+  if (weight <= 10) return '小型'
+  if (weight <= 20) return '中型'
+  return '大型'
+})
+
+const selectedGroomer = computed(() => {
+  return groomers.value.find(groomer => Number(groomer.groomerId) === Number(selectedGroomerId.value)) || null
+})
+
+const selectedSlot = computed(() => {
+  return slots.value.find(slot => Number(slot.slotId) === Number(selectedSlotId.value)) || null
+})
+
 const totalMinutes = computed(() => {
   return selectedItems.value.reduce((sum, item) => sum + Number(item.durationSlots || 0) * 30, 0)
+})
+
+const selectedItemPrice = item => {
+  if (!selectedPetSize.value) return null
+  const price = item.prices?.find(row => row.petSize === selectedPetSize.value)
+  return price?.itemPrice ?? null
+}
+
+const estimatedTotalAmount = computed(() => {
+  if (!selectedPetSize.value || selectedItems.value.length === 0) return null
+
+  const prices = selectedItems.value.map(item => selectedItemPrice(item))
+  if (prices.some(price => price === null)) return null
+
+  return prices.reduce((sum, price) => sum + Number(price || 0), 0)
 })
 
 const canLoadGroomers = computed(() => selectedBeautyIds.value.length > 0 && appointDate.value)
@@ -221,16 +258,6 @@ onMounted(loadBaseData)
 
 <template>
   <main class="booking-page container py-4">
-    <div class="booking-heading">
-      <div>
-        <h2>填寫美容預約</h2>
-        <p>選擇寵物、服務、美容師與日期後，系統會顯示真正可預約時段。</p>
-      </div>
-      <button class="btn btn-outline-secondary" @click="router.push('/beauty-booking')">
-        返回項目
-      </button>
-    </div>
-
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-warning" role="status"></div>
     </div>
@@ -289,8 +316,7 @@ onMounted(loadBaseData)
               :class="{ active: Number(selectedSlotId) === slot.slotId }"
               @click="selectedSlotId = slot.slotId"
             >
-              {{ slot.slotName }}
-              <small>{{ slot.startTime }} - {{ slot.endTime }}</small>
+              {{ slot.startTime }}
             </button>
           </div>
 
@@ -304,17 +330,59 @@ onMounted(loadBaseData)
         </div>
       </section>
 
-      <aside class="col-lg-4">
+      <aside class="col-lg-4 booking-summary-col">
         <div class="booking-summary">
           <h3>預約摘要</h3>
-          <div v-if="selectedItems.length === 0" class="text-muted">尚未選擇美容項目</div>
-          <div v-for="item in selectedItems" :key="item.beautyId" class="summary-line">
-            <span>{{ item.itemName }}</span>
-            <small>{{ Number(item.durationSlots || 0) * 30 }} 分鐘</small>
+
+          <div class="summary-section">
+            <div class="summary-field">
+              <span>寵物</span>
+              <strong>{{ selectedPet?.petName || '尚未選擇' }}</strong>
+            </div>
+            <div class="summary-field">
+              <span>體型</span>
+              <strong>{{ selectedPetSize || '依體重判斷' }}</strong>
+            </div>
+            <div class="summary-field">
+              <span>日期</span>
+              <strong>{{ appointDate || '尚未選擇' }}</strong>
+            </div>
+            <div class="summary-field">
+              <span>美容師</span>
+              <strong>{{ selectedGroomer?.displayName || (selectedGroomerId ? `美容師 ${selectedGroomerId}` : '尚未選擇') }}</strong>
+            </div>
+            <div class="summary-field">
+              <span>預約時段</span>
+              <strong>
+                <template v-if="selectedSlot">
+                  {{ selectedSlot.startTime }}
+                </template>
+                <template v-else>尚未選擇</template>
+              </strong>
+            </div>
           </div>
+
+          <div class="summary-section">
+            <div class="summary-section-title">美容項目</div>
+            <div v-if="selectedItems.length === 0" class="summary-empty">尚未選擇美容項目</div>
+            <div v-for="item in selectedItems" :key="item.beautyId" class="summary-line">
+              <span>{{ item.itemName }}</span>
+              <small>
+                {{ Number(item.durationSlots || 0) * 30 }} 分鐘
+                <template v-if="selectedItemPrice(item) !== null">
+                  / {{ formatMoney(selectedItemPrice(item)) }}
+                </template>
+              </small>
+            </div>
+          </div>
+
           <div class="summary-total">
             <span>預估服務時間</span>
             <strong>{{ totalMinutes || 0 }} 分鐘</strong>
+          </div>
+          <div class="summary-total">
+            <span>預估金額</span>
+            <strong>{{ estimatedTotalAmount === null ? '待確認' : formatMoney(estimatedTotalAmount) }}</strong>
           </div>
           <div class="summary-note">實際金額由系統依寵物重量與服務價格快照計算。</div>
           <div class="summary-actions">
@@ -444,8 +512,59 @@ onMounted(loadBaseData)
 }
 
 .booking-summary {
-  position: sticky;
-  top: 120px;
+  width: 100%;
+  z-index: 20;
+  max-height: calc(100vh - 170px);
+  overflow-y: auto;
+}
+
+.booking-summary-col {
+  align-self: flex-start;
+}
+
+@media (min-width: 992px) {
+  .booking-summary {
+    position: fixed;
+    top: 150px;
+    right: 52px;
+    width: min(420px, max(320px, calc((100vw - 104px) / 3)));
+  }
+}
+
+.summary-section {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0e7df;
+}
+
+.summary-section:first-of-type {
+  padding-top: 0;
+}
+
+.summary-section-title {
+  margin-bottom: 8px;
+  color: #4f4037;
+  font-weight: 700;
+}
+
+.summary-field {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  color: #806f65;
+}
+
+.summary-field strong {
+  max-width: 62%;
+  color: #4f4037;
+  text-align: right;
+  word-break: break-word;
+}
+
+.summary-empty {
+  padding: 8px 0;
+  color: #8a7b72;
+  font-size: 14px;
 }
 
 .summary-line {
@@ -454,6 +573,20 @@ onMounted(loadBaseData)
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid #f0e7df;
+}
+
+.summary-line:last-child {
+  border-bottom: 0;
+}
+
+.summary-line span {
+  color: #4f4037;
+  font-weight: 600;
+}
+
+.summary-line small {
+  color: #806f65;
+  text-align: right;
 }
 
 .summary-total {
@@ -482,6 +615,9 @@ onMounted(loadBaseData)
 
   .booking-summary {
     position: static;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
   }
 }
 </style>
