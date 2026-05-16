@@ -546,11 +546,14 @@ public class StayService implements IStayService {
 
 		    Map<Integer, Stay> roomStayMap = new HashMap<>();
 		    for (Stay stay : occupiedStays) {
-			    // 只有 CHECKED_IN 才算使用中
-			    if ("CHECKED_IN".equals(stay.getStayStatus())) {
-			        roomStayMap.put(stay.getStayRoom().getRoomId(), stay);
-			    }
-			}
+		        if ("CHECKED_IN".equals(stay.getStayStatus())) {
+		            // 已入住
+		            roomStayMap.put(stay.getStayRoom().getRoomId(), stay);
+		        } else if ("CONFIRMED".equals(stay.getStayStatus())) {
+		            // 已預約但未入住，也放進去但標記不同
+		            roomStayMap.put(stay.getStayRoom().getRoomId(), stay);
+		        }
+		    }
 
 		    List<RoomStatusDto> result = new ArrayList<>();
 
@@ -570,11 +573,11 @@ public class StayService implements IStayService {
 		            dto.setStayStartDate(stay.getStayStartDate());
 		            dto.setStayEndDate(stay.getStayEndDate());
 		            dto.setStayStatus(stay.getStayStatus());
-		            dto.setIsOccupied(true);
+		            // 只有 CHECKED_IN 才是已入住
+		            dto.setIsOccupied("CHECKED_IN".equals(stay.getStayStatus()));
 		        } else {
-		            dto.setIsOccupied(false); // ← 加這行
+		            dto.setIsOccupied(false);
 		        }
-
 		        result.add(dto);
 		    }
 

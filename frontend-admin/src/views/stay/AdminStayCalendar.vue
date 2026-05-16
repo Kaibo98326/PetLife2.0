@@ -79,7 +79,8 @@ fetchRooms()
         :class="{
           maintenance: room.roomStatus === '維護中',
           occupied: room.isOccupied,
-          available: room.roomStatus !== '維護中' && !room.isOccupied,
+          booked: !room.isOccupied && room.stayId !== null && room.roomStatus !== '維護中',
+          available: room.roomStatus !== '維護中' && !room.isOccupied && room.stayId === null,
         }"
       >
         <div class="room-no">{{ room.roomNo }}</div>
@@ -90,15 +91,24 @@ fetchRooms()
           :class="{
             'badge-maintenance': room.roomStatus === '維護中',
             'badge-occupied': room.isOccupied,
-            'badge-available': room.roomStatus !== '維護中' && !room.isOccupied,
+            'badge-booked':
+              !room.isOccupied && room.stayId !== null && room.roomStatus !== '維護中',
+            'badge-available':
+              room.roomStatus !== '維護中' && !room.isOccupied && room.stayId === null,
           }"
         >
           {{
-            room.roomStatus === '維護中' ? '🔧 維護中' : room.isOccupied ? '🔒 已預約' : '✅ 可預約'
+            room.roomStatus === '維護中'
+              ? '🔧 維護中'
+              : room.isOccupied
+                ? '🐾 已入住'
+                : room.stayId !== null
+                  ? '🔒 已預約'
+                  : '✅ 可預約'
           }}
         </span>
 
-        <div class="room-detail" v-if="room.isOccupied">
+        <div class="room-detail" v-if="room.isOccupied || room.stayId !== null">
           <div>👤 {{ room.memberName }}</div>
           <div>🐾 {{ room.petName }}</div>
           <div>📅 {{ room.stayStartDate }} ~ {{ room.stayEndDate }}</div>
@@ -347,5 +357,14 @@ fetchRooms()
   text-align: center;
   padding: 60px;
   color: #999;
+}
+.room-card.booked {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.badge-booked {
+  background: #dbeafe;
+  color: #1e40af;
 }
 </style>
