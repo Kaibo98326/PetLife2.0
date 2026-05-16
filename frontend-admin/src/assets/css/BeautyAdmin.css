@@ -147,9 +147,37 @@
   background: #fff;
 }
 
+.schedule-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.38fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.schedule-main {
+  min-width: 0;
+}
+
+.schedule-side {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+}
+
 .schedule-overview-head {
   align-items: center;
   margin-bottom: 14px;
+}
+
+.schedule-week-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.schedule-calendar-panel {
+  min-width: 0;
 }
 
 .schedule-matrix-wrap {
@@ -284,12 +312,6 @@
   background: #f6f7f9;
 }
 
-.schedule-half-switch {
-  display: flex;
-  justify-content: center;
-  margin-top: 14px;
-}
-
 .schedule-matrix-legend {
   display: flex;
   flex-wrap: wrap;
@@ -324,13 +346,7 @@
   background: #a8abb2;
 }
 
-.schedule-shell {
-  display: grid;
-  grid-template-columns: minmax(520px, 1.15fr) minmax(360px, 0.85fr);
-  gap: 18px;
-}
-
-.schedule-shell .el-calendar-table .el-calendar-day {
+.schedule-calendar-panel .el-calendar-table .el-calendar-day {
   height: auto;
   min-height: 96px;
   padding: 0;
@@ -400,9 +416,8 @@
 }
 
 .day-panel {
-  position: sticky;
-  top: 0;
-  align-self: start;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 .slot-status {
@@ -425,8 +440,17 @@
 }
 
 @media (max-width: 1180px) {
-  .schedule-shell {
+  .schedule-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .schedule-side {
+    position: static;
+  }
+
+  .day-panel {
+    max-height: none;
+    overflow: visible;
   }
 }
 
