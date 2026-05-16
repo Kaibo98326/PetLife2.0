@@ -223,6 +223,9 @@ let detailModal = null
 const currentPage = ref(1)
 const pageSize = 10
 
+
+
+
 //換頁效果
 const paginatedOrders = computed(() => {
   const start = (currentPage.value - 1) * pageSize
@@ -238,16 +241,42 @@ function goToPage(page) {
   }
 }
 
+// 將 checkAndOpenOrder 獨立成一個方法
+const checkAndOpenOrder = async () => {
+  const openOrderId = route.query.openOrderId;
+  if (openOrderId && orders.value.length > 0) {
+    const targetId = parseInt(openOrderId);
+    // 1. 找出該筆訂單在陣列中的 Index
+    const index = orders.value.findIndex(o => o.orderId === targetId);
+    if (index !== -1) {
+      // 2. 精準計算這筆訂單在哪一頁 (無條件捨去 + 1)
+      const targetPage = Math.floor(index / pageSize) + 1;
+      
+      // 3. 把背景切換到正確的頁碼
+      goToPage(targetPage);
+      
+      // 4. 等待畫面渲染後，彈出明細視窗
+      await nextTick();
+      await openModal(targetId);
+      
+      // 5. 將網址上的參數抹除，避免使用者按 F5 重新整理時又一直打開
+      router.replace({ query: {} });
+    }
+  }
+}
+
+
+
 // 核心功能：抓取歷史訂單  移除路徑 includes 判斷，改由 watch 觸發點來控制，確保穩定
+
 
 const fetchOrders = async () => {
   console.log('開始抓取訂單，目前路徑:', route.path)
   isLoading.value = true
 
   try {
-    // 確保 axios 配置正確，路徑前綴依照你的後端設定
+    
     const response = await axios.get('/orders/historyorders')
-
     if (response.data) {
       orders.value = response.data
       console.log('資料抓取成功:', response.data.length, '筆紀錄')
@@ -255,9 +284,11 @@ const fetchOrders = async () => {
   } catch (err) {
     console.error('抓取歷史訂單失敗:', err)
   } finally {
-    // 稍微延遲讓 DOM 有時間反應，避免 isLoading 閃爍
-    setTimeout(() => {
+    
+    setTimeout(async () => {
       isLoading.value = false
+      // ✨ 新增/修改：當資料載入完畢後，執行檢查是否需要自動跳轉與開窗
+      await checkAndOpenOrder()
     }, 150)
   }
 }

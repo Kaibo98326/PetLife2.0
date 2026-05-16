@@ -398,102 +398,95 @@ public class OrderService {
     public void save(Order order) {
         or.save(order);
     }
- // 取消訂單並退回已使用的紅利點數
-    @Transactional
-    public void cancelOrder(Integer orderId) {
-        Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
-        
-        // 嚴格防呆
-        if ("已取消".equals(order.getOrderStatus())) {
-            throw new RuntimeException("訂單已經是取消狀態");
-        }
-        if ("已完成".equals(order.getOrderStatus())) {
-            throw new RuntimeException("訂單已完成，無法取消");
-        }
-
-        order.setOrderStatus("已取消");
-        
-        //  退回當初結帳時扣除的紅利點數
-        if (order.getUsedPoint() != null && order.getUsedPoint() > 0) {
-            memberRepository.addBonusPoints(order.getMemberId(), order.getUsedPoint());
-        }
-        
-        or.save(order);
-    }
-    
-    
- // 確認收貨並發放紅利點數
-    @Transactional
-    public void completeOrder(Integer orderId) {
-        Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
-        
-        // 嚴格防呆，避免重複發放
-        if ("已完成".equals(order.getOrderStatus()) || "已取消".equals(order.getOrderStatus())) {
-            throw new RuntimeException("當前訂單狀態不允許確認收貨");
-        }
-
-        order.setOrderStatus("已完成");
-        
-        // 計算獲得點數：應付總額 * 0.01 (intValue() 自動無條件捨去小數)
-        if (order.getOrderTotal() != null) {
-            int earnedPoints = order.getOrderTotal().multiply(new BigDecimal("0.01")).intValue();
-            if (earnedPoints > 0) {
-                memberRepository.addBonusPoints(order.getMemberId(), earnedPoints);
-            }
-        }
-        
-        or.save(order);
-    }
+ 
     
  // 會員的紅利明細 (不需額外建表)
+
     public List<Map<String, Object>> getBonusHistory(Integer memberId) {
         // 取得該會員所有未刪除的訂單
         List<Order> orders = findByMemberId(memberId);
+        
+        // 將訂單依時間「由舊到新」排序，以便正向累加餘額
+        orders.sort((a, b) -> a.getOrderDate().compareTo(b.getOrderDate()));
+
         List<Map<String, Object>> history = new ArrayList<>();
+        int currentBalance = 0; // 存摺餘額模擬
 
         for (Order order : orders) {
-            // 1. 【扣除紀錄】只要當初結帳有使用點數，就一定會產生扣除紀錄
+            // 1. 【消耗紀錄】結帳使用的點數
             if (order.getUsedPoint() != null && order.getUsedPoint() > 0) {
+                currentBalance -= order.getUsedPoint();
                 Map<String, Object> useRecord = new HashMap<>();
-                useRecord.put("type", "扣除");
-                useRecord.put("description", "【紅利折抵】訂單 #" + order.getOrderId());
-                useRecord.put("points", -order.getUsedPoint()); // 負數
+                useRecord.put("orderId", order.getOrderId());
+                useRecord.put("type", "消耗");
+                useRecord.put("description", "購物折抵");
+                useRecord.put("points", -order.getUsedPoint());
+                useRecord.put("balance", currentBalance);
                 useRecord.put("date", order.getOrderDate());
                 history.add(useRecord);
 
-                // 2. 【退回紀錄】如果訂單後續被取消，且當初有扣點，就補上退回紀錄
+                // 2. 【退回紀錄】訂單取消後的紅利退回
                 if ("已取消".equals(order.getOrderStatus())) {
+                    currentBalance += order.getUsedPoint();
                     Map<String, Object> refundRecord = new HashMap<>();
-                    refundRecord.put("type", "獲得");
-                    refundRecord.put("description", "【取消退回】訂單 #" + order.getOrderId());
-                    refundRecord.put("points", order.getUsedPoint()); // 正數
-                    refundRecord.put("date", order.getOrderDate());
+                    refundRecord.put("orderId", order.getOrderId());
+                    refundRecord.put("type", "獲取");
+                    refundRecord.put("description", "取消退回");
+                    refundRecord.put("points", order.getUsedPoint());
+                    refundRecord.put("balance", currentBalance);
+                    refundRecord.put("date", order.getOrderDate().plusSeconds(1)); // 避免同秒排序問題
                     history.add(refundRecord);
                 }
             }
 
-            // 3. 【獲得紀錄】如果訂單已完成，且計算出來的預計獲得點數 > 0
+            // 3. 【獲取紀錄】訂單完成發放的紅利 (1%)
             if ("已完成".equals(order.getOrderStatus()) && order.getOrderTotal() != null) {
                 int earned = order.getOrderTotal().multiply(new BigDecimal("0.01")).intValue();
                 if (earned > 0) {
+                    currentBalance += earned;
                     Map<String, Object> earnRecord = new HashMap<>();
-                    earnRecord.put("type", "獲得");
-                    earnRecord.put("description", "【消費回饋】訂單 #" + order.getOrderId());
-                    earnRecord.put("points", earned); // 正數
+                    earnRecord.put("orderId", order.getOrderId());
+                    earnRecord.put("type", "獲取");
+                    earnRecord.put("description", "訂單回饋");
+                    earnRecord.put("points", earned);
+                    earnRecord.put("balance", currentBalance);
                     earnRecord.put("date", order.getOrderDate());
                     history.add(earnRecord);
                 }
             }
         }
 
-        // 依照日期由新到舊 (降冪) 排序
-        history.sort((a, b) -> {
-            LocalDateTime dateA = (LocalDateTime) a.get("date");
-            LocalDateTime dateB = (LocalDateTime) b.get("date");
-            return dateB.compareTo(dateA); 
-        });
-
+        // 依日期「由新到舊」重新排序，供前端存摺顯示
+        history.sort((a, b) -> ((LocalDateTime) b.get("date")).compareTo((LocalDateTime) a.get("date")));
         return history;
     }
-    
+
+    // ✨ 新增/修改：取消訂單並執行原子化退回點數
+    @Transactional
+    public void cancelOrder(Integer orderId) {
+        Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
+        if ("已取消".equals(order.getOrderStatus()) || "已完成".equals(order.getOrderStatus())) {
+            throw new RuntimeException("目前狀態不允許取消");
+        }
+        order.setOrderStatus("已取消");
+        if (order.getUsedPoint() != null && order.getUsedPoint() > 0) {
+            memberRepository.addBonusPoints(order.getMemberId(), order.getUsedPoint());
+        }
+        or.save(order);
+    }
+
+    // ✨ 新增/修改：確認收貨並發放紅利點數
+    @Transactional
+    public void completeOrder(Integer orderId) {
+        Order order = or.findById(orderId).orElseThrow(() -> new RuntimeException("找不到訂單"));
+        if (!"已完成".equals(order.getOrderStatus()) && !"已取消".equals(order.getOrderStatus())) {
+            order.setOrderStatus("已完成");
+            int earnedPoints = order.getOrderTotal().multiply(new BigDecimal("0.01")).intValue();
+            if (earnedPoints > 0) {
+                memberRepository.addBonusPoints(order.getMemberId(), earnedPoints);
+            }
+            or.save(order);
+        }
+    }
 }
+
