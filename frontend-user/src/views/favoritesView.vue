@@ -7,13 +7,11 @@
       <div class="header-wrapper mb-5">
         <div class="row align-items-end">
           <div class="col-md-7 text-start">
-            <h1 class="main-title">我的收藏清單 <i class="bi bi-paw-fill paw-icon"></i></h1>
             <p class="wishlist-count">
               目前已收藏 <span>{{ favoriteList.length }}</span> 件商品
             </p>
           </div>
           <div class="col-md-5 text-md-end d-flex justify-content-md-end gap-3 pb-2">
-            <router-link to="/" class="nav-outline-btn">返回首頁</router-link>
             <router-link to="/cart" class="nav-solid-btn">
               前往結帳 <i class="bi bi-cart-check ms-1"></i>
             </router-link>
@@ -110,10 +108,10 @@ const loading = ref(true)
 const currentPage = ref(1)
 const itemsPerPage = 10
 
-// --- 分頁邏輯修正 ---
+// --- 分頁邏輯 ---
 const totalPages = computed(() => {
   const total = Math.ceil(favoriteList.value.length / itemsPerPage)
-  // 強制最少要有 1 頁，這樣 01 按鈕才會出現
+  // 最少要有1頁，這樣01按鈕才會出現
   return total > 0 ? total : 1
 })
 
@@ -134,7 +132,7 @@ watch(totalPages, (newTotal) => {
   if (currentPage.value > newTotal) currentPage.value = newTotal || 1
 })
 
-// --- API 與功能邏輯 ---
+// --- API 功能邏輯 ---
 const fetchWishlist = async () => {
   if (!userStore.memberId) {
     loading.value = false
