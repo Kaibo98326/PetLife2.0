@@ -6,10 +6,7 @@ import java.time.format.DateTimeParseException;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,9 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.petlife.config.ApiException;
-import com.petlife.repository.BlockWorkSlotRequest;
 import com.petlife.repository.GroomerScheduleRequest;
-import com.petlife.repository.UpdateBlockWorkSlotRequest;
 import com.petlife.repository.UpdateDayScheduleSlotsRequest;
 import com.petlife.service.GroomerScheduleService;
 import com.petlife.service.GroomerWorkSlotService;
@@ -65,23 +60,6 @@ public class AdminBeautyScheduleController {
     @PutMapping("/day-slots")
     public ResponseEntity<?> updateDayScheduleSlots(@Valid @RequestBody UpdateDayScheduleSlotsRequest request) {
         return ResponseEntity.ok(groomerScheduleService.updateDayScheduleSlots(request));
-    }
-
-    @PostMapping("/work-slots/block")
-    public ResponseEntity<?> blockSlots(@Valid @RequestBody BlockWorkSlotRequest request) {
-        return ResponseEntity.ok(groomerWorkSlotService.blockSlots(request));
-    }
-
-    @DeleteMapping("/work-slots/block/{workSlotId}")
-    public ResponseEntity<?> deleteBlock(@PathVariable Integer workSlotId) {
-        groomerWorkSlotService.deleteBlock(workSlotId);
-        return ResponseEntity.ok("封鎖時段刪除成功");
-    }
-
-    @PutMapping("/work-slots/block/{workSlotId}")
-    public ResponseEntity<?> updateBlock(@PathVariable Integer workSlotId,
-            @RequestBody UpdateBlockWorkSlotRequest request) {
-        return ResponseEntity.ok(groomerWorkSlotService.updateBlock(workSlotId, request));
     }
 
     private YearMonth parseYearMonth(String yearMonth) {

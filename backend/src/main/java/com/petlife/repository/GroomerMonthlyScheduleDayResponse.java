@@ -3,6 +3,5 @@ package com.petlife.repository;
 import java.time.LocalDate;
 
 public record GroomerMonthlyScheduleDayResponse(LocalDate workDate, String scheduleStatus,
-        Integer bookedSlotCount, Integer blockedSlotCount, Integer scheduleClosedSlotCount,
-        Integer availableSlotCount) {
+        Integer bookedSlotCount, Integer scheduleClosedSlotCount, Integer availableSlotCount) {
 }

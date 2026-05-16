@@ -12,6 +12,5 @@ public final class BeautyConstants {
     public static final String APPOINTMENT_CANCELLED = "已取消";
     public static final String APPOINTMENT_NO_SHOW = "未到";
     public static final String WORK_SLOT_APPOINTMENT = "預約占用";
-    public static final String WORK_SLOT_BLOCKED = "手動封鎖";
     public static final String WORK_SLOT_SCHEDULE_CLOSED = "排班關閉";
 }

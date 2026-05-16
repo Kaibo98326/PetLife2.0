@@ -374,7 +374,7 @@ public class BeautyAppointmentService {
                 .toList();
 
         if (workSlotRepository.existsByGroomerIdAndWorkDateAndSlotIdIn(groomerId, appointDate, occupiedSlotIds)) {
-            throw ApiException.badRequest("選取時段已被預約或封鎖");
+            throw ApiException.badRequest("選取時段已被預約或關閉");
         }
 
         boolean available = availabilityService.findAvailableStartSlots(groomerId, appointDate, totalSlots)
@@ -395,7 +395,7 @@ public class BeautyAppointmentService {
                 .toList();
 
         if (workSlotRepository.existsByGroomerIdAndWorkDateAndSlotIdIn(groomerId, appointDate, occupiedSlotIds)) {
-            throw ApiException.badRequest("選取時段已被預約或封鎖");
+            throw ApiException.badRequest("選取時段已被預約或關閉");
         }
     }
 }
