@@ -256,12 +256,12 @@ onMounted(() => {
           </div>
 
           <div class="cart-bonus-row" style="margin-top: 10px; font-size: 0.9em; border-top: 1px dashed #eee; padding-top: 10px;">
-            <label style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-              <div style="color: #666;">
+            <label style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: nowrap; gap: 8px;">
+              <div style="color: #666; white-space: nowrap; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;">
                 <input type="checkbox" v-model="isBonusEnabled" @change="toggleBonus" />
                 <span style="margin-left: 8px;">使用紅利點數折抵 (目前擁有: {{ userStore.user?.bonusPoints || 0 }} 點)</span>
               </div>
-              <div :style="{ opacity: isBonusEnabled ? 1 : 0.4, color: isBonusEnabled ? '#000' : '#999' }">
+              <div :style="{ opacity: isBonusEnabled ? 1 : 0.4, color: isBonusEnabled ? '#000' : '#999' }" style="white-space: nowrap; flex-shrink: 0;">
                 - $ 
                 <input 
                   type="number" 

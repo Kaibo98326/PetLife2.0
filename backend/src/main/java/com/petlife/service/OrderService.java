@@ -357,7 +357,9 @@ public class OrderService {
 		result.put("orderDate", order.getOrderDate());
 		result.put("orderAddress", order.getOrderAddress());
 		result.put("orderName", order.getOrderName());
-		result.put("orderTotal", order.getOrderTotal());
+		result.put("orderTotal", order.getOrderTotal());		
+		// 將該訂單使用的紅利點數傳遞給前端顯示
+        result.put("usedPoint", order.getUsedPoint() != null ? order.getUsedPoint() : 0);
 
 		// 查詢該訂單的所有明細
 		List<OrderDetail> details = odr.findByOrderBean_OrderId(orderId);

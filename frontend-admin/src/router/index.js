@@ -68,7 +68,8 @@ const routes = [
       },
       {
         path: '/admin/discount', // 或是 /admin/discounts
-        name: 'DiscountManagement',
+        name: '優惠活動管理',
+        meta: { icon: 'fa-solid fa-gift' },
         component: () => import('../views/DiscountView.vue'), // 確保組件路徑正確
       },
       {

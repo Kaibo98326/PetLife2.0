@@ -40,4 +40,9 @@ public class OrderDiscountService {
     public List<OrderDiscountSummaryDTO> getDiscountSummaryByOrderId(Integer orderId) {
         return orderDiscountRepository.findSummaryByOrderId(orderId);
     }
+    
+ // 呼叫新的 JOIN 查詢方法，提供給前端活動儀表板使用
+    public List<OrderDiscountRepository.DiscountUsageProjection> getDiscountUsageDetails(Integer discountId) {
+        return orderDiscountRepository.findDiscountUsageDetails(discountId);
+    }
 }

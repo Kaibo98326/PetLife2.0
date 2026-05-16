@@ -60,6 +60,12 @@
               <span class="label" style="color: #888; text-align: right; margin-right: 10px; background: none; font-weight: normal; padding: 0;">{{ ad.name }}</span>
             </div>
           </div>
+          
+          <div v-if="orderMain.usedPoint > 0" class="summary-line discount-line" style="margin-bottom: 8px;">
+            <span class="total-label" style="font-size: 16px; color: #ff4d4f;">紅利折抵：</span>
+            <span class="total-price" style="font-size: 18px; color: #ff4d4f;">- $ {{ orderMain.usedPoint.toLocaleString() }}</span>
+          </div>
+
           <div class="summary-line final-total-line" style="border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
             <span class="total-label">應付總額：</span>
             <span class="total-price">$ {{ orderMain.orderTotal.toLocaleString() }}</span>
@@ -85,6 +91,7 @@ const orderMain = reactive({
   orderName: '',
   orderAddress: '',
   orderTotal: 0,
+  usedPoint: 0, // 用來接收紅利點數
 })
 
 const orderItems = reactive([])
@@ -112,6 +119,8 @@ onMounted(async () => {
       orderMain.orderAddress = data.orderAddress
       orderMain.orderPrice = data.orderPrice
       orderMain.orderTotal = data.orderTotal
+      orderMain.usedPoint = data.usedPoint || 0 //把後端傳來的紅利點數存起來
+
 
       orderItems.length = 0
       const items = data.items || []

@@ -1,6 +1,7 @@
 package com.petlife.controller;
 
 import com.petlife.model.OrderDiscount;
+import com.petlife.repository.OrderDiscountRepository;
 import com.petlife.repository.OrderDiscountSummaryDTO;
 import com.petlife.service.OrderDiscountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,5 +53,12 @@ public class OrderDiscountController {
     public ResponseEntity<List<OrderDiscountSummaryDTO>> getDiscountSummaryByOrderId(@PathVariable Integer orderId) {
         List<OrderDiscountSummaryDTO> summary = orderDiscountService.getDiscountSummaryByOrderId(orderId);
         return ResponseEntity.ok(summary);
+    }
+    
+ // 提供給高質感活動明細彈窗的專屬 API (帶有商品圖文與下單日期)
+    @GetMapping("/discount/{discountId}/details")
+    public ResponseEntity<List<OrderDiscountRepository.DiscountUsageProjection>> getDiscountUsageDetails(@PathVariable Integer discountId) {
+        List<OrderDiscountRepository.DiscountUsageProjection> details = orderDiscountService.getDiscountUsageDetails(discountId);
+        return ResponseEntity.ok(details);
     }
 }

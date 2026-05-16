@@ -146,7 +146,8 @@
 }
 
 .cart-summary-container {
-  width: 320px; /* 獨立總計區塊的寬度 */
+  /*將總計區塊的寬度從 320px 放大至 420px，實質拉大文字與金額中間的橫向空白間距 */
+  width: 420px; /* 獨立總計區塊的寬度 */
   display: flex;
   flex-direction: column;
 }
@@ -155,7 +156,8 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 5px 0;
+  /* 將原本的垂直內距從 5px 提高至 8px，適度拉開每行之間的垂直行距，增加畫面呼吸感 */
+  padding: 8px 0; 
 }
 .cart-summary-label, .cart-discount-label, .cart-final-label {
   flex: 0 0 auto;

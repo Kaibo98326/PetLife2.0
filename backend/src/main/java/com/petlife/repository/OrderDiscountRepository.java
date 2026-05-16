@@ -27,4 +27,25 @@ public interface OrderDiscountRepository extends JpaRepository<OrderDiscount, Or
            "FROM OrderDiscount od, Discount d " +
            "WHERE od.orderId = :orderId AND od.discountId = d.discountId")
     List<OrderDiscountSummaryDTO> findSummaryByOrderId(@Param("orderId") Integer orderId);
+    
+ // 用於接收高質感儀表板 JOIN 查詢結果的 Projection 介面
+    public interface DiscountUsageProjection {
+        Integer getOrderId();
+        java.time.LocalDateTime getOrderDate();
+        Integer getProductId();
+        String getProductName();
+        String getProductImage();
+        Integer getQuantity();
+        java.math.BigDecimal getDiscountAmount(); 
+    }
+
+    // JOIN 訂單與商品表，撈取高質感明細所需的完整圖文與日期資料
+    @Query("SELECT od.orderId AS orderId, o.orderDate AS orderDate, od.productId AS productId, " +
+           "p.productName AS productName, p.productImage AS productImage, " +
+           "od.quantity AS quantity, od.discountAmount AS discountAmount " +
+           "FROM OrderDiscount od, Order o, Product p " +
+           "WHERE od.orderId = o.orderId AND od.productId = p.productId " +
+           "AND od.discountId = :discountId " +
+           "ORDER BY o.orderDate DESC")
+    List<DiscountUsageProjection> findDiscountUsageDetails(@Param("discountId") Integer discountId);
 }
