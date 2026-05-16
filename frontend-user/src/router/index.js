@@ -12,6 +12,7 @@ import OrderHistoryView from '@/views/OrderHistoryView.vue'
 import ProductDetailView from '@/views/ProductDetailView.vue'
 import PetListView from '@/views/PetListView.vue'
 import AddPetView from '@/views/AddPetView.vue'
+import HeartView from '@/views/HeartView.vue'
 
 const routes = [
   {
@@ -54,6 +55,12 @@ const routes = [
         path: 'stay/booking-success',
         name: 'StayBookingSuccess',
         component: () => import('@/views/stay/StayBookingSuccess.vue'),
+      },
+      {
+        path: '/heart',
+        name: 'heart',
+        component: HeartView,
+        meta: { requiresAuth: true },
       },
     ],
   },
@@ -124,6 +131,11 @@ const routes = [
       { path: 'pets', component: PetListView },
       { path: 'pets/add', component: AddPetView },
     ],
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue'),
   },
 ]
 

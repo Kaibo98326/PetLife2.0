@@ -57,12 +57,14 @@ body {
   background: linear-gradient(90deg, #ff7a00 0%, #ff9a44 100%);
   display: flex;
   align-items: center;
-  justify-content: space-between; /* 自動把 Logo 推到左，User 推到右 */
+  justify-content: space-between;
+  /* 自動把 Logo 推到左，User 推到右 */
   padding: 0 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
   z-index: 1000;
-  border: none !important; /* 強制拿掉任何可能產生的邊線 */
+  border: none !important;
+  /* 強制拿掉任何可能產生的邊線 */
 }
 
 /* 左側文字 */
@@ -118,19 +120,54 @@ body {
   opacity: 0.9;
 }
 
-/* 回商城按鈕：奶油白透明風格 */
-.btn-back-to-mall {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  color: white !important;
-  border-radius: 8px !important;
-  transition: all 0.3s;
+
+
+/* 客服聊聊按鈕 */
+.header-chat-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 44px;
+  /* 稍微加大 */
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.btn-back-to-mall:hover {
-  background-color: rgba(255, 255, 255, 0.3) !important;
-  border-color: white !important;
-  transform: translateY(-1px);
+.header-chat-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.header-chat-btn i {
+  font-size: 22px;
+}
+
+/* 呼吸燈動畫：提醒有會員等待 */
+@keyframes chat-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.header-chat-btn.has-waiting {
+  animation: chat-pulse 2s infinite;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* 登出按鈕 */
@@ -159,7 +196,8 @@ body {
 }
 
 .sidebar-menu {
-  height: 100% !important; /* 確保高度填滿下方區域 */
+  height: 100% !important;
+  /* 確保高度填滿下方區域 */
   border-right: none !important;
 }
 
@@ -239,7 +277,8 @@ body {
 }
 
 .breadcrumb-container .current-path {
-  color: var(--primary-orange); /* 使用我們定義的橘色 */
+  color: var(--primary-orange);
+  /* 使用我們定義的橘色 */
   font-weight: 500;
 }
 
@@ -256,3 +295,33 @@ body {
   margin: 0;
 }
 
+/* -----------------------------------------------------------
+   E. Dashboard Content (首頁內容樣式)
+   ----------------------------------------------------------- */
+
+.dashboard-content {
+  padding: 10px;
+}
+
+.welcome-card {
+  margin-bottom: 20px;
+  border-left: 5px solid var(--primary-orange);
+}
+
+.stat-row {
+  margin-top: 20px;
+}
+
+.stat-card {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.text-danger {
+  color: #f56c6c;
+}

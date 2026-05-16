@@ -7,7 +7,6 @@ import { useUserStore } from '@/stores/user'
 import '@/assets/css/ShopPanel.css'
 import { Carousel } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
-
 // ── 使用者 Store（登入判斷、購物車） ──────────────────────────────────────
 const userStore = useUserStore()
 const route = useRoute()
@@ -41,6 +40,9 @@ const totalPages = ref(1) // 總頁數
 const totalElements = ref(0) // 商品總數
 const loading = ref(false) // 載入狀態
 const errorMsg = ref('') // 錯誤訊息
+const viewHistory = ref([]) // 瀏覽紀錄
+const top10Products = ref([]) // TOP10 熱銷商品
+const favoriteProducts = ref([]) // 收藏商品
 
 // ── 排序與狀態 ────────────────────────────────────────────────────────────
 const sortBy = ref('newest') // 預設：最新上架
@@ -68,10 +70,10 @@ const showCarousel = computed(() => {
   return selectedCategoryId.value === null && !searchKeyword.value && route.query.view !== 'all'
 })
 
-/** TOP10 熱銷排行 */
-const top10Products = computed(() => {
-  return [...products.value].slice(0, 10)
-})
+/** TOP10 熱銷排行 (改用 API 取得) */
+// const top10Products = computed(() => {
+//   return [...products.value].slice(0, 10)
+// })
 
 /** 麵包屑導覽路徑 */
 const breadcrumbs = computed(() => {
@@ -115,8 +117,8 @@ const IMG_BASE = 'http://localhost:8082'
 
 /** 組合商品圖片完整 URL */
 function getImageUrl(imagePath) {
-  if (!imagePath || imagePath === 'default_product.jpg') {
-    return `${IMG_BASE}/images/products/default_product.jpg`
+  if (!imagePath || imagePath === 'default.jpg' || imagePath === 'default_product.jpg') {
+    return `${IMG_BASE}/images/products/default.jpg`
   }
   return `${IMG_BASE}/${imagePath}`
 }
@@ -190,6 +192,27 @@ async function fetchProducts(page = 1) {
     errorMsg.value = '商品載入失敗，請稍後再試'
   } finally {
     loading.value = false
+  }
+}
+
+// ── 取得 TOP10 熱銷排行 ──────────────────────────────────────────────────
+async function fetchTop10() {
+  try {
+    const res = await axios.get('/shop/products/top10')
+    top10Products.value = res.data || []
+  } catch (e) {
+    console.error('取得 TOP10 失敗', e)
+  }
+}
+
+// ── 取得瀏覽紀錄 ──────────────────────────────────────────────────────────
+async function fetchHistory() {
+  if (!userStore.token || !userStore.memberId) return
+  try {
+    const res = await axios.get(`/history/${userStore.memberId}`)
+    viewHistory.value = res.data || []
+  } catch (e) {
+    console.error('取得歷史紀錄失敗', e)
   }
 }
 
@@ -286,6 +309,73 @@ async function addToCart(product) {
   }
 }
 
+// -- 收藏小愛心 --
+async function toggleHeart(product) {
+  if (!userStore.token || !userStore.memberId) {
+    await Swal.fire({
+      icon: 'warning',
+      title: '請先登入',
+      text: '登入後才能收藏您心儀的毛孩好物喔！',
+      confirmButtonText: '前往登入',
+      confirmButtonColor: '#e67e22',
+    })
+    router.push('/login')
+    return
+  }
+
+  const pId = Number(product.productId)
+
+  try {
+    const res = await axios.post('/heart/toggle', null, {
+      params: {
+        memberId: userStore.memberId,
+        productId: pId,
+      },
+    })
+
+    if (res.data.includes('加入') || res.data.includes('收藏成功')) {
+      if (!favoriteProducts.value.includes(pId)) {
+        favoriteProducts.value.push(pId)
+      }
+    } else {
+      favoriteProducts.value = favoriteProducts.value.filter((id) => id !== pId)
+    }
+
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: res.data,
+      showConfirmButton: false,
+      timer: 1500,
+    })
+  } catch (e) {
+    console.error('收藏操作失敗', e)
+    Swal.fire({
+      icon: 'error',
+      title: '操作失敗',
+      text: '請稍後再試',
+    })
+  }
+}
+/* 抓取目前會員已收藏的所有商品 ID */
+async function fetchFavoriteIds() {
+  if (!userStore.memberId) return
+  try {
+    const res = await axios.get('/heart/list', {
+      params: {
+        memberId: userStore.memberId,
+      },
+    })
+    console.log('✅ 成功抓取收藏資料:', res.data)
+    if (Array.isArray(res.data)) {
+      favoriteProducts.value = res.data.map((item) => Number(item.productId))
+    }
+  } catch (e) {
+    console.error('❌ 抓取失敗，請確認參數格式:', e)
+  }
+}
+
 // ── 監聽 URL query 變化（Header 搜尋 / 分類連結點擊） ─────────────────────
 watch(
   () => route.query,
@@ -322,11 +412,21 @@ onMounted(async () => {
   if (route.query.catId) {
     selectedCategoryId.value = parseInt(route.query.catId)
   }
+  // 更新購物車數量
   if (userStore.token && userStore.memberId) {
     userStore.updateCartCount()
   }
+  // 同步愛心狀態
+  if (userStore.token && userStore.memberId) {
+    console.log('✅ 偵測到會員登入，開始同步私有資料...')
+    await Promise.all([userStore.updateCartCount(), fetchFavoriteIds()])
+  } else {
+    console.log('ℹ️ 當前為訪客模式')
+  }
 
   await fetchProducts(1)
+  fetchTop10() // 【新增】取得真實熱銷排行
+  fetchHistory()
 
   const carouselElement = document.getElementById('shopCarousel')
 
@@ -401,8 +501,24 @@ onMounted(async () => {
           </div>
 
           <!-- 這裡留給您未來放置「歷史紀錄」 -->
-          <div class="history-placeholder mt-4">
-            <!-- 未來放置歷史紀錄組件 -->
+          <div v-if="userStore.token && viewHistory.length > 0" class="recent-history-section mt-5">
+            <h6 class="history-title mb-3">最近看過 ...</h6>
+            <div class="history-list">
+              <router-link
+                v-for="h in viewHistory.slice(0, 10)"
+                :key="h.productId"
+                :to="`/product/${h.productId}`"
+                class="history-item d-flex align-items-center text-decoration-none mb-3"
+              >
+                <div class="history-img-box me-2">
+                  <img :src="getImageUrl(h.productImage)" :alt="h.productName" />
+                </div>
+                <div class="history-info">
+                  <p class="history-name mb-0">{{ h.productName }}</p>
+                  <p class="history-price mb-0">$ {{ Number(h.productPrice).toLocaleString() }}</p>
+                </div>
+              </router-link>
+            </div>
           </div>
         </div>
       </aside>
@@ -480,16 +596,18 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- TOP10 熱銷排行 -->
+        <!-- TOP 5 熱銷排行 (固定展示) -->
         <section
           v-if="!loading && top10Products.length > 0 && showCarousel"
-          class="top10-section mb-4"
+          class="top10-section mb-5"
         >
-          <h4 class="section-title"><i class="fas fa-fire text-danger me-2"></i>TOP10 熱銷排行</h4>
-          <div class="top10-scroll-wrapper">
-            <div class="top10-track">
-              <div v-for="(p, idx) in top10Products" :key="'a-' + p.productId" class="top10-card">
-                <div class="rank-badge"><i class="fas fa-fire"></i></div>
+          <h4 class="section-title mb-4">
+            <i class="fas fa-crown text-warning me-2"></i>TOP 5 熱門精選
+          </h4>
+          <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-3">
+            <div v-for="(p, idx) in top10Products.slice(0, 5)" :key="p.productId" class="col">
+              <div class="top10-card h-100 shadow-sm border-0">
+                <div class="rank-badge-static">TOP {{ idx + 1 }}</div>
                 <router-link
                   :to="`/product/${p.productId}`"
                   class="text-decoration-none"
@@ -504,37 +622,18 @@ onMounted(async () => {
                 </router-link>
                 <div class="top10-footer">
                   <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
-                  <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                    <i class="fas fa-shopping-basket"></i>
-                  </button>
-                </div>
-              </div>
-              <!-- 複製一組無縫滾動 -->
-              <div
-                v-for="(p, idx) in top10Products"
-                :key="'b-' + p.productId"
-                class="top10-card"
-                aria-hidden="true"
-              >
-                <div class="rank-badge"><i class="fas fa-fire"></i></div>
-                <router-link
-                  :to="`/product/${p.productId}`"
-                  class="text-decoration-none"
-                  style="color: inherit"
-                  tabindex="-1"
-                >
-                  <div class="top10-img">
-                    <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
+                  <div class="action-btns">
+                    <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                      <i
+                        :class="
+                          favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'
+                        "
+                      ></i>
+                    </button>
+                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                      <i class="fas fa-shopping-basket"></i>
+                    </button>
                   </div>
-                  <div class="top10-info">
-                    <p class="top10-name">{{ p.productName }}</p>
-                  </div>
-                </router-link>
-                <div class="top10-footer">
-                  <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
-                  <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                    <i class="fas fa-shopping-basket"></i>
-                  </button>
                 </div>
               </div>
             </div>
@@ -650,9 +749,20 @@ onMounted(async () => {
                     <span class="product-price"
                       >$ {{ Number(p.productPrice).toLocaleString() }}</span
                     >
-                    <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                      <i class="fas fa-shopping-basket"></i>
-                    </button>
+                    <div class="action-btns">
+                      <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                        <i
+                          :class="
+                            favoriteProducts.some((id) => Number(id) === Number(p.productId))
+                              ? 'fas fa-heart'
+                              : 'far fa-heart'
+                          "
+                        ></i>
+                      </button>
+                      <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                        <i class="fas fa-shopping-basket"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>

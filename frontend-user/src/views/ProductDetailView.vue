@@ -14,8 +14,8 @@ const IMG_BASE = 'http://localhost:8082'
 
 /** 組合商品圖片完整 URL */
 function getImageUrl(imagePath) {
-  if (!imagePath || imagePath === 'default_product.jpg') {
-    return `${IMG_BASE}/images/products/default_product.jpg`
+  if (!imagePath || imagePath === 'default.jpg' || imagePath === 'default_product.jpg') {
+    return `${IMG_BASE}/images/products/default.jpg`
   }
   return `${IMG_BASE}/${imagePath}`
 }
@@ -27,6 +27,49 @@ const errorMsg = ref('')
 /** 購買數量 */
 const quantity = ref(1)
 
+/** 當前顯示的大圖路徑 */
+const activeImage = ref('')
+/** 完整的圖片列表 (主圖 + 細節圖) */
+const allImages = ref([])
+
+/** 切換大圖 */
+function setActiveImage(path) {
+  activeImage.value = path
+}
+
+/** 下一張圖 */
+function nextImage() {
+  if (allImages.value.length <= 1) return
+  const currentIndex = allImages.value.indexOf(activeImage.value)
+  if (currentIndex < allImages.value.length - 1) {
+    activeImage.value = allImages.value[currentIndex + 1]
+  } else {
+    activeImage.value = allImages.value[0] // 循環
+  }
+}
+
+/** 上一張圖 */
+function prevImage() {
+  if (allImages.value.length <= 1) return
+  const currentIndex = allImages.value.indexOf(activeImage.value)
+  if (currentIndex > 0) {
+    activeImage.value = allImages.value[currentIndex - 1]
+  } else {
+    activeImage.value = allImages.value[allImages.value.length - 1] // 循環
+  }
+}
+
+const thumbRow = ref(null)
+/** 滾動縮圖列 */
+function scrollThumb(direction) {
+  if (!thumbRow.value) return
+  const scrollAmount = 240 // 約 3 張縮圖的寬度
+  thumbRow.value.scrollBy({
+    left: direction === 'left' ? -scrollAmount : scrollAmount,
+    behavior: 'smooth'
+  })
+}
+
 // ── 取得商品詳情 ──────────────────────────────────────────────────────────
 async function fetchProduct() {
   loading.value = true
@@ -35,6 +78,32 @@ async function fetchProduct() {
     const id = route.params.id
     const res = await axios.get(`/products/detail/${id}`)
     product.value = res.data
+    
+    if (product.value) {
+      // 處理圖片列表
+      activeImage.value = product.value.productImage
+      
+      const images = []
+      // 先放主圖
+      if (product.value.productImage) {
+        images.push(product.value.productImage)
+      }
+      // 再放細節圖 (過濾掉跟主圖重複的路徑，避免重複顯示)
+      if (product.value.images && product.value.images.length > 0) {
+        product.value.images.forEach(img => {
+          if (img.imageUrl !== product.value.productImage) {
+            images.push(img.imageUrl)
+          }
+        })
+      }
+      allImages.value = images
+
+      // ── 紀錄瀏覽紀錄 ──
+      if (userStore.token && userStore.memberId) {
+        recordHistory(userStore.memberId, product.value.productId)
+      }
+    }
+
     // 若商品不存在或已下架
     if (!product.value || product.value.productStatus !== 1) {
       errorMsg.value = '此商品不存在或已下架'
@@ -45,6 +114,15 @@ async function fetchProduct() {
     errorMsg.value = '商品載入失敗，請稍後再試'
   } finally {
     loading.value = false
+  }
+}
+
+/** 記錄瀏覽歷史到後端 */
+async function recordHistory(memberId, productId) {
+  try {
+    await axios.post('/history/record', { memberId, productId })
+  } catch (e) {
+    console.error('記錄歷史失敗', e)
   }
 }
 
@@ -111,7 +189,7 @@ async function addToCart() {
   }
 
   try {
-    await axios.post(`/api/cart/add/${userStore.memberId}`, {
+    await axios.post(`/cart/add/${userStore.memberId}`, {
       productId: product.value.productId,
       quantity: quantity.value
     })
@@ -162,13 +240,50 @@ onMounted(fetchProduct)
       <div v-else-if="product" class="row g-5">
         <!-- 左側：商品圖片 -->
         <div class="col-md-6">
-          <div class="main-image-wrapper">
+          <div class="main-image-wrapper mb-3 shadow-sm rounded overflow-hidden position-relative gallery-container">
+            <!-- 主圖導覽箭頭 -->
+            <button class="gallery-nav-btn prev" v-if="allImages.length > 1" @click="prevImage" title="上一張">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+
             <img
-              :src="getImageUrl(product.productImage)"
+              :src="getImageUrl(activeImage)"
               :alt="product.productName"
-              class="img-fluid rounded"
-              @error="$event.target.src = `${IMG_BASE}/images/products/default_product.jpg`"
+              class="img-fluid main-product-img"
+              @error="$event.target.src = `${IMG_BASE}/images/products/default.jpg`"
             />
+
+            <button class="gallery-nav-btn next" v-if="allImages.length > 1" @click="nextImage" title="下一張">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+
+            <!-- 圖片計數器 -->
+            <div class="image-counter" v-if="allImages.length > 1">
+              {{ allImages.indexOf(activeImage) + 1 }} / {{ allImages.length }}
+            </div>
+          </div>
+
+          <!-- 縮圖列表 -->
+          <div class="thumbnail-row-wrapper position-relative" v-if="allImages.length > 1">
+            <button class="thumb-nav-btn left" @click="scrollThumb('left')" v-if="allImages.length > 4">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <div class="thumbnail-row d-flex gap-2 pb-2" ref="thumbRow">
+              <div 
+                v-for="(img, index) in allImages" 
+                :key="index"
+                class="thumb-box rounded overflow-hidden"
+                :class="{ 'active': activeImage === img }"
+                @click="setActiveImage(img)"
+              >
+                <img :src="getImageUrl(img)" class="thumb-img" />
+              </div>
+            </div>
+
+            <button class="thumb-nav-btn right" @click="scrollThumb('right')" v-if="allImages.length > 4">
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
 
@@ -276,4 +391,136 @@ onMounted(fetchProduct)
 .quantity-control input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* ── 圖片藝廊樣式 ── */
+.main-image-wrapper {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  max-height: 500px;
+}
+.main-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.3s ease;
+}
+
+.thumbnail-row {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+/* 隱藏滾動條 */
+.thumbnail-row::-webkit-scrollbar {
+  height: 4px;
+}
+.thumbnail-row::-webkit-scrollbar-thumb {
+  background: #eee5d8;
+  border-radius: 10px;
+}
+
+.thumb-box {
+  flex: 0 0 80px;
+  height: 80px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  background: #fff;
+  opacity: 0.7;
+}
+.thumb-box:hover {
+  opacity: 1;
+}
+.thumb-box.active {
+  border-color: #e67e22;
+  opacity: 1;
+}
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── 新增：主圖導覽箭頭 ── */
+.gallery-container {
+  position: relative;
+  group: hover;
+}
+.gallery-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  color: var(--brand-brown);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  opacity: 0; /* 預設隱藏，滑入顯示 */
+}
+.gallery-container:hover .gallery-nav-btn {
+  opacity: 1;
+}
+.gallery-nav-btn:hover {
+  background: var(--brand-orange);
+  color: white;
+}
+.gallery-nav-btn.prev { left: 15px; }
+.gallery-nav-btn.next { right: 15px; }
+
+.image-counter {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+}
+
+/* ── 新增：縮圖列導覽 ── */
+.thumbnail-row-wrapper {
+  margin-top: 10px;
+}
+.thumbnail-row {
+  scrollbar-width: none; /* Firefox */
+}
+.thumbnail-row::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.thumb-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  border: 1px solid var(--border-color);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: 0.2s;
+}
+.thumb-nav-btn:hover {
+  background: var(--bg-warm);
+  color: var(--brand-orange);
+}
+.thumb-nav-btn.left { left: -15px; }
+.thumb-nav-btn.right { right: -15px; }
 </style>

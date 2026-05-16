@@ -38,11 +38,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in details" :key="item.productId">
-                <td>{{ item.productName }}</td>
-                <td class="text-center">${{ item.productPrice }}</td>
+              <tr v-for="item in details" :key="item.orderDetailId">
+                <td>{{ item.productName || item.product?.productName }}</td>
+                <td class="text-center">${{ item.productPrice || item.product?.productPrice }}</td>
                 <td class="text-center">{{ item.quantity }}</td>
-                <td class="text-end fw-bold">${{ item.subtotal }}</td>
+                <td class="text-end">${{ item.subtotal }}</td>
               </tr>
             </tbody>
           </table>
@@ -58,8 +58,9 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import axios from 'axios'
 
-// 接收父組件傳過來的orderId
+// 接收傳過來的orderId
 const props = defineProps({
   orderId: {
     type: [Number, String],
@@ -72,22 +73,20 @@ const details = ref([])
 const loading = ref(false)
 
 const fetchDetail = async () => {
-  if (!props.orderId) return
-  loading.value = true
   try {
-    const res = await fetch(`/api/order/detail/${props.orderId}`)
-    const data = await res.json()
-    // 後端回傳格式為{ order: {...}, details: [...] }
-    order.value = data.order
-    details.value = data.details
+    const res = await axios.get(`/api/order/detail/${props.orderId}`)
+    // 💡 這裡要對齊 Map 的 Key
+    order.value = res.data.order
+    details.value = res.data.details
+    console.log('管理端抓到的明細：', details.value)
   } catch (err) {
-    console.error('明細抓取失敗', err)
+    console.error('❌ 明細抓取失敗', err)
   } finally {
     loading.value = false
   }
 }
 
-// 當props.orderId改變時重新抓取(防止同一個Modal切換不同訂單)
+// 防止同一個Modal切換不同訂單
 watch(() => props.orderId, fetchDetail)
 
 onMounted(fetchDetail)

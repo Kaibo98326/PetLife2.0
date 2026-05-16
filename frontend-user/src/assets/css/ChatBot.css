@@ -1,0 +1,333 @@
+/* ══════════════════════════════════════════════
+   智能客服聊天視窗 v2 (一體化簡約設計)
+   ══════════════════════════════════════════════ */
+
+.smart-chat-window {
+    position: fixed;
+    bottom: 20px;
+    right: 25px;
+    width: 400px;
+    height: 600px;
+    background: #fff;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 2000;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transform-origin: bottom right;
+    border: none;
+}
+
+/* ── 頂部標題列 ── */
+.chat-header {
+    background: #fff;
+    padding: 20px 24px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.chat-header h6 {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+}
+
+.bot-avatar {
+    width: 36px;
+    height: 36px;
+    background: #fff;
+    border: 2px solid #f0e6dc;
+    color: var(--brand-orange);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+/* ── 對話內容區 ── */
+.chat-messages-box {
+    flex: 1;
+    overflow-y: auto;
+    background: linear-gradient(180deg, #fefaf6 0%, #ffffff 100%);
+    padding: 16px;
+    scroll-behavior: smooth;
+}
+
+.chat-messages-box::-webkit-scrollbar {
+    width: 5px;
+}
+
+.chat-messages-box::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-messages-box::-webkit-scrollbar-thumb {
+    background: rgba(230, 126, 34, 0.3);
+    border-radius: 10px;
+}
+
+.message-row {
+    display: flex;
+    margin-bottom: 12px;
+    animation: msg-fade-in 0.3s ease;
+}
+
+@keyframes msg-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-row.bot { justify-content: flex-start; }
+.message-row.user { justify-content: flex-end; }
+
+.message-bubble {
+    max-width: 78%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    position: relative;
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+.bot .message-bubble {
+    background: #fff;
+    color: #333;
+    border-top-left-radius: 4px;
+    border: 1px solid #f0e6dc;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.user .message-bubble {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: #fff;
+    border-top-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3);
+}
+
+.message-time {
+    display: block;
+    font-size: 10px;
+    margin-top: 4px;
+    opacity: 0.5;
+}
+
+/* ── 系統提示訊息 ── */
+.message-row.system {
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.system-message {
+    width: 90%;
+}
+
+.system-bubble {
+    background: #fff9e6; /* 淡淡的暖黃色背景 */
+    color: #8d6e63;      /* 溫暖的棕色文字 */
+    padding: 10px 15px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(109, 76, 65, 0.05);
+    border: 1px solid #f0e6dc;
+}
+
+.system-text {
+    display: block;
+    line-height: 1.5;
+}
+
+.system-time {
+    display: block;
+    font-size: 10px;
+    margin-top: 6px;
+    opacity: 0.6;
+    font-weight: 400;
+}
+
+/* ── 打字中動畫 ── */
+.typing .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    background: #ccc;
+    border-radius: 50%;
+    margin-right: 4px;
+    animation: typing-wave 1.2s infinite ease-in-out;
+}
+
+.typing .dot:nth-child(2) { animation-delay: 0.2s; }
+.typing .dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-wave {
+    0%, 100% { transform: translateY(0); opacity: 0.4; }
+    50% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ── 分類選單區 ── */
+.chat-menu-area {
+    background: #faf8f5;
+    border-top: 1px solid #f0e6dc;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.chat-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid #f0e6dc;
+    border-radius: 12px;
+    background: #fff;
+    color: #444;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chat-menu-btn:hover {
+    border-color: #e67e22;
+    background: #fff8f0;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(230, 126, 34, 0.1);
+}
+
+.chat-menu-btn .menu-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+}
+
+.chat-menu-btn.human-btn {
+    grid-column: span 2;
+    border-color: #e74c3c;
+    color: #e74c3c;
+    background: #fff5f5;
+    justify-content: center;
+}
+
+.chat-menu-btn.human-btn:hover {
+    background: #e74c3c;
+    color: #fff;
+    border-color: #e74c3c;
+}
+
+/* ── FAQ 快速按鈕區 ── */
+.chat-faq-area {
+    background: #faf8f5;
+    border-top: 1px solid #f0e6dc;
+    padding: 10px 12px !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.chat-faq-area::-webkit-scrollbar { height: 0; display: none; }
+
+.chat-faq-area .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 11.5px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    border: 1.5px solid #e67e22;
+    color: #e67e22;
+    background: #fff;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    margin: 0 !important;
+}
+
+.chat-faq-area .btn:hover {
+    background: #e67e22;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(230, 126, 34, 0.3);
+}
+
+/* ── 輸入區域 ── */
+.chat-input-area {
+    background: #fff;
+    border-top: 1px solid #f0e6dc;
+    padding: 12px 14px !important;
+    flex-shrink: 0;
+}
+
+.chat-input-area .input-group {
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #eee;
+}
+
+.chat-input-area .form-control {
+    border: none !important;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    background: #fafafa !important;
+}
+
+.chat-input-area .btn {
+    border: none;
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: #fff;
+    padding: 10px 18px;
+    transition: all 0.2s;
+}
+
+/* ── 彈入動畫 ── */
+.chat-fade-enter-active,
+.chat-fade-leave-active {
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-fade-enter-from,
+.chat-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.85) translateY(30px);
+}
+
+/* ── RWD 手機版 ── */
+@media (max-width: 480px) {
+    .smart-chat-window {
+        width: calc(100vw - 20px);
+        height: calc(100vh - 80px);
+        bottom: 10px;
+        right: 10px;
+        border-radius: 16px;
+    }
+}
+
+/* ── 真人客服連線狀態標籤 ── */
+.human-status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: #27ae60;
+    padding: 4px 10px;
+    background: #eafaf1;
+    border-radius: 12px;
+    animation: pulse-status 2s infinite;
+}
+
+@keyframes pulse-status {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}

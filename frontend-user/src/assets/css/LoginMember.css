@@ -7,7 +7,7 @@
     font-family: 'Montserrat', sans-serif;
 }
 
-body{
+.login-page{
     background-color: #FFE5B4; /* 淺橘米色 */
     background: linear-gradient(to right, #FFE5B4, #FFB347, #FF7F50); /* 暖色漸層 */
     display: flex;
@@ -19,7 +19,7 @@ body{
 }
 
 .container{
-    background-color: #fff;
+    background-color: #ffffff;
     border-radius: 30px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
     position: relative;
@@ -51,7 +51,7 @@ body{
     background-color: rgb(255, 153, 104);    
     color: #fff;
     font-size: 12px;
-    padding: 10px 45px;
+    padding: 9px 24px;
     border: 1px solid transparent;
     border-radius: 8px;
     font-weight: 600;
@@ -238,5 +238,91 @@ body{
     position: absolute;
 }
 
+.modal-content{
+    border-radius: 25px;
+    padding:  10px;
+    border: none;
+}
 
+.modal-header{
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.modal-header .btn-close{
+    margin-left: 650px;
+}
+.modal-title{
+    font-weight: bold;
+    color: #ff7f50;
+    font-size: 28px;
+}
+
+.modal-body{
+    padding: 25px;
+}
+
+.modal-body p{
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.modal-body input{
+    height: 50px;
+    border-radius: 12px;
+    font-size: 16px;
+}
+
+.modal-footer{
+    border-top: none;
+    padding-top: 0;
+    justify-content: center;
+    gap: 10px;
+}
+
+.modal-footer .btn{
+    min-width: 120px;
+    border-radius: 12px;
+    font-size: 20px;
+    font-weight: bold;
+}
+.forgot-modal-content {
+  border-radius: 30px;
+  padding: 35px 30px;
+  min-height: 420px;
+}
+
+.forgot-modal-content .modal-title {
+  color: #ff7f50;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.forgot-modal-content .modal-body {
+  padding: 40px 20px;
+}
+
+.forgot-modal-content input {
+  height: 60px;
+  border-radius: 18px;
+}
+
+.modal-dialog{
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.modal.show .modal-dialog{
+  transform: none !important;
+}
+
+.login-btn-group{
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.login-btn-group .demo-btn{
+    flex: 1;
+}
 
