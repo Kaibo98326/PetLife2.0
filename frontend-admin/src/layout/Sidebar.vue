@@ -44,26 +44,34 @@
         </el-icon>
         <span>商品管理</span>
         <!-- 父目錄：顯示驚嘆號圖示 -->
-        <i v-if="productStore.lowStockCount > 0" class="fas fa-exclamation-triangle parent-warning-icon"></i>
+        <i
+          v-if="productStore.lowStockCount > 0"
+          class="fas fa-exclamation-triangle parent-warning-icon"
+        ></i>
       </template>
       <el-menu-item index="/admin/category">商品類別管理</el-menu-item>
       <el-menu-item index="/admin/product" class="product-menu-item">
         <span>商品管理</span>
         <!-- 子目錄：顯示紅色小數字徽章 -->
-        <el-badge 
-          v-if="productStore.lowStockCount > 0" 
-          :value="productStore.lowStockCount" 
-          :max="99" 
+        <el-badge
+          v-if="productStore.lowStockCount > 0"
+          :value="productStore.lowStockCount"
+          :max="99"
           class="sub-stock-badge"
         />
       </el-menu-item>
     </el-sub-menu>
 
-    <el-menu-item index="/admin/order">
-      <el-icon><ShoppingCart /></el-icon>
-      <span>訂單管理</span>
-    </el-menu-item>
-
+    <el-sub-menu index="/admin/order">
+      <template #title>
+        <el-icon>
+          <ShoppingCart />
+        </el-icon>
+        <span>訂單管理</span>
+      </template>
+      <el-menu-item index="/admin/order">訂單管理</el-menu-item>
+      <el-menu-item index="/admin/order/orderanalysis">訂單分析</el-menu-item>
+    </el-sub-menu>
 
     <el-sub-menu index="beauty-group">
       <template #title>
@@ -150,8 +158,14 @@ const productStore = useProductStore()
 }
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 </style>

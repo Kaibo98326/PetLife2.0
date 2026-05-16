@@ -59,4 +59,31 @@ public class OrderAdminController {
             return ResponseEntity.status(500).body("伺服器處理失敗");
         }
     }
+    
+    // 結帳方式分析
+    @GetMapping("/analysis/payment")
+    public ResponseEntity<Map<String, Long>> getPaymentAnalysis() {
+        return ResponseEntity.ok(oas.getPaymentAnalysis());
+    }
+
+    // 近一個月狀態分析
+    @GetMapping("/analysis/status")
+    public ResponseEntity<Map<String, Long>> getRecentStatusAnalysis() {
+        return ResponseEntity.ok(oas.getRecentStatusAnalysis());
+    }
+
+    // 取得每月訂單趨勢分析
+    @GetMapping("/analysis/trends")
+    public ResponseEntity<List<Map<String, Object>>> getOrderTrendAnalysis() {
+        return ResponseEntity.ok(oas.getOrderTrendAnalysis());
+    }
+
+    // 點擊圖表時動態載入對應的訂單列表
+    @GetMapping("/analysis/listbycondition")
+    public ResponseEntity<List<Order>> getOrdersByCondition(
+            @RequestParam String searchType,
+            @RequestParam String keyword) {
+        List<Order> orders = oas.findOrdersByCondition(searchType, keyword);
+        return ResponseEntity.ok(orders);
+    }
 }
