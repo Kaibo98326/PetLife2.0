@@ -114,7 +114,7 @@ onMounted(() => {
 
         <tbody>
           <tr v-for="item in cartItems" :key="item.itemId">
-            <td style="text-align: left">{{ item.productName }}</td>
+            <td>{{ item.productName }}</td>
             <td class="price-text">$ {{ item.productPrice }}</td>
             <td>
               <button class="btn-qty" @click="changeQty(item, -1)">-</button>
