@@ -13,6 +13,7 @@ import ProductDetailView from '@/views/ProductDetailView.vue'
 import PetListView from '@/views/PetListView.vue'
 import AddPetView from '@/views/AddPetView.vue'
 import HeartView from '@/views/HeartView.vue'
+import favoritesView from '@/views/favoritesView.vue'
 
 const routes = [
   {
@@ -61,6 +62,24 @@ const routes = [
         name: 'heart',
         component: HeartView,
         meta: { requiresAuth: true },
+      },
+      // 購物車的router
+      {
+        path: '/cart',
+        name: 'cart',
+        component: CartView,
+        /*守衛，看會員有沒有登入*/
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/checkout',
+        name: 'checkout',
+        component: CheckoutView,
+      },
+      {
+        path: '/checkoutsuccess',
+        name: 'checkoutsuccess',
+        component: CheckoutSuccessView,
       },
     ],
   },
@@ -130,6 +149,7 @@ const routes = [
       { path: 'profile', component: ProfileView },
       { path: 'pets', component: PetListView },
       { path: 'pets/add', component: AddPetView },
+      { path: 'favorites', component: favoritesView },
     ],
   },
   {
