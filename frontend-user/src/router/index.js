@@ -13,6 +13,7 @@ import ProductDetailView from '@/views/ProductDetailView.vue'
 import PetListView from '@/views/PetListView.vue'
 import AddPetView from '@/views/AddPetView.vue'
 import HeartView from '@/views/HeartView.vue'
+import favoritesView from '@/views/favoritesView.vue'
 
 const routes = [
   {
@@ -107,6 +108,7 @@ const routes = [
       { path: 'profile', component: ProfileView },
       { path: 'pets', component: PetListView },
       { path: 'pets/add', component: AddPetView },
+      { path: 'favorites', component: favoritesView },
     ],
   },
   {
