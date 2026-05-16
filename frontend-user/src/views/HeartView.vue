@@ -53,13 +53,13 @@
                 <div class="action-group">
                   <!-- 加入按鈕改橘色 -->
                   <button class="action-btn cart-btn-orange" @click="addToCart(item.product)">
-                    <i class="bi bi-basket2-fill"></i> 加入
+                    <i class="bi bi-basket2-fill"></i> 加入購物車
                   </button>
                   <button
                     class="action-btn remove-btn-minimal"
                     @click="handleRemove(item.product.productId)"
                   >
-                    <i class="bi bi-trash3"></i> 移出
+                    <i class="bi bi-trash3"></i> 取消收藏
                   </button>
                 </div>
               </div>

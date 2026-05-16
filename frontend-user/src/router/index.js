@@ -38,25 +38,25 @@ const routes = [
         component: HeartView,
         meta: { requiresAuth: true },
       },
+      // 購物車的router
+      {
+        path: '/cart',
+        name: 'cart',
+        component: CartView,
+        /*守衛，看會員有沒有登入*/
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/checkout',
+        name: 'checkout',
+        component: CheckoutView,
+      },
+      {
+        path: '/checkoutsuccess',
+        name: 'checkoutsuccess',
+        component: CheckoutSuccessView,
+      },
     ],
-  },
-  // 購物車的router
-  {
-    path: '/cart',
-    name: 'cart',
-    component: CartView,
-    /*守衛，看會員有沒有登入*/
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/checkout',
-    name: 'checkout',
-    component: CheckoutView,
-  },
-  {
-    path: '/checkoutsuccess',
-    name: 'checkoutsuccess',
-    component: CheckoutSuccessView,
   },
   {
     path: '/orderhistory',
@@ -112,8 +112,8 @@ const routes = [
   {
     path: '/reset-password',
     name: 'ResetPassword',
-    component: () => import('@/views/ResetPassword.vue')
-  }
+    component: () => import('@/views/ResetPassword.vue'),
+  },
 ]
 
 const router = createRouter({
