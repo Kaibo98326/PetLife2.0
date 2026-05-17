@@ -2,8 +2,10 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
+import { useEmployeeStore } from '@/stores/employee'
 import '@/assets/css/BeautyAdmin.css'
 
+const employeeStore = useEmployeeStore()
 const groomers = ref([])
 const selectedGroomerId = ref(null)
 const calendarDate = ref(new Date())
@@ -22,6 +24,11 @@ const scheduleSlotIds = ref([])
 const daySlotPageSize = 10
 const daySlotCurrentPage = ref(1)
 const scheduleForm = ref({ scheduleStatus: '上班', note: '' })
+
+const canWriteBeauty = computed(() => {
+  const roles = employeeStore.roles || []
+  return !roles.includes('groomer') || roles.includes('superuser')
+})
 
 function formatDate(date) {
   const value = date instanceof Date ? date : new Date(date)
@@ -482,7 +489,7 @@ onMounted(async () => {
                 </div>
               </div>
               <div class="beauty-actions">
-                <el-button size="small" class="schedule-edit-button" @click="openScheduleDialog">編輯排班</el-button>
+                <el-button v-if="canWriteBeauty" size="small" class="schedule-edit-button" @click="openScheduleDialog">編輯排班</el-button>
               </div>
             </div>
 

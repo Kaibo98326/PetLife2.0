@@ -2,8 +2,10 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
+import { useEmployeeStore } from '@/stores/employee'
 import '@/assets/css/BeautyAdmin.css'
 
+const employeeStore = useEmployeeStore()
 const items = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -15,6 +17,11 @@ const currentPage = ref(1)
 const imageOptions = ref([])
 const IMG_BASE = 'http://localhost:8082'
 const DEFAULT_BEAUTY_IMAGE = '/images/beauty/default.jpg'
+
+const canWriteBeauty = computed(() => {
+  const roles = employeeStore.roles || []
+  return !roles.includes('groomer') || roles.includes('superuser')
+})
 
 const emptyForm = () => ({
   itemName: '',
@@ -154,7 +161,9 @@ const normalizeImageUrl = imageUrl => {
 
 onMounted(() => {
   loadItems()
-  loadImageOptions()
+  if (canWriteBeauty.value) {
+    loadImageOptions()
+  }
 })
 
 watch([keyword, statusFilter], () => {
@@ -179,7 +188,7 @@ watch(totalPages, clampCurrentPage)
             <el-option label="啟用" value="true" />
             <el-option label="停用" value="false" />
           </el-select>
-          <el-button type="primary" @click="openAddDialog">新增美容項目</el-button>
+          <el-button v-if="canWriteBeauty" type="primary" @click="openAddDialog">新增美容項目</el-button>
         </div>
       </div>
 
@@ -209,7 +218,7 @@ watch(totalPages, clampCurrentPage)
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="190" align="center">
+        <el-table-column v-if="canWriteBeauty" label="操作" width="190" align="center">
           <template #default="{ row }">
             <div class="beauty-actions">
               <el-button size="small" @click="openEditDialog(row)">修改</el-button>

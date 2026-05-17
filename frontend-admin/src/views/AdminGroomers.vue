@@ -2,8 +2,10 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
+import { useEmployeeStore } from '@/stores/employee'
 import '@/assets/css/BeautyAdmin.css'
 
+const employeeStore = useEmployeeStore()
 const groomers = ref([])
 const employees = ref([])
 const beautyItems = ref([])
@@ -13,6 +15,11 @@ const keyword = ref('')
 const bookableFilter = ref('')
 const pageSize = 10
 const currentPage = ref(1)
+
+const canWriteBeauty = computed(() => {
+  const roles = employeeStore.roles || []
+  return !roles.includes('groomer') || roles.includes('superuser')
+})
 
 const form = reactive({
   groomerId: null,
@@ -143,7 +150,9 @@ const serviceNames = async groomer => {
 
 onMounted(() => {
   loadGroomers()
-  loadEmployees()
+  if (canWriteBeauty.value) {
+    loadEmployees()
+  }
   loadBeautyItems()
 })
 
@@ -169,7 +178,7 @@ watch(totalPages, clampCurrentPage)
             <el-option label="可預約" value="true" />
             <el-option label="不可預約" value="false" />
           </el-select>
-          <el-button type="primary" @click="openAddDialog">新增美容師</el-button>
+          <el-button v-if="canWriteBeauty" type="primary" @click="openAddDialog">新增美容師</el-button>
         </div>
       </div>
 
@@ -189,7 +198,7 @@ watch(totalPages, clampCurrentPage)
           <template #default="{ row }">
             <div class="beauty-actions">
               <el-button size="small" @click="serviceNames(row)">服務項目</el-button>
-              <el-button size="small" type="primary" @click="openEditDialog(row)">編輯</el-button>
+              <el-button v-if="canWriteBeauty" size="small" type="primary" @click="openEditDialog(row)">編輯</el-button>
             </div>
           </template>
         </el-table-column>

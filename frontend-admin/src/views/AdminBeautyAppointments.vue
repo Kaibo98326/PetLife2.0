@@ -2,8 +2,10 @@
 import { computed, onMounted, ref } from 'vue'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
+import { useEmployeeStore } from '@/stores/employee'
 import '@/assets/css/BeautyAdmin.css'
 
+const employeeStore = useEmployeeStore()
 const appointments = ref([])
 const groomers = ref([])
 const loading = ref(false)
@@ -52,6 +54,11 @@ const statusType = status => {
 }
 
 const canEditStatus = row => !lockedStatuses.includes(row.appointmentStatus)
+
+const canWriteBeauty = computed(() => {
+  const roles = employeeStore.roles || []
+  return !roles.includes('groomer') || roles.includes('superuser')
+})
 
 const loadGroomers = async () => {
   try {
@@ -180,7 +187,7 @@ onMounted(() => {
           <template #default="{ row }">
             <div class="beauty-actions">
               <el-button size="small" @click="openDetail(row)">明細</el-button>
-              <el-button size="small" type="primary" :disabled="!canEditStatus(row)" @click="openStatusDialog(row)">
+              <el-button v-if="canWriteBeauty" size="small" type="primary" :disabled="!canEditStatus(row)" @click="openStatusDialog(row)">
                 狀態
               </el-button>
             </div>
