@@ -10,6 +10,8 @@ const loading = ref(false)
 const detailVisible = ref(false)
 const statusVisible = ref(false)
 const selectedAppointment = ref(null)
+const pageSize = 10
+const currentPage = ref(1)
 
 const filters = ref({
   dateRange: [],
@@ -21,6 +23,19 @@ const statusForm = ref({
   status: '',
   cancelReason: '',
 })
+
+const totalPages = computed(() => Math.max(1, Math.ceil(appointments.value.length / pageSize)))
+
+const pagedAppointments = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return appointments.value.slice(start, start + pageSize)
+})
+
+const clampCurrentPage = () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
+}
 
 const appointmentStatuses = ['待確認', '已確認', '已完成', '已取消', '未到']
 const lockedStatuses = ['已完成', '已取消', '未到']
@@ -47,7 +62,10 @@ const loadGroomers = async () => {
   }
 }
 
-const loadAppointments = async () => {
+const loadAppointments = async (resetPage = false) => {
+  if (resetPage) {
+    currentPage.value = 1
+  }
   loading.value = true
   try {
     const params = {}
@@ -60,6 +78,7 @@ const loadAppointments = async () => {
 
     const res = await request.get('/api/admin/beauty/appointments', { params })
     appointments.value = res.data || []
+    clampCurrentPage()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', err.response?.data?.message || '預約資料載入失敗', 'error')
@@ -70,7 +89,7 @@ const loadAppointments = async () => {
 
 const resetFilters = () => {
   filters.value = { dateRange: [], status: '', groomerId: '' }
-  loadAppointments()
+  loadAppointments(true)
 }
 
 const openDetail = async row => {
@@ -137,12 +156,12 @@ onMounted(() => {
           <el-select v-model="filters.groomerId" clearable placeholder="美容師" style="width: 170px">
             <el-option v-for="groomer in groomers" :key="groomer.groomerId" :label="groomer.displayName || groomer.groomerId" :value="groomer.groomerId" />
           </el-select>
-          <el-button type="primary" @click="loadAppointments">查詢</el-button>
+          <el-button type="primary" @click="loadAppointments(true)">查詢</el-button>
           <el-button @click="resetFilters">清除</el-button>
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="appointments" stripe>
+      <el-table v-loading="loading" :data="pagedAppointments" stripe>
         <el-table-column prop="appointmentId" label="單號" width="80" />
         <el-table-column prop="petName" label="寵物" min-width="110" />
         <el-table-column prop="groomerName" label="美容師" min-width="120" />
@@ -168,6 +187,17 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="appointments.length > pageSize" class="beauty-pagination">
+        <span>共 {{ appointments.length }} 筆，每頁 {{ pageSize }} 筆</span>
+        <el-pagination
+          v-model:current-page="currentPage"
+          background
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :total="appointments.length"
+        />
+      </div>
     </div>
 
     <el-drawer v-model="detailVisible" title="預約明細" size="520px">

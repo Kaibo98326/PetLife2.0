@@ -18,9 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +83,23 @@ public class BeautyItemService {
                                 .filter(price -> Boolean.TRUE.equals(price.getIsActive()))
                                 .toList()))
                 .toList();
+    }
+
+    public List<String> getBeautyImageUrls() {
+        try {
+            Files.createDirectories(BEAUTY_IMAGE_UPLOAD_DIR);
+            try (var stream = Files.list(BEAUTY_IMAGE_UPLOAD_DIR)) {
+                return stream
+                        .filter(Files::isRegularFile)
+                        .map(path -> path.getFileName().toString())
+                        .filter(this::isSupportedBeautyImageName)
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .map(fileName -> BEAUTY_IMAGE_URL_PREFIX + fileName)
+                        .toList();
+            }
+        } catch (IOException e) {
+            throw ApiException.badRequest("圖片清單讀取失敗");
+        }
     }
 
     public int calculateTotalSlots(List<Integer> beautyIds) {
@@ -205,9 +224,12 @@ public class BeautyItemService {
         BeautyItem item = itemRepository.findById(beautyId)
                 .orElseThrow(() -> ApiException.notFound("找不到美容項目"));
 
+        String oldImageUrl = item.getImageUrl();
         applyItemFields(item, req);
         if (hasImageFile(file)) {
-            item.setImageUrl(saveBeautyImage(beautyId, file));
+            String newImageUrl = saveBeautyImage(beautyId, file);
+            item.setImageUrl(newImageUrl);
+            deleteStaleBeautyImages(beautyId, oldImageUrl, newImageUrl);
         }
         BeautyItem savedItem = itemRepository.save(item);
 
@@ -325,6 +347,72 @@ public class BeautyItemService {
         return imageUrl == null || imageUrl.isBlank() ? DEFAULT_IMAGE_URL : imageUrl.trim();
     }
 
+    private boolean isSupportedBeautyImageName(String fileName) {
+        String lowerName = fileName.toLowerCase();
+        return lowerName.endsWith(".jpg")
+                || lowerName.endsWith(".jpeg")
+                || lowerName.endsWith(".png")
+                || lowerName.endsWith(".gif")
+                || lowerName.endsWith(".webp")
+                || lowerName.endsWith(".bmp");
+    }
+
+    private void deleteStaleBeautyImages(Integer beautyId, String oldImageUrl, String currentImageUrl) {
+        deleteBeautyImage(oldImageUrl, currentImageUrl);
+
+        String currentFileName = getBeautyImageFileName(currentImageUrl);
+        String oldTimestampPrefix = "beauty_" + beautyId + "_";
+        String fixedNamePrefix = "beauty_" + beautyId + ".";
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(BEAUTY_IMAGE_UPLOAD_DIR)) {
+            for (Path path : stream) {
+                String fileName = path.getFileName().toString();
+                if (fileName.equals(currentFileName)) {
+                    continue;
+                }
+                if (fileName.startsWith(oldTimestampPrefix) || fileName.startsWith(fixedNamePrefix)) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        } catch (IOException e) {
+            throw ApiException.badRequest("舊圖片刪除失敗");
+        }
+    }
+
+    private void deleteBeautyImage(String imageUrl, String currentImageUrl) {
+        if (imageUrl == null || imageUrl.isBlank() || DEFAULT_IMAGE_URL.equals(imageUrl)) {
+            return;
+        }
+        if (!imageUrl.startsWith(BEAUTY_IMAGE_URL_PREFIX)) {
+            return;
+        }
+
+        String fileName = getBeautyImageFileName(imageUrl);
+        if (fileName.isBlank()) {
+            return;
+        }
+        if (fileName.equals(getBeautyImageFileName(currentImageUrl))) {
+            return;
+        }
+
+        try {
+            Path targetPath = BEAUTY_IMAGE_UPLOAD_DIR.resolve(fileName).normalize();
+            if (!targetPath.startsWith(BEAUTY_IMAGE_UPLOAD_DIR)) {
+                return;
+            }
+            Files.deleteIfExists(targetPath);
+        } catch (IOException e) {
+            throw ApiException.badRequest("舊圖片刪除失敗");
+        }
+    }
+
+    private String getBeautyImageFileName(String imageUrl) {
+        if (imageUrl == null || !imageUrl.startsWith(BEAUTY_IMAGE_URL_PREFIX)) {
+            return "";
+        }
+        return imageUrl.substring(BEAUTY_IMAGE_URL_PREFIX.length());
+    }
+
     private String saveBeautyImage(Integer beautyId, MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
@@ -334,23 +422,48 @@ public class BeautyItemService {
         try {
             Files.createDirectories(BEAUTY_IMAGE_UPLOAD_DIR);
 
-            String originalName = file.getOriginalFilename();
-            String safeName = originalName == null ? "beauty.jpg" : originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
-            if (safeName.isBlank()) {
-                safeName = "beauty.jpg";
-            }
-
-            String fileName = "beauty_" + beautyId + "_" + System.currentTimeMillis() + "_" + safeName;
+            String fileName = "beauty_" + beautyId + resolveImageExtension(contentType, file.getOriginalFilename());
             Path targetPath = BEAUTY_IMAGE_UPLOAD_DIR.resolve(fileName).normalize();
             if (!targetPath.startsWith(BEAUTY_IMAGE_UPLOAD_DIR)) {
                 throw ApiException.badRequest("圖片檔名不合法");
             }
 
-            Files.copy(file.getInputStream(), targetPath);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             return BEAUTY_IMAGE_URL_PREFIX + fileName;
         } catch (IOException e) {
             throw ApiException.badRequest("圖片上傳失敗");
         }
+    }
+
+    private String resolveImageExtension(String contentType, String originalName) {
+        String normalizedContentType = contentType.toLowerCase();
+        if (normalizedContentType.contains("jpeg") || normalizedContentType.contains("jpg")) {
+            return ".jpg";
+        }
+        if (normalizedContentType.contains("png")) {
+            return ".png";
+        }
+        if (normalizedContentType.contains("gif")) {
+            return ".gif";
+        }
+        if (normalizedContentType.contains("webp")) {
+            return ".webp";
+        }
+        if (normalizedContentType.contains("bmp")) {
+            return ".bmp";
+        }
+
+        if (originalName != null) {
+            int dotIndex = originalName.lastIndexOf('.');
+            if (dotIndex >= 0 && dotIndex < originalName.length() - 1) {
+                String extension = originalName.substring(dotIndex).toLowerCase();
+                if (extension.matches("\\.[a-z0-9]{1,5}")) {
+                    return extension;
+                }
+            }
+        }
+
+        return ".jpg";
     }
 
     private BeautyItemPrice createPriceEntity(Integer beautyId, BeautyPriceLineRequest req) {

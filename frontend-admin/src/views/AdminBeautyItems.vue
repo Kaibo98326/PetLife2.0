@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
 import '@/assets/css/BeautyAdmin.css'
@@ -10,9 +10,9 @@ const dialogVisible = ref(false)
 const editingId = ref(null)
 const keyword = ref('')
 const statusFilter = ref('')
-const selectedImageFile = ref(null)
-const selectedImagePreview = ref('')
-const imageInputRef = ref(null)
+const pageSize = 10
+const currentPage = ref(1)
+const imageOptions = ref([])
 const IMG_BASE = 'http://localhost:8082'
 const DEFAULT_BEAUTY_IMAGE = '/images/beauty/default.jpg'
 
@@ -32,7 +32,7 @@ const emptyForm = () => ({
 const form = reactive(emptyForm())
 
 const previewImageUrl = computed(() => {
-  return selectedImagePreview.value || normalizeImageUrl(form.imageUrl)
+  return normalizeImageUrl(form.imageUrl)
 })
 
 const filteredItems = computed(() => {
@@ -44,11 +44,25 @@ const filteredItems = computed(() => {
   })
 })
 
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / pageSize)))
+
+const pagedItems = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredItems.value.slice(start, start + pageSize)
+})
+
+const clampCurrentPage = () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
+}
+
 const loadItems = async () => {
   loading.value = true
   try {
     const res = await request.get('/api/admin/beauty/items')
     items.value = res.data || []
+    clampCurrentPage()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', '美容項目載入失敗', 'error')
@@ -57,13 +71,19 @@ const loadItems = async () => {
   }
 }
 
+const loadImageOptions = async () => {
+  try {
+    const res = await request.get('/api/admin/beauty/items/images')
+    imageOptions.value = res.data || []
+  } catch (err) {
+    console.log(err)
+    Swal.fire('?航炊', '圖片清單載入失敗', 'error')
+  }
+}
+
 const resetForm = () => {
-  clearSelectedImage()
   Object.assign(form, emptyForm())
   editingId.value = null
-  if (imageInputRef.value) {
-    imageInputRef.value.value = ''
-  }
 }
 
 const openAddDialog = () => {
@@ -92,20 +112,11 @@ const openEditDialog = item => {
 
 const saveItem = async () => {
   try {
-    const formData = new FormData()
-    formData.append(
-      'request',
-      new Blob([JSON.stringify(form)], { type: 'application/json' })
-    )
-    if (selectedImageFile.value) {
-      formData.append('file', selectedImageFile.value)
-    }
-
     if (editingId.value) {
-      await request.put(`/api/admin/beauty/items/${editingId.value}`, formData)
+      await request.put(`/api/admin/beauty/items/${editingId.value}`, form)
       Swal.fire('成功', '美容項目已更新', 'success')
     } else {
-      await request.post('/api/admin/beauty/items', formData)
+      await request.post('/api/admin/beauty/items', form)
       Swal.fire('成功', '美容項目已新增', 'success')
     }
     dialogVisible.value = false
@@ -141,24 +152,16 @@ const normalizeImageUrl = imageUrl => {
   return url.startsWith('/') ? `${IMG_BASE}${url}` : `${IMG_BASE}/${url}`
 }
 
-const clearSelectedImage = () => {
-  if (selectedImagePreview.value) {
-    URL.revokeObjectURL(selectedImagePreview.value)
-  }
-  selectedImageFile.value = null
-  selectedImagePreview.value = ''
-}
+onMounted(() => {
+  loadItems()
+  loadImageOptions()
+})
 
-const handleImageChange = event => {
-  const file = event.target.files?.[0]
-  clearSelectedImage()
-  if (!file) return
+watch([keyword, statusFilter], () => {
+  currentPage.value = 1
+})
 
-  selectedImageFile.value = file
-  selectedImagePreview.value = URL.createObjectURL(file)
-}
-
-onMounted(loadItems)
+watch(totalPages, clampCurrentPage)
 </script>
 
 <template>
@@ -180,7 +183,7 @@ onMounted(loadItems)
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="filteredItems" stripe>
+      <el-table v-loading="loading" :data="pagedItems" stripe>
         <el-table-column prop="beautyId" label="ID" width="80" />
         <el-table-column label="圖片" width="110" align="center">
           <template #default="{ row }">
@@ -217,6 +220,17 @@ onMounted(loadItems)
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="filteredItems.length > pageSize" class="beauty-pagination">
+        <span>共 {{ filteredItems.length }} 筆，每頁 {{ pageSize }} 筆</span>
+        <el-pagination
+          v-model:current-page="currentPage"
+          background
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :total="filteredItems.length"
+        />
+      </div>
     </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '修改美容項目' : '新增美容項目'" width="720px">
@@ -232,13 +246,14 @@ onMounted(loadItems)
             <el-input v-model="form.itemDescription" type="textarea" :rows="3" />
           </el-form-item>
           <el-form-item class="full" label="項目圖片">
-            <input
-              ref="imageInputRef"
-              class="beauty-file-input"
-              type="file"
-              accept="image/*"
-              @change="handleImageChange"
-            />
+            <el-select v-model="form.imageUrl" filterable clearable placeholder="選擇既有圖片" style="width: 100%">
+              <el-option
+                v-for="imageUrl in imageOptions"
+                :key="imageUrl"
+                :label="imageUrl.replace('/images/beauty/', '')"
+                :value="imageUrl"
+              />
+            </el-select>
           </el-form-item>
           <div class="full beauty-image-preview">
             <img :src="previewImageUrl" alt="beauty item preview" />

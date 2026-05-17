@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import request from '@/utils/request'
 import Swal from 'sweetalert2'
 import '@/assets/css/BeautyAdmin.css'
@@ -11,6 +11,8 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const keyword = ref('')
 const bookableFilter = ref('')
+const pageSize = 10
+const currentPage = ref(1)
 
 const form = reactive({
   groomerId: null,
@@ -31,11 +33,25 @@ const filteredGroomers = computed(() => {
   })
 })
 
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredGroomers.value.length / pageSize)))
+
+const pagedGroomers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredGroomers.value.slice(start, start + pageSize)
+})
+
+const clampCurrentPage = () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
+}
+
 const loadGroomers = async () => {
   loading.value = true
   try {
     const res = await request.get('/api/admin/beauty/groomers')
     groomers.value = res.data || []
+    clampCurrentPage()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', '美容師資料載入失敗', 'error')
@@ -130,6 +146,12 @@ onMounted(() => {
   loadEmployees()
   loadBeautyItems()
 })
+
+watch([keyword, bookableFilter], () => {
+  currentPage.value = 1
+})
+
+watch(totalPages, clampCurrentPage)
 </script>
 
 <template>
@@ -151,7 +173,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="filteredGroomers" stripe>
+      <el-table v-loading="loading" :data="pagedGroomers" stripe>
         <el-table-column prop="groomerId" label="美容師ID" width="90" />
         <el-table-column prop="displayName" label="顯示名稱" width="180" />
         <el-table-column prop="seniorityYears" label="年資" width="80" align="center" header-align="center" />
@@ -172,6 +194,17 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="filteredGroomers.length > pageSize" class="beauty-pagination">
+        <span>共 {{ filteredGroomers.length }} 筆，每頁 {{ pageSize }} 筆</span>
+        <el-pagination
+          v-model:current-page="currentPage"
+          background
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :total="filteredGroomers.length"
+        />
+      </div>
     </div>
 
     <el-dialog v-model="dialogVisible" title="美容師資料" width="720px">

@@ -19,6 +19,8 @@ const overviewLoading = ref(false)
 const dayLoading = ref(false)
 const scheduleDialogVisible = ref(false)
 const scheduleSlotIds = ref([])
+const daySlotPageSize = 10
+const daySlotCurrentPage = ref(1)
 const scheduleForm = ref({ scheduleStatus: '上班', note: '' })
 
 function formatDate(date) {
@@ -52,6 +54,19 @@ function startOfWeek(date) {
 const dayMap = computed(() => {
   return new Map(monthlyData.value.map(day => [day.workDate, day]))
 })
+
+const daySlotTotalPages = computed(() => Math.max(1, Math.ceil(daySlots.value.length / daySlotPageSize)))
+
+const pagedDaySlots = computed(() => {
+  const start = (daySlotCurrentPage.value - 1) * daySlotPageSize
+  return daySlots.value.slice(start, start + daySlotPageSize)
+})
+
+const clampDaySlotPage = () => {
+  if (daySlotCurrentPage.value > daySlotTotalPages.value) {
+    daySlotCurrentPage.value = daySlotTotalPages.value
+  }
+}
 
 const visibleWeekDays = computed(() => {
   const start = new Date(overviewWeekStart.value)
@@ -240,6 +255,7 @@ const loadOverviewWeek = async () => {
 
 const loadDaySlots = async () => {
   if (!selectedGroomerId.value || !selectedDate.value) return
+  daySlotCurrentPage.value = 1
   dayLoading.value = true
   try {
     const res = await request.get('/api/admin/beauty/schedules/day-slots', {
@@ -251,6 +267,7 @@ const loadDaySlots = async () => {
     scheduleStatus.value = res.data.scheduleStatus
     scheduleNote.value = res.data.scheduleNote || ''
     daySlots.value = res.data.slots || []
+    clampDaySlotPage()
   } catch (err) {
     console.log(err)
     Swal.fire('錯誤', '單日時段載入失敗', 'error')
@@ -469,7 +486,7 @@ onMounted(async () => {
               </div>
             </div>
 
-            <el-table v-loading="dayLoading" :data="daySlots" size="small">
+            <el-table v-loading="dayLoading" :data="pagedDaySlots" size="small">
               <el-table-column prop="slotName" label="時段" min-width="110" />
               <el-table-column label="狀態" width="100" align="center">
                 <template #default="{ row }">
@@ -479,6 +496,18 @@ onMounted(async () => {
               <el-table-column prop="appointmentId" label="預約單" width="90" />
               <el-table-column prop="note" label="備註" min-width="120" show-overflow-tooltip />
             </el-table>
+
+            <div v-if="daySlots.length > daySlotPageSize" class="beauty-pagination compact">
+              <span>共 {{ daySlots.length }} 筆，每頁 {{ daySlotPageSize }} 筆</span>
+              <el-pagination
+                v-model:current-page="daySlotCurrentPage"
+                background
+                layout="prev, pager, next"
+                :page-size="daySlotPageSize"
+                :total="daySlots.length"
+                small
+              />
+            </div>
           </div>
         </aside>
       </div>

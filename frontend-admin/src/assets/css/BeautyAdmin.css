@@ -84,6 +84,23 @@
   flex-wrap: wrap;
 }
 
+.beauty-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  color: #7b716b;
+  font-size: 0.86rem;
+  flex-wrap: wrap;
+}
+
+.beauty-pagination.compact {
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 0.78rem;
+}
+
 .beauty-thumb {
   width: 72px;
   height: 48px;

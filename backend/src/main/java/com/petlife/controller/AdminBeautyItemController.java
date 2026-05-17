@@ -32,6 +32,11 @@ public class AdminBeautyItemController {
         return ResponseEntity.ok(beautyItemService.getAllItemsWithPrices());
     }
 
+    @GetMapping("/images")
+    public ResponseEntity<?> getImages() {
+        return ResponseEntity.ok(beautyItemService.getBeautyImageUrls());
+    }
+
     @PostMapping
     public ResponseEntity<?> createItem(@Valid @RequestBody BeautyItemManageRequest request) {
         return ResponseEntity.ok(beautyItemService.createItemWithPrices(request));
