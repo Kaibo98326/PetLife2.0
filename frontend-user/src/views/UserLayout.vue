@@ -254,7 +254,7 @@ onMounted(async () => {
               <li>
                 <router-link to="/beauty-booking" class="nav-menu-link">🛁 寵物美容</router-link>
               </li>
-              <li><router-link to="/hotel" class="nav-menu-link">🏠 寵物旅館</router-link></li>
+              <li><router-link to="/stay" class="nav-menu-link">🏠 寵物旅館</router-link></li>
             </ul>
           </div>
         </nav>

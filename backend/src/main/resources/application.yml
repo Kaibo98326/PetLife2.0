@@ -58,3 +58,9 @@ google:
  
 gemini:
    api-key: ${GEMINI_API_KEY}
+ 
+linepay:
+  channel-id: ${LINEPAY_CHANNEL_ID} # 你的 LINE Pay Channel ID
+  channel-secret: ${LINEPAY_CHANNEL_SECRET} # 你的 LINE Pay Channel Secret Key
+  api-url: ${LINEPAY_API_URL} # Sandbox 環境的 API URL
+confirm-url: ${LINEPAY_CONFIRM_URL} # LINE Pay 付款成功後導回的後端確認網址
