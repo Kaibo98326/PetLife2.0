@@ -182,4 +182,53 @@ public class LinePayService {
         // 轉成 Base64
         return java.util.Base64.getEncoder().encodeToString(rawHmac);
     }
+    
+    // ======== 退款 ========
+    public boolean refundPayment(String transactionId, int amount) {
+
+        try {
+            // 1. 準備 request body
+            Map<String, Object> body = new HashMap<>();
+            body.put("refundAmount", amount);
+
+            String bodyJson = objectMapper.writeValueAsString(body);
+
+            // 2. 產生簽名
+            String nonce = UUID.randomUUID().toString();
+            String path = "/v3/payments/" + transactionId + "/refund";
+            String signature = generateSignature(
+                linePayConfig.getChannelSecret(),
+                path,
+                bodyJson,
+                nonce
+            );
+
+            // 3. 設定 headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-LINE-ChannelId", linePayConfig.getChannelId());
+            headers.set("X-LINE-Authorization-Nonce", nonce);
+            headers.set("X-LINE-Authorization", signature);
+
+            // 4. 打 LINE Pay Refund API
+            HttpEntity<String> entity = new HttpEntity<>(bodyJson, headers);
+            String url = linePayConfig.getApiUrl() + path;
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                url, entity, Map.class
+            );
+
+            System.out.println("LINE Pay 退款回傳：" + response.getBody());
+
+            // 5. 確認結果
+            Map<String, Object> responseBody = response.getBody();
+            String returnCode = (String) responseBody.get("returnCode");
+
+            return "0000".equals(returnCode);
+
+        } catch (Exception e) {
+            System.out.println("LINE Pay 退款錯誤：" + e.getMessage());
+            throw new RuntimeException("LINE Pay 退款失敗：" + e.getMessage());
+        }
+    }
 }

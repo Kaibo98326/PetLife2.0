@@ -232,4 +232,18 @@ public class StayController {
 	    return ResponseEntity.ok(stayService.getRoomStatusByDate(date));
 	}
 	
+	// 當日訂單預約
+	@GetMapping("/search/checkin")
+	public ResponseEntity<List<StayResponseDto>> searchByCheckIn(
+	        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+	    return ResponseEntity.ok(stayService.searchByCheckInDate(date));
+	}
+	
+	// 退款
+	@PostMapping("/{stayId}/refund")
+	public ResponseEntity<Void> refundStay(@PathVariable Integer stayId) {
+	    stayService.refundStay(stayId);
+	    return ResponseEntity.ok().build();
+	}
+	
 	}

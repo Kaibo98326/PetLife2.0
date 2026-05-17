@@ -76,9 +76,15 @@ public interface IStayService {
 	List<StayResponseDto> searchByStayId(Integer stayId);
 	// 手機末三碼
 	List<StayResponseDto> searchByPhone(String phone);
+	// 今日預約
+	List<StayResponseDto> searchByCheckInDate(LocalDate date);
 	
 	// 修改房間狀態邏輯
 	List<RoomStatusDto> getRoomStatusByDate(LocalDate date);
+	
+	// 退款
+	void refundStay(Integer stayId);
+	
 }
 
 	

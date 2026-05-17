@@ -454,31 +454,34 @@ public class StayService implements IStayService {
 	
 	// 私有方法to dto
 	private StayResponseDto toDto(Stay stay) {
-	    StayResponseDto dto = new StayResponseDto();
-	    dto.setMemberName(stay.getPet().getMember().getMemberName());
-	    dto.setMemberPhone(stay.getPet().getMember().getPhone());
-	    dto.setMemberEmail(stay.getPet().getMember().getEmail());
-	    dto.setStayId(stay.getStayId());
-	    dto.setPetName(stay.getPet().getPetName());
-	    dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
-	    dto.setRoomNo(stay.getStayRoom().getRoomNo());
-	    dto.setStayStartDate(stay.getStayStartDate());
-	    dto.setStayEndDate(stay.getStayEndDate());
-	    dto.setStayDay(stay.getStayDay());
-	    dto.setPetCount(stay.getPetCount());
-	    dto.setSumPrice(stay.getSumPrice());
-	    dto.setStayStatus(stay.getStayStatus());
-	    dto.setStayRemark(stay.getStayRemark());
-	
-	    stayPaymentRepository.findPaymentByStayId(stay.getStayId())
-	        .ifPresent(p -> {
-	            dto.setPaymentStatus(p.getPaymentStatus());
-	            dto.setCreatedAt(p.getCreatedAt());
-	            dto.setPaidAt(p.getPaidAt());
-	        });
-	
-	    return dto;
-	}
+    StayResponseDto dto = new StayResponseDto();
+    dto.setMemberName(stay.getPet().getMember().getMemberName());
+    dto.setMemberPhone(stay.getPet().getMember().getPhone());
+    dto.setMemberEmail(stay.getPet().getMember().getEmail());
+    dto.setStayId(stay.getStayId());
+    dto.setPetName(stay.getPet().getPetName());
+    dto.setRoomTypeName(stay.getStayRoom().getStayRoomType().getRoomName());
+    dto.setStayStartDate(stay.getStayStartDate());
+    dto.setStayEndDate(stay.getStayEndDate());
+    dto.setStayDay(stay.getStayDay());
+    dto.setPetCount(stay.getPetCount());
+    dto.setSumPrice(stay.getSumPrice());
+    dto.setStayStatus(stay.getStayStatus());
+    dto.setStayRemark(stay.getStayRemark());
+
+    stayPaymentRepository.findPaymentByStayId(stay.getStayId())
+        .ifPresent(p -> {
+            dto.setPaymentStatus(p.getPaymentStatus());
+            dto.setCreatedAt(p.getCreatedAt());
+            dto.setPaidAt(p.getPaidAt());
+            // ✅ 只有付款成功才顯示房號
+            if ("SUCCESS".equals(p.getPaymentStatus())) {
+                dto.setRoomNo(stay.getStayRoom().getRoomNo());
+            }
+        });
+
+    return dto;
+}
 	
 		// 查單筆訂單
 		@Override
@@ -526,45 +529,38 @@ public class StayService implements IStayService {
 		
 		@Override
 		public List<RoomStatusDto> getRoomStatusByDate(LocalDate date) {
-
 		    // 拿所有房間
 		    List<StayRoom> allRooms = stayRoomRepository.findAll();
-
 		    // 查這天有重疊預約的 Stay
 		    List<Stay> occupiedStays = stayRepository.findAllOverlappingStays(date, date.plusDays(1));
-		    
-		    System.out.println("=== DEBUG getRoomStatusByDate ===");
-		    System.out.println("查詢日期: " + date);
-		    System.out.println("重疊訂單數: " + occupiedStays.size());
-		    occupiedStays.forEach(s -> 
-		        System.out.println("訂單: " + s.getStayId() + " 狀態: " + s.getStayStatus() + " 房間: " + s.getStayRoom().getRoomId())
-		    );
-		    System.out.println("=================================");
-
-		 // 已被使用的狀態
-		    List<String> occupiedStatuses = List.of("CONFIRMED", "CHECKED_IN");
-
+		
 		    Map<Integer, Stay> roomStayMap = new HashMap<>();
 		    for (Stay stay : occupiedStays) {
+		
+		        // 只有付款成功的訂單才算佔位
+		        boolean isPaid = stayPaymentRepository.findByStay_StayId(stay.getStayId())
+		                .map(p -> "SUCCESS".equals(p.getPaymentStatus()))
+		                .orElse(false);
+		
+		        if (!isPaid) continue; // 未付款跳過
+		
 		        if ("CHECKED_IN".equals(stay.getStayStatus())) {
 		            // 已入住
 		            roomStayMap.put(stay.getStayRoom().getRoomId(), stay);
 		        } else if ("CONFIRMED".equals(stay.getStayStatus())) {
-		            // 已預約但未入住，也放進去但標記不同
+		            // 已預約但未入住
 		            roomStayMap.put(stay.getStayRoom().getRoomId(), stay);
 		        }
 		    }
-
+		
 		    List<RoomStatusDto> result = new ArrayList<>();
-
 		    for (StayRoom room : allRooms) {
 		        RoomStatusDto dto = new RoomStatusDto();
 		        dto.setRoomId(room.getRoomId());
 		        dto.setRoomNo(room.getRoomNo());
 		        dto.setRoomTypeName(room.getStayRoomType().getRoomName());
 		        dto.setRoomStatus(room.getRoomStatus());
-
-		        // 如果這間房這天有訂單，填入訂單資料
+		
 		        Stay stay = roomStayMap.get(room.getRoomId());
 		        if (stay != null) {
 		            dto.setStayId(stay.getStayId());
@@ -580,7 +576,47 @@ public class StayService implements IStayService {
 		        }
 		        result.add(dto);
 		    }
-
 		    return result;
+		}
+
+		// 今日預約
+		@Override
+		public List<StayResponseDto> searchByCheckInDate(LocalDate date) {
+		    List<Stay> stays = stayRepository.findByStayStartDate(date);
+		    return stays.stream().map(this::toDto).collect(Collectors.toList());
+		}
+
+		// 退款
+		@Override
+		public void refundStay(Integer stayId) {
+
+		    // 1. 查訂單
+		    Stay stay = stayRepository.findById(stayId)
+		            .orElseThrow(() -> new RuntimeException("找不到此訂單"));
+
+		    // 2. 查付款紀錄
+		    StayPayment payment = stayPaymentRepository.findPaymentByStayId(stayId)
+		            .orElseThrow(() -> new RuntimeException("找不到付款紀錄"));
+
+		    // 3. 確認可以退款
+		    if (!"SUCCESS".equals(payment.getPaymentStatus())) {
+		        throw new RuntimeException("此訂單尚未付款，無法退款");
+		    }
+
+		    // 4. 打 LINE Pay 退款 API
+		    boolean success = linePayService.refundPayment(
+		        payment.getTradeNo(),
+		        payment.getAmount().intValue()
+		    );
+
+		    // 5. 更新狀態
+		    if (success) {
+		        payment.setPaymentStatus("REFUNDED");
+		        stayPaymentRepository.save(payment);
+		        stay.setStayStatus("CANCELLED");
+		        stayRepository.save(stay);
+		    } else {
+		        throw new RuntimeException("退款失敗，請稍後再試");
+		    }
 		}
 }

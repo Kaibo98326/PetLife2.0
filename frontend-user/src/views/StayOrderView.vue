@@ -7,6 +7,12 @@ import { useRouter } from 'vue-router'
 const userStore = useUserStore()
 const router = useRouter()
 
+const currentRoomNo = ref('')
+
+const openCamera = (order) => {
+  currentRoomNo.value = order.roomNo
+}
+
 const isLoading = ref(true)
 const orders = ref([])
 const pendingCancelId = ref(null)
@@ -34,7 +40,13 @@ const openDetail = (order) => {
 // 分類
 // ✅ 已付款：付款成功 且 沒有被取消
 const paidOrders = computed(() =>
-  orders.value.filter((o) => o.paymentStatus === 'SUCCESS' && o.stayStatus !== 'CANCELLED'),
+  orders.value.filter(
+    (o) =>
+      o.paymentStatus === 'SUCCESS' &&
+      o.stayStatus !== 'CANCELLED' &&
+      o.stayStatus !== 'CHECKED_IN' &&
+      o.stayStatus !== 'CHECKED_OUT',
+  ),
 )
 
 // ✅ 未付款：付款狀態是 PENDING 且 沒有被取消
@@ -43,7 +55,9 @@ const pendingOrders = computed(() =>
 )
 
 // ✅ 已取消：只看 stayStatus
-const cancelledOrders = computed(() => orders.value.filter((o) => o.stayStatus === 'CANCELLED'))
+const cancelledOrders = computed(() =>
+  orders.value.filter((o) => o.stayStatus === 'CANCELLED' && o.paymentStatus !== 'REFUNDED'),
+)
 
 // 已入住
 const checkedInOrders = computed(() => orders.value.filter((o) => o.stayStatus === 'CHECKED_IN'))
@@ -51,16 +65,21 @@ const checkedInOrders = computed(() => orders.value.filter((o) => o.stayStatus =
 // 已退房
 const checkedOutOrders = computed(() => orders.value.filter((o) => o.stayStatus === 'CHECKED_OUT'))
 
+// 已退款
+const refundedOrders = computed(() => orders.value.filter((o) => o.paymentStatus === 'REFUNDED'))
+
 // 目前選的 Tab
 const activeTab = ref('paid')
 
 // 狀態中文對照
 const statusLabel = (status) => {
   const map = {
-    active: '已成立(待付款)',
-    CONFIRMED: '已確認',
+    active: '訂單已成立(付款未成功 請重新下單)',
+    CONFIRMED: '付款已確認',
     CHECKED_IN: '已入住',
     CANCELLED: '已取消',
+    CHECKED_OUT: '已退房',
+    REFUNDED: '已退款',
   }
   return map[status] ?? status
 }
@@ -83,6 +102,8 @@ const statusClass = (status) => {
     CONFIRMED: 'badge-confirmed',
     CHECKED_IN: 'badge-checkin',
     CANCELLED: 'badge-cancelled',
+    CHECKED_OUT: 'badge-checkout',
+    REFUNDED: 'badge-refunded',
   }
   return map[status] ?? ''
 }
@@ -146,6 +167,12 @@ onMounted(() => {
         >
           已取消（{{ cancelledOrders.length }}）
         </button>
+        <button
+          :class="['tab-btn', { active: activeTab === 'refunded' }]"
+          @click="activeTab = 'refunded'"
+        >
+          已退款（{{ refundedOrders.length }}）
+        </button>
       </div>
 
       <!-- 訂單列表 -->
@@ -159,13 +186,19 @@ onMounted(() => {
                 ? checkedInOrders
                 : activeTab === 'checkedOut'
                   ? checkedOutOrders
-                  : cancelledOrders"
+                  : activeTab === 'refunded'
+                    ? refundedOrders
+                    : cancelledOrders"
           :key="order.stayId"
           class="order-card"
         >
           <div class="order-header">
             <span class="room-type">{{ order.roomTypeName }}</span>
-            <span :class="['badge', statusClass(order.stayStatus)]">
+            <!-- 退款訂單顯示已退款，其他照舊 -->
+            <span v-if="order.paymentStatus === 'REFUNDED'" class="badge badge-refunded">
+              已退款
+            </span>
+            <span v-else :class="['badge', statusClass(order.stayStatus)]">
               {{ statusLabel(order.stayStatus) }}
             </span>
           </div>
@@ -210,6 +243,16 @@ onMounted(() => {
             >
               訂單明細
             </button>
+            <!-- 加這個，只有已入住才顯示 -->
+            <button
+              v-if="order.stayStatus === 'CHECKED_IN'"
+              class="btn-camera"
+              data-bs-toggle="modal"
+              data-bs-target="#cameraModal"
+              @click="openCamera(order)"
+            >
+              📹 查看毛孩錄像
+            </button>
             <button
               class="btn-cancel"
               v-if="order.stayStatus !== 'CHECKED_IN'"
@@ -237,6 +280,7 @@ onMounted(() => {
             (activeTab === 'pending' && pendingOrders.length === 0) ||
             (activeTab === 'checkedIn' && checkedInOrders.length === 0) ||
             (activeTab === 'checkedOut' && checkedOutOrders.length === 0) ||
+            (activeTab === 'refunded' && refundedOrders.length === 0) ||
             (activeTab === 'cancelled' && cancelledOrders.length === 0)
           "
         >
@@ -350,6 +394,38 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <div class="modal fade" id="cameraModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content" style="border-radius: 12px; padding: 24px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
+          <h5 style="margin: 0; font-weight: 700">📹 毛孩即時錄像</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <!-- 房間提示 -->
+        <p style="font-size: 0.9rem; color: #888; margin-bottom: 16px">
+          🏠 您正在觀看 <strong style="color: #6b4c2a">{{ currentRoomNo }}</strong> 房間錄像
+        </p>
+
+        <iframe
+          src="https://tw.live/cam/?id=qtgcy"
+          width="100%"
+          height="400px"
+          frameborder="0"
+          allowfullscreen
+        >
+        </iframe>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -414,8 +490,16 @@ onMounted(() => {
   color: #1e40af;
 }
 .badge-cancelled {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #fee2e2;
+  color: #991b1b;
+}
+.badge-checkout {
+  background: #fef9c3;
+  color: #854d0e;
+}
+.badge-refunded {
+  background: #f3e8ff;
+  color: #6b21a8;
 }
 .order-body {
   padding: 16px 20px;
@@ -666,5 +750,20 @@ onMounted(() => {
 .pet-badge.extra {
   background: #dcfce7;
   color: #166534;
+}
+.btn-camera {
+  background: none;
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-camera:hover {
+  background: #eff6ff;
 }
 </style>

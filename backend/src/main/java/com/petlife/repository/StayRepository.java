@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.petlife.model.Stay;
 
+
 @Repository
 public interface StayRepository extends JpaRepository<Stay, Integer>{
 
@@ -28,15 +29,17 @@ public interface StayRepository extends JpaRepository<Stay, Integer>{
 	// 已有預約的 endDate > 我的 startDate
 	// 且 stayStatus != '取消' 的選項
 	@Query("SELECT s FROM Stay s " +
+		       "JOIN StayPayment p ON p.stay.stayId = s.stayId " +
 		       "WHERE s.stayRoomType.roomTypeId = :roomTypeId " +
 		       "AND s.stayStartDate < :endDate " +
 		       "AND s.stayEndDate > :startDate " +
-		       "AND s.stayStatus != 'CANCELLED'")
+		       "AND s.stayStatus != 'CANCELLED' " +
+		       "AND p.paymentStatus = 'SUCCESS'")
 		List<Stay> findOverlappingStays(
 		        @Param("roomTypeId") Integer roomTypeId,
 		        @Param("startDate") LocalDate startDate,
 		        @Param("endDate") LocalDate endDate
-		    );
+		);
 	
 	// 依照會員名字搜尋
 	@Query("SELECT s FROM Stay s WHERE s.pet.member.memberName LIKE %:name%")
@@ -55,4 +58,6 @@ public interface StayRepository extends JpaRepository<Stay, Integer>{
 		        @Param("startDate") LocalDate startDate,
 		        @Param("endDate") LocalDate endDate
 		);
+	// 今日預約
+	List<Stay> findByStayStartDate(LocalDate date);
 }
