@@ -86,12 +86,17 @@
       <el-menu-item index="/admin/hotel/room">房型管理</el-menu-item>
     </el-sub-menu>
 
-    <el-menu-item index="/admin/discount">
-      <el-icon>
-        <PriceTag />
-      </el-icon>
-      <span>優惠活動管理</span>
-    </el-menu-item>
+    <el-sub-menu index="discount-group">
+      <template #title>
+        <el-icon>
+          <PriceTag />
+        </el-icon>
+        <span>優惠活動管理</span>
+      </template>
+      <el-menu-item index="/admin/discount">活動列表</el-menu-item>
+      <el-menu-item index="/admin/discount/analysis">活動成效分析</el-menu-item>
+    </el-sub-menu>
+    
   </el-menu>
 </template>
 

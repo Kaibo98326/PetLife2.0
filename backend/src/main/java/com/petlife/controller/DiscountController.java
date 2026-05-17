@@ -11,6 +11,10 @@ import com.petlife.model.Discount;
 import com.petlife.model.DiscountType;
 import com.petlife.repository.DiscountRequestDTO;
 import com.petlife.service.DiscountService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 
 
@@ -22,7 +26,6 @@ public class DiscountController {
     @Autowired
     private DiscountService discountService;
 
-    //這支 API：讓 Vue 取得所有的「折扣活動列表」
     @GetMapping
     public ResponseEntity<List<Discount>> getAllDiscounts() {
         try {
@@ -32,7 +35,6 @@ public class DiscountController {
             return ResponseEntity.internalServerError().build();
         }
     }
-  
 
     //  新增這支 API：讓 Vue 來拿折扣類型選單
     @GetMapping("/types")

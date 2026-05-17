@@ -57,7 +57,7 @@ public class Product implements Serializable {
     @Column(name = "product_status")
     private Integer productStatus;
     
-    // ✨ 保留：組員新增的點擊次數
+    // 保留：組員新增的點擊次數
     @Column(name = "click_count")
     private Integer clickCount = 0;
     
@@ -67,7 +67,14 @@ public class Product implements Serializable {
     //  補回：我們之前實作的活動徽章
     @Transient
     private String activityBadge;
+    
+ // ✨ 新增：供前端判斷主商品或加購品的分區依據
+    @jakarta.persistence.Transient
+    private String productRole;
 
+    // ✨ 新增：供前端智慧判定目前活動種類 (1, 2, 3, 4, 5)
+    @jakarta.persistence.Transient
+    private String discountType;
     // 保留：組員新增的多張圖片關聯
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
@@ -76,4 +83,21 @@ public class Product implements Serializable {
     // Getter / Setter ... (省略其餘 Getter/Setter 以節省空間，請確保包含 activityBadge 的 Getter/Setter)
     public String getActivityBadge() { return activityBadge; }
     public void setActivityBadge(String activityBadge) { this.activityBadge = activityBadge; }
+    
+ //  discountType 的 Getter 與 Setter，ProductService 才能順暢調用
+    public String getDiscountType() {
+        return discountType;
+    }
+
+    public void setDiscountType(String discountType) {
+        this.discountType = discountType;
+    }
+
+    public String getProductRole() {
+        return productRole;
+    }
+
+    public void setProductRole(String productRole) {
+        this.productRole = productRole;
+    }
 }

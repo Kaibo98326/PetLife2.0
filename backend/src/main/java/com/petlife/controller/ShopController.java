@@ -117,10 +117,20 @@ public class ShopController {
         return ResponseEntity.ok(top10);
     }
 
-    // ===== 【取得所有分類】 供前台左側選單使用 ====================================================
+//    // ===== 【取得所有分類】 供前台左側選單使用 ====================================================
+//    @GetMapping("/categories")
+//    public ResponseEntity<?> listCategories() {
+//        List<Category> categories = categoryService.getAllCategory();
+//        return ResponseEntity.ok(categories);
+//    }
+    
     @GetMapping("/categories")
     public ResponseEntity<?> listCategories() {
-        List<Category> categories = categoryService.getAllCategory();
+        // ✨ 修改：改為呼叫專供前台使用的查詢，自動過濾掉沒有活動或沒綁定商品的空標籤，但不影響後台
+        List<Category> categories = categoryService.getFrontEndCategories();
         return ResponseEntity.ok(categories);
     }
+
 }
+    
+    

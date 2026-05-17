@@ -53,4 +53,10 @@ public class CategoryService {
         }
         categoryRepository.deleteById(id);
     }
+    
+ // 專供消費者前台取得分類清單 (隱藏空標籤與未生效標籤)
+    @Transactional(readOnly = true)
+    public List<Category> getFrontEndCategories() {
+        return categoryRepository.findFrontEndCategories();
+    }
 }

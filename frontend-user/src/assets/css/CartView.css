@@ -125,9 +125,15 @@
 /* 活動的CSS */
 /* */
 .cart-reminder-text {
-  color: #ff4d4f;
-  font-size: 0.85em;
-  margin-top: 4px;
+  color: red !important;       /* 醒目但不刺眼的暖橘色 */
+  font-size: 0.85rem;
+  margin-top: 6px;
+  font-weight: 500;
+  background-color: #fff3e0;       /* 極淡的溫和橘色背景襯底 */
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  text-align: left;
 }
 .cart-discount-badge {
   color: #52c41a;

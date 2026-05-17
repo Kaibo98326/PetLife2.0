@@ -16,9 +16,13 @@ const selectedCategoryIds = ref([]);
 const selectedMainProductIds = ref([]);
 const selectedAddonProductIds = ref([]);
 const selectedAddonCategoryIds = ref([]); 
+// ✨ 新增：獨立控制副商品的範圍類型 (1:分類, 2:單品)
+const addonScopeType = ref(1);
+// ✨ 新增：動態計算當下副商品該看哪一個範圍 (只有 Type 4 可獨立切換，其餘綁定主範圍)
+const currentAddonScopeType = computed(() => formData.value.type === '4' ? addonScopeType.value : formData.value.scopeType);
 
-// ✨ 新增：用來綁定使用者選擇的活動標籤 ID
-const selectedTagId = ref(''); 
+
+
 
 // ✨ 恢復搜尋與篩選狀態
 const searchCategory = ref('');
@@ -37,6 +41,56 @@ const errors = ref({});
 const productsList = ref([]);
 const categoriesList = ref([]);
 
+// ✨ 新增：用來綁定使用者選擇的活動標籤 ID
+const selectedTagId = ref('');
+
+// ✨ 新增：表單內彈出式快速建立標籤並自動選取功能
+import Swal from 'sweetalert2';
+const quickAddTagInForm = async () => {
+    const { value: tagName } = await Swal.fire({
+        // ✨ 修改：雙重保險！指定 SweetAlert2 掛載目標為本表單 Modal，強迫其在燈箱內部生成，徹底物理隔離焦點衝突
+        target: document.getElementById('formModal'),
+        title: '快速新增活動標籤',
+        input: 'text',
+        inputPlaceholder: '請輸入新標籤名稱（例如：端午特惠）',
+        showCancelButton: true,
+        confirmButtonText: '確定建立',
+        cancelButtonText: '取消',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) {
+                return '標籤名稱不可為空！';
+            }
+        }
+    });
+
+    if (tagName) {
+        try {
+            const newTag = { categoryName: tagName.trim(), categoryType: 3, parentId: null };
+            await request.post('/api/categories', newTag);
+            Swal.fire({ icon: 'success', title: '新增成功', text: `標籤「${tagName}」已建立`, timer: 1500, showConfirmButton: false });
+            
+            // 重新刷新選單選項資料
+            await fetchOptions();
+            
+            // 自動匹配剛剛建立成功的標籤物件，並將其設為當前下拉選單選中狀態
+            const addedTag = categoriesList.value.find(c => c.categoryType === 3 && c.categoryName === tagName.trim());
+            if (addedTag) {
+                selectedTagId.value = addedTag.categoryId;
+            }
+        } catch (error) {
+            console.error("表單內快速新增標籤失敗:", error);
+            Swal.fire('失敗', '新增失敗，請檢查後端狀態', 'error');
+        }
+    }
+};
+
+// ✨ 新增/修改：優化 activityTags 邏輯，排除活動標籤大分類 (ID: 3 或名稱為優惠活動)
+const activityTags = computed(() => {
+    return categoriesList.value.filter(c => c.categoryType === 3 && c.categoryId !== 3 && c.categoryName !== '優惠活動');
+});
+
+
+
 const fetchOptions = async () => {
     try {
         // ✨ 修改：改用 request 並換成相對路徑
@@ -48,10 +102,7 @@ const fetchOptions = async () => {
     } catch (error) { console.warn('資料取得失敗', error); }
 };
 
-// ✨ 新增：計算屬性，過濾出 categoryType === 3 的活動標籤
-const activityTags = computed(() => {
-    return categoriesList.value.filter(c => c.categoryType === 3);
-});
+
 
 // ✨ 新增：計算最後一步的索引值
 const isThreeStep = computed(() => formData.value.type === '3' || formData.value.type === '4');
@@ -193,8 +244,9 @@ const saveActivity = async () => {
             },
             categoryIds: formData.value.scopeType === 1 ? selectedCategoryIds.value : [],
             mainProductIds: formData.value.scopeType === 2 ? selectedMainProductIds.value : [],
-            addonProductIds: (formData.value.scopeType === 2 && isThreeStep.value) ? selectedAddonProductIds.value : [],
-            addonCategoryIds: (formData.value.scopeType === 1 && isThreeStep.value) ? selectedAddonCategoryIds.value : [],
+           // ✨ 修改：脫離主範圍限制，改用 currentAddonScopeType 判斷陣列傳遞
+            addonProductIds: (currentAddonScopeType.value === 2 && isThreeStep.value) ? selectedAddonProductIds.value : [],
+            addonCategoryIds: (currentAddonScopeType.value === 1 && isThreeStep.value) ? selectedAddonCategoryIds.value : [],
             // ✨ 修改：將選取的標籤 ID 送入 Payload
             tagCategoryId: selectedTagId.value ? parseInt(selectedTagId.value) : null
         };
@@ -274,7 +326,7 @@ const filteredProducts = computed(() => {
 
 <template>
     <div>
-        <div class="modal fade" id="formModal" tabindex="-1" data-bs-backdrop="static">
+       <div class="modal fade" id="formModal" data-bs-backdrop="static">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header bg-light border-bottom-0">
@@ -395,19 +447,18 @@ const filteredProducts = computed(() => {
                             </div>
 
                             <div v-show="currentStep === 2">
-                                <div class="d-flex justify-content-between mb-3 align-items-center border-bottom pb-2">
-                                    <h6 class="fw-bold mb-0">📦 {{ formData.scopeType === 1 ? '主分類選擇' : '主商品選擇' }}</h6>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" v-model="showSelectedCategoryOnly" v-if="formData.scopeType===1" id="showSelCat1">
-                                            <input class="form-check-input" type="checkbox" v-model="showSelectedProductOnly" v-else id="showSelProd1">
-                                            <label class="form-check-label small text-muted mt-1" :for="formData.scopeType===1 ? 'showSelCat1' : 'showSelProd1'">只顯示已勾選</label>
-                                        </div>
-                                        <input type="text" class="form-control form-control-sm border-2" v-model="searchCategory" v-if="formData.scopeType === 1" placeholder="🔍 搜尋名稱..." style="width: 140px;">
-                                        <input type="text" class="form-control form-control-sm border-2" v-model="searchProduct" v-else placeholder="🔍 搜尋名稱..." style="width: 140px;">
-                                        <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm">已選擇：{{ formData.scopeType === 1 ? selectedCategoryIds.length : selectedMainProductIds.length }}</span>
+                                <div class="d-flex mb-3 align-items-center border-bottom pb-2 gap-3">
+                                    <h6 class="fw-bold mb-0 text-nowrap">📦 {{ formData.scopeType === 1 ? '主分類選擇' : '主商品選擇' }}</h6>
+                                    
+                                    <input type="text" class="form-control form-control-sm border-2" v-model="searchCategory" v-if="formData.scopeType === 1" placeholder="🔍 搜尋名稱..." style="width: 140px;">
+                                    <input type="text" class="form-control form-control-sm border-2" v-model="searchProduct" v-else placeholder="🔍 搜尋名稱..." style="width: 140px;">
+                                    
+                                    <div class="form-check form-switch mb-0 ms-auto">
+                                        <input class="form-check-input" type="checkbox" v-model="showSelectedCategoryOnly" v-if="formData.scopeType===1" id="showSelCat1">
+                                        <input class="form-check-input" type="checkbox" v-model="showSelectedProductOnly" v-else id="showSelProd1">
+                                        <label class="form-check-label small text-muted mt-1" :for="formData.scopeType===1 ? 'showSelCat1' : 'showSelProd1'">只顯示已勾選</label>
                                     </div>
-                                </div>
+                                    </div>
                                 <div class="table-responsive border rounded" style="max-height: 350px;">
                                     <table class="table table-hover align-middle mb-0">
                                         <thead class="table-light"><tr><th style="width: 50px;"></th><th>名稱</th><th v-if="formData.scopeType===2">庫存</th><th v-if="formData.scopeType===2">售價</th></tr></thead>
@@ -435,20 +486,20 @@ const filteredProducts = computed(() => {
                             </div>
 
                             <div v-show="currentStep === 3 && isThreeStep">
-                                <div class="d-flex justify-content-between mb-3 align-items-center border-bottom pb-2">
-                                    <h6 class="fw-bold mb-0 text-success">🎁 副商品選擇</h6>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <span v-if="formData.scopeType === 1 && formData.type === '3'" class="text-danger small fw-bold">⚠️ 主副商品必須為同一分類</span>
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" v-model="showSelectedCategoryOnly" v-if="formData.scopeType===1" id="showSelCat2">
-                                            <input class="form-check-input" type="checkbox" v-model="showSelectedProductOnly" v-else id="showSelProd2">
-                                            <label class="form-check-label small text-muted mt-1" :for="formData.scopeType===1 ? 'showSelCat2' : 'showSelProd2'">只顯示已勾選</label>
-                                        </div>
-                                        <input type="text" class="form-control form-control-sm border-2" v-model="searchCategory" v-if="formData.scopeType === 1" placeholder="🔍 搜尋名稱..." style="width: 140px;">
-                                        <input type="text" class="form-control form-control-sm border-2" v-model="searchProduct" v-else placeholder="🔍 搜尋名稱..." style="width: 140px;">
-                                        <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm">已選擇：{{ formData.scopeType === 1 ? selectedAddonCategoryIds.length : selectedAddonProductIds.length }}</span>
+                                <div class="d-flex mb-3 align-items-center border-bottom pb-2 gap-3">
+                                    <h6 class="fw-bold mb-0 text-success text-nowrap">🎁 副商品選擇</h6>
+                                    
+                                   
+                                    
+                                    <input type="text" class="form-control form-control-sm border-2" v-model="searchCategory" v-if="formData.scopeType === 1" placeholder="🔍 搜尋名稱..." style="width: 140px;">
+                                    <input type="text" class="form-control form-control-sm border-2" v-model="searchProduct" v-else placeholder="🔍 搜尋名稱..." style="width: 140px;">
+                                     <span v-if="formData.scopeType === 1 && formData.type === '3'" class="text-danger small fw-bold text-nowrap">⚠️ 主副商品必須為同一分類</span>
+                                    <div class="form-check form-switch mb-0 ms-auto">
+                                        <input class="form-check-input" type="checkbox" v-model="showSelectedCategoryOnly" v-if="formData.scopeType===1" id="showSelCat2">
+                                        <input class="form-check-input" type="checkbox" v-model="showSelectedProductOnly" v-else id="showSelProd2">
+                                        <label class="form-check-label small text-muted mt-1" :for="formData.scopeType===1 ? 'showSelCat2' : 'showSelProd2'">只顯示已勾選</label>
                                     </div>
-                                </div>
+                                    </div>
                                 <div class="table-responsive border rounded" style="max-height: 350px;">
                                     <table class="table table-hover align-middle mb-0">
                                         <thead class="table-light"><tr><th style="width: 50px;"></th><th>名稱</th><th v-if="formData.scopeType===2">庫存</th><th v-if="formData.scopeType===2">售價</th></tr></thead>
@@ -473,25 +524,31 @@ const filteredProducts = computed(() => {
                             </div>
 
                             <div v-show="currentStep === lastStep">
-                                <div class="p-4 bg-light border rounded shadow-sm border-start border-4 border-warning">
-                                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-bullhorn me-2 text-warning"></i> 📢 活動發布與掛載設定</h5>
-                                    
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold text-secondary small">選擇前端活動標籤 <span class="text-danger">*</span></label>
-                                        <p class="small text-muted mb-2">請選擇此折扣活動要掛載到使用者介面的哪一個活動分頁（此為必選項目）。</p>
-                                        <select class="form-select border-2 py-3" v-model="selectedTagId" :disabled="isOngoing">
-                                            <option value="" disabled>-- 請選擇掛載標籤 --</option>
-                                            <option v-for="tag in activityTags" :key="tag.categoryId" :value="tag.categoryId">
-                                                📌 {{ tag.categoryName }} (ID: {{ tag.categoryId }})
-                                            </option>
-                                        </select>
-                                    </div>
+    <div class="p-4 bg-light border rounded shadow-sm border-start border-4 border-warning">
+        <h5 class="fw-bold text-dark mb-3"><i class="fas fa-bullhorn me-2 text-warning"></i> 📢 活動發布與掛載設定</h5>
+        
+        <div class="mb-4">
+            <label class="form-label fw-bold text-secondary small">選擇前端活動標籤 <span class="text-danger">*</span></label>
+            <p class="small text-muted mb-2">請選擇此折扣活動要掛載到使用者介面的哪一個活動分頁（此為必選項目）。</p>
+            
+            <div class="d-flex gap-2">
+                <select class="form-select border-2 py-3" v-model="selectedTagId" :disabled="isOngoing">
+                    <option value="" disabled>-- 請選擇掛載標籤 --</option>
+                    <option v-for="tag in activityTags" :key="tag.categoryId" :value="tag.categoryId">
+                        📌 {{ tag.categoryName }} (ID: {{ tag.categoryId }})
+                    </option>
+                </select>
+                <button type="button" class="btn btn-outline-primary px-3 text-nowrap fw-bold shadow-sm" @click="quickAddTagInForm" :disabled="isOngoing">
+                    ➕ 快速新增
+                </button>
+            </div>
+        </div>
 
-                                    <div class="alert alert-info py-2 mb-0 small">
-                                        <i class="fas fa-info-circle me-1"></i> 提示：若清單中沒有需要的標籤，請先至分類管理頁面快速新增「活動標籤」類型的分類。
-                                    </div>
-                                </div>
-                            </div>
+        <div class="alert alert-info py-2 mb-0 small">
+            <i class="fas fa-info-circle me-1"></i> 提示：若清單中沒有需要的標籤，可以直接點擊右側的「快速新增」按鈕建立。
+        </div>
+    </div>
+</div>
                         </div>
                     </div>
 

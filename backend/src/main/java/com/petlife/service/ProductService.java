@@ -279,32 +279,38 @@ public class ProductService {
         // 2. 收集所有符合條件的商品 ID (使用 Set 避免重複)
         java.util.Set<Integer> validProductIds = new java.util.HashSet<>();
         java.util.Map<Integer, String> productBadgeMap = new java.util.HashMap<>(); // 紀錄商品對應的活動名稱
+        java.util.Map<Integer, String> productRoleMap = new java.util.HashMap<>(); // 紀錄商品的角色 (Main 還是 Addon)
+        // ✨ 新增：紀錄商品對應的活動類型 ID (1, 2, 3, 4, 5)
+        java.util.Map<Integer, String> productTypeMap = new java.util.HashMap<>(); 
         
         for (com.petlife.model.Discount d : activeDiscounts) {
-            String badgeName = d.getDiscountName(); // 要顯示在前端的徽章文字 (活動名稱)
+            String badgeName = d.getDiscountName(); // 要顯示在前端的徽章文字
+            // ✨ 新增：獲取活動類型 ID
+            String typeIdStr = d.getDiscountType() != null ? d.getDiscountType().getDiscountTypeId().toString() : "";
             
-            if (d.getScopeType() == 1) { // 指定分類
-                List<Integer> catIds = d.getDiscountCategories().stream()
-                    .filter(dc -> "Main".equals(dc.getCategoryRole()))
-                    .map(dc -> dc.getCategory().getCategoryId())
-                    .collect(Collectors.toList());
-                
-                if (!catIds.isEmpty()) {
-                    List<Integer> pIds = productRepository.findProductIdsByCategoryIds(catIds);
+            // ✨ 修改：同時抓取 Main 與 Addon 的分類關聯商品 (修正為 Set 避免 Type mismatch 錯誤)
+            java.util.Set<com.petlife.model.DiscountCategory> dCats = d.getDiscountCategories();
+            for(com.petlife.model.DiscountCategory dc : dCats) {
+                if("Main".equals(dc.getCategoryRole()) || "Addon".equals(dc.getCategoryRole())) {
+                    List<Integer> pIds = productRepository.findProductIdsByCategoryIds(java.util.Collections.singletonList(dc.getCategory().getCategoryId()));
                     for (Integer pid : pIds) {
                         validProductIds.add(pid);
-                        productBadgeMap.put(pid, badgeName); // 記錄徽章
+                        productBadgeMap.put(pid, badgeName); 
+                        productRoleMap.put(pid, dc.getCategoryRole()); // 標記角色
+                        productTypeMap.put(pid, typeIdStr); // ✨ 新增：綁定活動類型
                     }
                 }
-            } else if (d.getScopeType() == 2) { // 指定單品
-                List<Integer> pIds = d.getDiscountProducts().stream()
-                    .filter(dp -> "Main".equals(dp.getProductRole()))
-                    .map(dp -> dp.getProduct().getProductId())
-                    .collect(Collectors.toList());
-                
-                for (Integer pid : pIds) {
+            }
+            
+            // ✨ 修改：同時抓取 Main 與 Addon 的單品關聯商品 (修正為 Set 避免 Type mismatch 錯誤)
+            java.util.Set<com.petlife.model.DiscountProduct> dProds = d.getDiscountProducts();
+            for(com.petlife.model.DiscountProduct dp : dProds) {
+                if("Main".equals(dp.getProductRole()) || "Addon".equals(dp.getProductRole())) {
+                    Integer pid = dp.getProduct().getProductId();
                     validProductIds.add(pid);
-                    productBadgeMap.put(pid, badgeName); // 記錄徽章
+                    productBadgeMap.put(pid, badgeName);
+                    productRoleMap.put(pid, dp.getProductRole()); // 標記角色
+                    productTypeMap.put(pid, typeIdStr); // ✨ 新增：綁定活動類型
                 }
             }
         }
@@ -317,9 +323,12 @@ public class ProductService {
         // 3. 透過 ID 清單查詢商品並分頁
         Page<Product> productPage = productRepository.findByProductIdIn(new java.util.ArrayList<>(validProductIds), pageable);
         
-        // 4. 將活動名稱塞入虛擬欄位 activityBadge，讓 Vue 顯示
+        // 4. 將活動名稱、角色與活動類型塞入虛擬欄位，讓 Vue 顯示
         for (Product p : productPage.getContent()) {
             p.setActivityBadge(productBadgeMap.get(p.getProductId()));
+            p.setProductRole(productRoleMap.get(p.getProductId())); 
+            // ✨ 新增：將活動類型 ID 寫入商品虛擬欄位
+            p.setDiscountType(productTypeMap.get(p.getProductId())); 
         }
         
         return productPage;

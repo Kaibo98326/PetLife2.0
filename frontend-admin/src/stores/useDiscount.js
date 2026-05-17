@@ -14,6 +14,8 @@ export function useDiscount() {
     const statusFilter = ref('all');
     const scopeFilter = ref('all');
     const typeFilter = ref('all');
+    // ✨ 新增：活動標籤篩選狀態 (預設為 'all' 不過濾)
+    const selectedTagFilter = ref('all');
 
     const getComputedStatus = (status, startStr, endStr) => {
         if (status === 'deleted') return 'deleted';
@@ -120,12 +122,21 @@ export function useDiscount() {
         if (scopeFilter.value !== 'all') res = res.filter(d => d.scopeType?.toString() === scopeFilter.value);
         if (typeFilter.value !== 'all') res = res.filter(d => d.discountType?.discountTypeId.toString() === typeFilter.value);
         if (searchActivityName.value) res = res.filter(d => d.discountName?.includes(searchActivityName.value));
+
+        // ✨ 新增/修改：根據點選的活動標籤進行連動過濾
+        if (selectedTagFilter.value !== 'all') {
+            res = res.filter(d => {
+                return d.discountCategories?.some(c => c.categoryRole === 'Tag' && c.category?.categoryId === parseInt(selectedTagFilter.value));
+            });
+        }
+
         return res;
     });
 
     return {
         API_BASE_URL, discounts, discountTypesList, loading,
         searchActivityName, statusFilter, scopeFilter, typeFilter,
+        selectedTagFilter, // ✨ 新增：暴露活動標籤篩選變數給主頁面使用
         fetchDiscounts, fetchDiscountTypes, deleteActivity,
         filteredDiscounts, getStatusBadge
     };

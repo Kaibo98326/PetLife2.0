@@ -79,11 +79,13 @@ const calculateDiscount = async () => {
   //防呆：先把應付金額預設為原價，避免 API 失敗時變成 0
   finalAmount.value = totalAmount.value
 
-  try {
+ try {
     // 將前端的 cartItems 轉成後端需要的 DTO 格式
     // ⚠️ 注意：請確保你的 res.data 裡面有 productId 和 categoryId，如果沒有，後端分類折扣會算不出來！
     const requestData = {
       cartItems: cartItems.value.map(item => ({
+        // ✨ 修改 A：在組合 requestData 時，務必將 itemId 補進去傳給後端
+        itemId: item.itemId,
         productId: item.productId,
         categoryId: item.categoryId, 
         price: item.productPrice,
@@ -106,7 +108,8 @@ const calculateDiscount = async () => {
     // 更新原本的 cartItems 的標籤 (對應 itemId)
     if (res.data.cartItems) {
       cartItems.value = cartItems.value.map(item => {
-        const found = res.data.cartItems.find(i => i.itemId == item.itemId)
+        // ✨ 修改 B：將 find 條件改為「itemId 或是 productId」雙重保險比對，確保 reminderText 絕對能成功貼回商品上
+        const found = res.data.cartItems.find(i => i.itemId === item.itemId || i.productId === item.productId)
         if (found) {
           return {
             ...item,
