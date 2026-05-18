@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import com.petlife.model.Discount;
 import com.petlife.model.DiscountType;
 import com.petlife.repository.DiscountRequestDTO;
+// ✨ 新增：引入給前端畫圓餅圖專用的報表 DTO
+import com.petlife.repository.DiscountAnalysisDTO;
 import com.petlife.service.DiscountService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -106,6 +108,19 @@ public class DiscountController {
             return ResponseEntity.ok("活動刪除成功！");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("活動刪除失敗：" + e.getMessage());
+        }
+    }
+
+    // ✨ 新增：提供前端 Vue 儀表板圓餅圖的成效分析 API
+    @GetMapping("/analysis/{id}")
+    public ResponseEntity<List<DiscountAnalysisDTO>> getDiscountAnalysis(@PathVariable Integer id) {
+        try {
+            // 呼叫 Service 的動態回推演算法，拿回分群加總好的資料
+            List<DiscountAnalysisDTO> analysisData = discountService.getDiscountAnalysis(id);
+            return ResponseEntity.ok(analysisData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

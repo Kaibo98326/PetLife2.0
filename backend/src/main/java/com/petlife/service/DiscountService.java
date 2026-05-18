@@ -17,10 +17,22 @@ import com.petlife.repository.DiscountRepository;
 import com.petlife.repository.DiscountTypeRepository;
 import com.petlife.repository.ProductRepository;
 
+// 引入訂單相關 Model 與 Repository 以及報表 DTO
+import com.petlife.model.Order;
+import com.petlife.model.OrderDetail;
+import com.petlife.repository.OrderRepository;
+import com.petlife.repository.DiscountAnalysisDTO;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
 @Service
 @Transactional // 確保事務完整性，失敗會自動回滾
 public class DiscountService {
@@ -39,6 +51,10 @@ public class DiscountService {
     private CategoryRepository categoryRepository; 
     @Autowired
     private ProductRepository productRepository;   
+
+    // ✨ 新增：引入訂單 Repository 來抓取歷史訂單
+    @Autowired
+    private OrderRepository orderRepository;
 
     public List<DiscountType> getAllDiscountTypes() {
         return discountTypeRepository.findAll();
@@ -141,7 +157,7 @@ public class DiscountService {
         List<Discount> activeDiscounts = allDiscounts.stream()
             .filter(d -> "active".equals(d.getStatus()))
             .filter(d -> d.getStartDate() != null && d.getEndDate() != null)
-            // ✨ 修正：改用 isBefore() 和 isAfter() 來比較 LocalDate
+            // isBefore() 和 isAfter() 來比較 LocalDate
             // !today.isBefore(startDate) 代表「今天 >= 開始日」
             // !today.isAfter(endDate) 代表「今天 <= 結束日」
             .filter(d -> !today.isBefore(d.getStartDate()) && !today.isAfter(d.getEndDate()))
@@ -173,7 +189,64 @@ public class DiscountService {
         return null;
     }
     
-    
-    
-    
+    // ✨ 新增：動態回推活動成效報表演算法 (無痛物理隔離版，不改 DB 欄位)
+    public List<DiscountAnalysisDTO> getDiscountAnalysis(Integer discountId) {
+        // 1. 抓出活動劇本
+        Discount discount = discountRepository.findById(discountId).orElse(null);
+        if (discount == null || discount.getStartDate() == null || discount.getEndDate() == null) {
+            return new ArrayList<>();
+        }
+
+        // 2. 撈出所有未軟刪除的歷史訂單
+        List<Order> allValidOrders = orderRepository.findByIsDeletedFalseOrderByOrderDateDesc();
+        Map<String, DiscountAnalysisDTO> analysisMap = new HashMap<>();
+
+        for (Order order : allValidOrders) {
+            // 防呆：排除已取消的訂單
+            if ("已取消".equals(order.getOrderStatus())) continue;
+
+            // 檢查訂單時間是否落在活動期間內
+            LocalDate orderDate = order.getOrderDate().toLocalDate();
+            if (orderDate.isBefore(discount.getStartDate()) || orderDate.isAfter(discount.getEndDate())) {
+                continue;
+            }
+
+            // 3. 交叉比對該筆訂單的所有明細
+            for (OrderDetail detail : order.getDetails()) {
+                // 必須要有真實折抵金額才算數 (防呆：折抵大於 0)
+                if (detail.getDiscountAmount() == null || detail.getDiscountAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
+                boolean isMatch = false;
+
+                if (discount.getScopeType() == 2) {
+                    // 指定單品：檢查這筆明細的 productId 是否在活動的指定商品清單中
+                    isMatch = discount.getDiscountProducts().stream()
+                        .anyMatch(dp -> dp.getProduct().getProductId().equals(detail.getProductId()));
+                } else if (discount.getScopeType() == 1) {
+                    // 指定分類：查出真實商品，並打開其 Categories 陣列檢查是否包含活動的指定分類
+                    Product product = productRepository.findById(detail.getProductId()).orElse(null);
+                    if (product != null) {
+                        List<Integer> productCategoryIds = product.getCategories().stream()
+                            .map(Category::getCategoryId).collect(Collectors.toList());
+
+                        isMatch = discount.getDiscountCategories().stream()
+                            .anyMatch(dc -> productCategoryIds.contains(dc.getCategory().getCategoryId()));
+                    }
+                }
+
+                // 4. 動態加總 (Group By ProductName 封裝至 DTO)
+                if (isMatch) {
+                    String pName = detail.getProductName();
+                    DiscountAnalysisDTO dto = analysisMap.getOrDefault(pName, new DiscountAnalysisDTO(pName, BigDecimal.ZERO, 0));
+                    dto.setDiscountAmount(dto.getDiscountAmount().add(detail.getDiscountAmount()));
+                    dto.setQuantity(dto.getQuantity() + detail.getQuantity());
+                    analysisMap.put(pName, dto);
+                }
+            }
+        }
+
+        return new ArrayList<>(analysisMap.values());
+    }
 }

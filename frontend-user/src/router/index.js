@@ -129,10 +129,7 @@ const routes = [
       },
     ],
   },
-<<<<<<< HEAD
 
-=======
->>>>>>> main
   {
     // 登入頁（獨立頁面，不套用 UserLayout）
     path: '/login',
