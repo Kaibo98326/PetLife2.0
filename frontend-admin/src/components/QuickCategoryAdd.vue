@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+// ✨ 修改：引入 computed 以支援標籤狀態分流與單獨提取大標題物件
+import { ref, onMounted, computed } from 'vue'
 import request from '@/utils/request' 
 import Swal from 'sweetalert2'
 
@@ -17,6 +18,13 @@ const newCategory = ref({
 const isAdding = ref(false)
 const tagsList = ref([])
 const activeTagId = ref('all') // 用來追蹤紀錄目前正被高亮選中篩選的標籤 ID
+
+// ✨ 修改：更新分流計算屬性，將大補帖特權標籤 (categoryId === 3) 徹底排除在普通標籤海之外，避免印在下方盒子裡
+const activeTags = computed(() => tagsList.value.filter(tag => !tag.isHiddenInFront && tag.categoryId !== 3))
+const inactiveTags = computed(() => tagsList.value.filter(tag => tag.isHiddenInFront && tag.categoryId !== 3))
+
+// ✨ 修改：新增單獨提取大標題物件的計算屬性 (categoryId === 3)，專供頂部標題列獨立靜態渲染
+const mainHeaderTag = computed(() => tagsList.value.find(tag => tag.categoryId === 3))
 
 // ✨ 新增：點擊整個標籤執行連動過濾邏輯
 const handleTagClick = (tag) => {
@@ -145,26 +153,65 @@ onMounted(() => {
       </div>
 
      <div class="tags-cloud-container mt-4 pt-3 border-top">
-        <label class="form-label fw-bold text-muted mb-3"><i class="fas fa-tags me-1"></i>目前已建立的活動標籤 (點擊標籤可過濾活動表格，點擊 <i class="fas fa-times mx-1"></i> 刪除)</label>
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-          <div v-if="tagsList.length === 0" class="text-muted small">尚無活動標籤資料</div>
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <label class="form-label fw-bold text-muted mb-0"><i class="fas fa-tags me-1"></i>目前已建立的活動標籤 (點擊標籤可過濾活動表格，點擊 <i class="fas fa-times mx-1"></i> 刪除)</label>
           
-          <span v-for="tag in tagsList" :key="tag.categoryId" 
-                class="badge-chip shadow-sm" 
-                :class="{'active-tag-chip': activeTagId === tag.categoryId, 'tag-hidden-status': tag.isHiddenInFront}"
-                @click="handleTagClick(tag)"
-                style="cursor: pointer; user-select: none;"
-                :title="tag.isHiddenInFront ? '因當前無進行中活動或未綁定商品，前台已自動隱藏此標籤' : ''">
-            
-            <i v-if="tag.isHiddenInFront" class="fas fa-eye-slash me-1 text-muted" title="前台隱藏中"></i>
-            
-            {{ tag.categoryName }}
-            <span v-if="tag.productCount > 0" class="tag-count" title="關聯商品數">({{ tag.productCount }})</span>
-            
-            <i class="fas fa-edit ms-2 edit-icon" @click.stop="handleEditTag(tag)" title="編輯標籤名稱"></i>
-            <i v-if="tag.categoryId !== 3" class="fas fa-times ms-2 delete-icon" @click.stop="confirmDelete(tag)" title="刪除標籤"></i>
+          <span v-if="mainHeaderTag" class="badge-chip shadow-sm" style="cursor: default; user-select: none;">
+            {{ mainHeaderTag.categoryName }}
+            <i class="fas fa-edit ms-2 edit-icon" @click.stop="handleEditTag(mainHeaderTag)" title="修改大標題名稱"></i>
           </span>
+        </div>
+        
+        <div v-if="tagsList.length === 0" class="text-muted small">尚無活動標籤資料</div>
+        
+        <div v-else class="row g-4">
+          
+          <div class="col-md-6">
+            <div class="fw-bold text-dark mb-2 small" style="font-size: 0.9rem;">
+              <i class="fas fa-fire text-danger me-1"></i>使用中 / 上架中標籤 ({{ activeTags.length }})
+            </div>
+            <div class="tag-scroll-box shadow-sm">
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div v-if="activeTags.length === 0" class="text-muted small">尚無上架中標籤</div>
+                <span v-for="tag in activeTags" :key="tag.categoryId" 
+                      class="badge-chip shadow-sm" 
+                      :class="{'active-tag-chip': activeTagId === tag.categoryId}"
+                      @click="handleTagClick(tag)"
+                      style="cursor: pointer; user-select: none;">
+                  {{ tag.categoryName }}
+                  <span v-if="tag.productCount > 0" class="tag-count" title="關聯商品數">({{ tag.productCount }})</span>
+                  <i class="fas fa-edit ms-2 edit-icon" @click.stop="handleEditTag(tag)" title="編輯標籤名稱"></i>
+                  <i class="fas fa-times ms-2 delete-icon" @click.stop="confirmDelete(tag)" title="刪除標籤"></i>
+                </span>
+              </div>
+            </div>
           </div>
+
+          <div class="col-md-6">
+            <div class="fw-bold text-muted mb-2 small" style="font-size: 0.9rem;">
+              <i class="fas fa-eye-slash me-1"></i>未上架 / 閒置標籤 ({{ inactiveTags.length }})
+            </div>
+            <div class="tag-scroll-box shadow-sm bg-light">
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div v-if="inactiveTags.length === 0" class="text-muted small">尚無閒置標籤</div>
+                <span v-for="tag in inactiveTags" :key="tag.categoryId" 
+                      class="badge-chip shadow-sm tag-hidden-status" 
+                      :class="{'active-tag-chip': activeTagId === tag.categoryId}"
+                      @click="handleTagClick(tag)"
+                      style="cursor: pointer; user-select: none;"
+                      title="因當前無進行中活動或未綁定商品，前台已自動隱藏此標籤">
+                  <i class="fas fa-eye-slash me-1 text-muted" title="前台隱藏中"></i>
+                  {{ tag.categoryName }}
+                  <span v-if="tag.productCount > 0" class="tag-count" title="關聯商品數">({{ tag.productCount }})</span>
+                  <i class="fas fa-edit ms-2 edit-icon" @click.stop="handleEditTag(tag)" title="編輯標籤名稱"></i>
+                  <i v-if="tag.categoryId !== 3" class="fas fa-times ms-2 delete-icon" @click.stop="confirmDelete(tag)" title="刪除標籤"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
@@ -197,7 +244,7 @@ onMounted(() => {
 .edit-icon { cursor: pointer; opacity: 0.5; transition: all 0.2s; padding: 2px; font-size: 0.85rem; }
 .edit-icon:hover { opacity: 1; color: #0d6efd; transform: scale(1.2); }
 
-/* ✨ 新增：溫暖系一體化系統卡片樣式 (完美復刻圖2風格) */
+/* ✨ 新增：溫慢系一體化系統卡片樣式 (完美復刻圖2風格) */
 .tag-system-unified-card {
     background-color: #ffffff;
     border-radius: 16px;                     /* 溫潤大圓角 */
@@ -217,7 +264,7 @@ onMounted(() => {
     transition: all 0.2s ease-in-out;            /* 讓滑鼠動態回饋更柔和 */
 }
 
-/* 懸停時的動態回饋 (稍微加深橘色，並帶有微幅浮起與溫暖系微陰影) */
+/* 懸停時的動態回饋 (稍微加深橘色，並帶有微幅浮起與溫慢系微陰影) */
 .btn-warm-solid:hover:not(:disabled) {
     background-color: #ee8a2e;                   /* 優雅加深的暖橘色 */
     border-color: #ee8a2e;
@@ -250,4 +297,28 @@ onMounted(() => {
     cursor: pointer;
 }
 
+/* ✨ 修改：防爆版捲動收納盒樣式 */
+.tag-scroll-box {
+  max-height: 180px;                 /* 限制最大高度，防止標籤海撐爆畫面 */
+  overflow-y: auto;                  /* 超過高度自動顯示垂直捲軸 */
+  padding: 16px;                     /* 舒適的內部留白 */
+  border: 1px solid #e9ecef;         /* 淡雅的收納盒邊框 */
+  border-radius: 12px;               /* 圓滑邊角呼應整體 UI */
+  background-color: #ffffff;
+}
+
+/* 優化捲軸的視覺體驗 (Webkit) */
+.tag-scroll-box::-webkit-scrollbar {
+  width: 6px;
+}
+.tag-scroll-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tag-scroll-box::-webkit-scrollbar-thumb {
+  background-color: #ced4da;
+  border-radius: 10px;
+}
+.tag-scroll-box::-webkit-scrollbar-thumb:hover {
+  background-color: #adb5bd;
+}
 </style>

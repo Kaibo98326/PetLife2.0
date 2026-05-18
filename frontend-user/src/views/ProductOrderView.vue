@@ -206,11 +206,10 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from '@/axios'
 import { Modal } from 'bootstrap'
 
-// ✨ 新增/修改：引入 Pinia Store 供後續更新會員紅利點數
 import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 
@@ -219,11 +218,10 @@ const orders = ref([])
 const selectedOrderDetail = ref(null)
 const isLoading = ref(true)
 const route = useRoute()
+const router = useRouter()
 let detailModal = null
 const currentPage = ref(1)
 const pageSize = 10
-
-
 
 
 //換頁效果
@@ -260,7 +258,8 @@ const checkAndOpenOrder = async () => {
       await openModal(targetId);
       
       // 5. 將網址上的參數抹除，避免使用者按 F5 重新整理時又一直打開
-      router.replace({ query: {} });
+      // ✨ 修改：徹底替換原本會引發響應式重繪自毀的 router.replace。改用 HTML5 原生 History API 隱形抹除參數，不驚動 Vue 核心，防爆閃退
+      window.history.replaceState(null, '', route.path);
     }
   }
 }
@@ -287,7 +286,6 @@ const fetchOrders = async () => {
     
     setTimeout(async () => {
       isLoading.value = false
-      // ✨ 新增/修改：當資料載入完畢後，執行檢查是否需要自動跳轉與開窗
       await checkAndOpenOrder()
     }, 150)
   }

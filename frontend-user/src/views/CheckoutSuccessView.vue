@@ -48,27 +48,35 @@
           </tbody>
         </table>
 
-       <div class="total-box">
-          <div class="summary-line" style="margin-bottom: 8px;">
+       <div class="total-box" style="width: 50%; max-width: 500px; margin-left: auto;">
+          <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span class="total-label" style="font-size: 16px; color: #666;">商品總計：</span>
             <span class="total-price" style="font-size: 18px; color: #666;">$ {{ (orderMain.orderTotal + discountAmount).toLocaleString() }}</span>
           </div>
-          <div v-if="discountAmount > 0" class="summary-line discount-line" style="margin-bottom: 8px;">
-            <span class="total-label" style="font-size: 16px; color: #ff4d4f;">活動折抵：</span>
-            <span class="total-price" style="font-size: 18px; color: #ff4d4f;">- $ {{ discountAmount.toLocaleString() }}</span>
-            <div v-for="(ad, index) in appliedDiscounts" :key="index" style="font-size: 0.9em; margin-bottom: 3px; display: flex; justify-content: flex-end;">
-              <span class="label" style="color: #888; text-align: right; margin-right: 10px; background: none; font-weight: normal; padding: 0;">{{ ad.name }}</span>
+          
+          <div v-if="discountAmount > 0" class="summary-line discount-line" style="display: flex; flex-direction: column; margin-bottom: 8px;">
+            <div @click="isDiscountExpanded = !isDiscountExpanded" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;">
+              <span class="total-label" style="font-size: 16px; color: #ff4d4f;">
+                <i :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" style="color: #ff4d4f; margin-right: 5px;"></i>活動折抵明細：
+              </span>
+              <span class="total-price" style="font-size: 18px; color: #ff4d4f;">- $ {{ discountAmount.toLocaleString() }}</span>
             </div>
+            <template v-if="isDiscountExpanded">
+              <div v-for="(ad, index) in appliedDiscounts" :key="index" style="font-size: 0.9em; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; padding-left: 20px;">
+                <span class="label" style="color: #888; background: none; font-weight: normal; padding: 0;">{{ ad.name }}</span>
+                <span style="color: #ff4d4f;">- $ {{ ad.amount ? ad.amount.toLocaleString() : '0' }}</span>
+              </div>
+            </template>
           </div>
           
-          <div v-if="orderMain.usedPoint > 0" class="summary-line discount-line" style="margin-bottom: 8px;">
+          <div v-if="orderMain.usedPoint > 0" class="summary-line discount-line" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span class="total-label" style="font-size: 16px; color: #ff4d4f;">紅利折抵：</span>
             <span class="total-price" style="font-size: 18px; color: #ff4d4f;">- $ {{ orderMain.usedPoint.toLocaleString() }}</span>
           </div>
 
-          <div class="summary-line final-total-line" style="border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
-            <span class="total-label">應付總額：</span>
-            <span class="total-price">$ {{ orderMain.orderTotal.toLocaleString() }}</span>
+          <div class="summary-line final-total-line" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
+            <span class="total-label" style="font-size: 16px; font-weight: bold;">應付總額：</span>
+            <span class="total-price" style="font-size: 20px; font-weight: bold; color: #e67e22;">$ {{ orderMain.orderTotal.toLocaleString() }}</span>
           </div>
         </div>
         <span class="warn">確認訂單狀態請前往會員中心查看。</span>
@@ -97,6 +105,9 @@ const orderMain = reactive({
 const orderItems = reactive([])
 const discountAmount = ref(0)
 const appliedDiscounts = ref([])
+
+// ✨ 修改：新增控制折扣明細展開/收合狀態的響應式布林值變數
+const isDiscountExpanded = ref(false)
 
 // 時間格式化
 const formatDateTime = (dateStr) => {

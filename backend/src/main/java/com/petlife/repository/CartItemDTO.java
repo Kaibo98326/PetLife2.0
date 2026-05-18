@@ -9,6 +9,11 @@ public class CartItemDTO {
     private Integer itemId; // 購物車明細 PK，作為前後端綁定標籤的橋樑
     private String appliedDiscountText; // 存放已折抵的綠色標籤字串 (如: 8折)
     private String reminderText; // 存放未達標的紅色提醒字串 (如: 還差$200...)
+    
+    // ✨ 修改：擴充前端 Vue 進行智慧分流所需的三個關鍵屬性
+    private String discountType; // 活動類型 (如: "4")
+    private String productRole;  // 商品角色 ("Main" 或 "Addon")
+    private Boolean isActivityMet; // 達標狀態 (true/false)
     // --- 活動新增結束 ---
 
     private Integer productId;
@@ -28,6 +33,14 @@ public class CartItemDTO {
     
     public String getReminderText() { return reminderText; }
     public void setReminderText(String reminderText) { this.reminderText = reminderText; }
+    
+    // ✨ 修改：新增三個屬性的 Getter 與 Setter
+    public String getDiscountType() { return discountType; }
+    public void setDiscountType(String discountType) { this.discountType = discountType; }
+    public String getProductRole() { return productRole; }
+    public void setProductRole(String productRole) { this.productRole = productRole; }
+    public Boolean getIsActivityMet() { return isActivityMet; }
+    public void setIsActivityMet(Boolean isActivityMet) { this.isActivityMet = isActivityMet; }
     // --- 活動新增結束 ---
 
     // 原本的 Getters and Setters

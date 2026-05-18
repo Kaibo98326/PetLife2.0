@@ -114,7 +114,11 @@ const calculateDiscount = async () => {
           return {
             ...item,
             appliedDiscountText: found.appliedDiscountText,
-            reminderText: found.reminderText
+            reminderText: found.reminderText,
+            discountType: found.discountType,
+            productRole: found.productRole,
+            // ✨ 修改：補全後端回傳資料的「達標狀態」對接，供 template 智慧分流切換
+            isActivityMet: found.isActivityMet
           }
         }
         return item
@@ -213,8 +217,8 @@ onMounted(() => {
           <tr v-for="item in cartItems" :key="item.itemId">
             <td style="text-align: left">
               <div>{{ item.productName }}</div>
-              <div v-if="item.reminderText" class="cart-reminder-text" v-html="item.reminderText"></div>
-              <div v-if="item.appliedDiscountText" class="cart-discount-badge">{{ item.appliedDiscountText }}</div>
+              <div v-if="item.reminderText && (item.discountType !== '4' || (item.isActivityMet ? item.productRole === 'Addon' : item.productRole === 'Main'))" class="cart-reminder-text" v-html="item.reminderText"></div>
+              <div v-if="item.appliedDiscountText && (item.discountType !== '4' || (item.isActivityMet ? item.productRole === 'Addon' : item.productRole === 'Main'))" class="cart-discount-badge">{{ item.appliedDiscountText }}</div>
             </td>
             <td class="price-text">$ {{ item.productPrice }}</td>
             <td>

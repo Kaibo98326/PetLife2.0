@@ -14,6 +14,9 @@ const bonusHistory = ref([])
 let bonusModal = null
 const activeBonusTab = ref('all')
 
+// ✨ 修改：宣告一個暫存變數，用來記錄即將跳轉的目標訂單 ID
+let targetOrderId = null
+
 // ===== 新增區塊：元件掛載時自動初始化 Modal、加載數據，並在關閉時退回上一頁 =====
 onMounted(async () => {
     try {
@@ -30,7 +33,12 @@ onMounted(async () => {
             
             // 3. 監聽 Modal 的完全隱藏事件：當關閉彈窗時自動退回上一頁
             modalElement.addEventListener('hidden.bs.modal', () => {
-                router.back()
+                // ✨ 修改：在彈窗完全隱藏後進行判斷——若有暫存的目標訂單 ID 則執行正向跳轉，否則才退回上一頁
+                if (targetOrderId) {
+                    router.push({ path: '/orderhistory', query: { openOrderId: targetOrderId } })
+                } else {
+                    router.back()
+                }
             })
         }
         
@@ -56,8 +64,9 @@ const filteredBonusHistory = computed(() => {
 })
 
 const goToOrder = (orderId) => {
+    // ✨ 修改：點擊時不要直接執行 router.push，而是先將傳入的 orderId 賦值給暫存變數，隨後僅觸發隱藏動畫
+    targetOrderId = orderId
     bonusModal?.hide()
-    router.push({ path: '/orderhistory', query: { openOrderId: orderId } })
 }
 
 const formatDateTime = (str) => (str ? str.replace('T', ' ').substring(0, 16) : '')
@@ -144,8 +153,6 @@ const formatDateTime = (str) => (str ? str.replace('T', ' ').substring(0, 16) : 
         </div>
     </div>
 </template>
-
-
 
 <style scoped>
 @import '../assets/css/OpenBonusModal.css';

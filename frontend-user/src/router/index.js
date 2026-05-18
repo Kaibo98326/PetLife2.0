@@ -106,7 +106,7 @@ const routes = [
       {
         path: 'points',
         name: 'MemberPoints',
-        component: () => import('@/views/openBonusModal.vue'),
+        component: () => import('@/views/OpenBonusModal.vue'),
       },
     ],
   },

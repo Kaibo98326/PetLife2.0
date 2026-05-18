@@ -124,38 +124,34 @@ onMounted(() => {
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th class="py-3" style="width: 5%">編號</th>
-                                <th class="py-3" style="width: 10%">狀態</th>
-                                <th class="py-3" style="width: 12%">適用範圍</th>
-                                <th class="py-3" style="width: 23%">活動名稱</th>
-                                <th class="py-3" style="width: 15%">折扣類別</th>
-                                <th class="py-3" style="width: 20%">活動期間</th>
-                                <th class="py-3 text-center" style="width: 15%">操作</th>
+                                <th class="py-3" style="width: 60px;">編號</th>
+                                <th class="py-3 text-center text-nowrap">狀態</th>
+                                <th class="py-3 text-center text-nowrap">適用範圍</th>
+                                <th class="py-3" style="width: auto;">活動名稱</th>
+                                <th class="py-3 text-center text-nowrap">折扣類別</th>
+                                <th class="py-3" style="width: 240px;">活動期間</th>
+                                <th class="py-3 text-center" style="width: 180px;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="paginatedDiscounts.length === 0"><td colspan="7" class="text-center text-muted py-5">目前尚無活動資料</td></tr>
                             <tr v-for="(item, index) in paginatedDiscounts" :key="item.discountId">
                                 <td class="fw-bold py-3 text-muted">{{ (currentPage - 1) * pageSize + index + 1 }}</td> 
-                                <td class="py-3"><span class="badge rounded-pill px-3 py-2 shadow-sm" :class="getStatusBadge(item).class">{{ getStatusBadge(item).text }}</span></td>
-                                <td class="py-3">
+                                <td class="py-3 text-center"><span class="badge rounded-pill px-3 py-2 shadow-sm" :class="getStatusBadge(item).class">{{ getStatusBadge(item).text }}</span></td>
+                                <td class="py-3 text-center">
                                     <span v-if="item.scopeType === 1" class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">📂 分類清單</span>
                                     <span v-else class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">📦 單品清單</span>
                                 </td>
                                 <td class="py-3 fw-bold text-dark">{{ item.discountName }}</td>
-                                <td class="py-3 text-muted">{{ item.discountType ? item.discountType.discountTypeName : '' }}</td>
+                                <td class="py-3 text-center text-muted">{{ item.discountType ? item.discountType.discountTypeName : '' }}</td>
                                 <td class="py-3 text-muted small">{{ item.startDate }} ~ {{ item.endDate }}</td>
                                 <td class="py-3 text-center">
-                                    <div class="d-flex justify-content-center align-items-center gap-2">
-                                        <button class="btn btn-outline-primary btn-sm px-2 shadow-sm" @click="formModalRef.openEdit(item)" title="查看/修改">
-                                            <i class="fas fa-pen"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger btn-sm px-2 shadow-sm" @click="deleteActivity(item)" title="刪除">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                        <button class="btn btn-outline-info btn-sm px-2 shadow-sm" @click="viewDiscountDetails(item.discountId)" title="明細">
-                                            <i class="fas fa-search"></i>
-                                        </button>
+                                    <div class="d-flex justify-content-center align-items-center gap-2 text-nowrap">
+                                        <button class="btn btn-link text-primary text-decoration-none p-0 fw-bold" style="font-size: 0.9em;" @click="formModalRef.openEdit(item)">查看/修改</button>
+                                        <span class="text-muted opacity-50">|</span>
+                                        <button class="btn btn-link text-danger text-decoration-none p-0 fw-bold" style="font-size: 0.9em;" @click="deleteActivity(item)">刪除</button>
+                                        <span class="text-muted opacity-50">|</span>
+                                        <button class="btn btn-link text-info text-decoration-none p-0 fw-bold" style="font-size: 0.9em;" @click="viewDiscountDetails(item.discountId)">明細</button>
                                     </div>
                                 </td>
                             </tr>

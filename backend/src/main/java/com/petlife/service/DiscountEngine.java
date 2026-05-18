@@ -48,9 +48,28 @@ public class DiscountEngine {
                 appliedDetails.add(new DiscountDetailDTO(discount.getDiscountName(), templateHelper.generateDiscountDetailText(discount), saved));
                 
                 String badgeText = templateHelper.generateAppliedText(discount);
+                
+                // ✨ 修改：提早拉出主副商品 ID 清單，供後續判定 Role 使用
+                Set<Integer> mainPids = discount.getDiscountProducts().stream()
+                    .filter(dp -> "Main".equals(dp.getProductRole()))
+                    .map(dp -> dp.getProduct().getProductId()).collect(Collectors.toSet());
+                Set<Integer> addonPids = discount.getDiscountProducts().stream()
+                    .filter(dp -> "Addon".equals(dp.getProductRole()))
+                    .map(dp -> dp.getProduct().getProductId()).collect(Collectors.toSet());
+
                 flattenedItems.stream()
                     .filter(i -> i.isProcessed() && !beforeProcessedIds.contains(i.getItemId()))
-                    .forEach(i -> i.setAppliedDiscountText(badgeText));
+                    .forEach(i -> {
+                        i.setAppliedDiscountText(badgeText);
+                        // ✨ 修改：寫入達標狀態(true)、活動類型與商品角色，供 Vue 動態切換
+                        i.setIsActivityMet(true);
+                        i.setDiscountType(String.valueOf(discount.getDiscountType().getDiscountTypeId()));
+                        if (addonPids.contains(i.getProductId())) {
+                            i.setProductRole("Addon");
+                        } else if (mainPids.contains(i.getProductId())) {
+                            i.setProductRole("Main");
+                        }
+                    });
             }
         }
 
@@ -72,9 +91,28 @@ public class DiscountEngine {
                 appliedDetails.add(new DiscountDetailDTO(discount.getDiscountName(), templateHelper.generateDiscountDetailText(discount), saved));
                 
                 String badgeText = templateHelper.generateAppliedText(discount);
+                
+                // ✨ 修改：提早拉出主副分類 ID 清單，供後續判定 Role 使用
+                Set<Integer> mainCids = discount.getDiscountCategories().stream()
+                    .filter(dc -> "Main".equals(dc.getCategoryRole()))
+                    .map(dc -> dc.getCategory().getCategoryId()).collect(Collectors.toSet());
+                Set<Integer> addonCids = discount.getDiscountCategories().stream()
+                    .filter(dc -> "Addon".equals(dc.getCategoryRole()))
+                    .map(dc -> dc.getCategory().getCategoryId()).collect(Collectors.toSet());
+
                 flattenedItems.stream()
                     .filter(i -> i.isProcessed() && !beforeProcessedIds.contains(i.getItemId()))
-                    .forEach(i -> i.setAppliedDiscountText(badgeText));
+                    .forEach(i -> {
+                        i.setAppliedDiscountText(badgeText);
+                        // ✨ 修改：寫入達標狀態(true)、活動類型與商品角色，供 Vue 動態切換
+                        i.setIsActivityMet(true);
+                        i.setDiscountType(String.valueOf(discount.getDiscountType().getDiscountTypeId()));
+                        if (addonCids.contains(i.getCategoryId())) {
+                            i.setProductRole("Addon");
+                        } else if (mainCids.contains(i.getCategoryId())) {
+                            i.setProductRole("Main");
+                        }
+                    });
             }
         }
 
@@ -118,6 +156,11 @@ public class DiscountEngine {
                 // 只要子項目有標籤或提醒，就保留
                 if (f.getAppliedDiscountText() != null) existing.setAppliedDiscountText(f.getAppliedDiscountText());
                 if (f.getReminderText() != null) existing.setReminderText(f.getReminderText());
+                
+                // ✨ 修改：合併時也必須一併保留這些新寫入的狀態屬性
+                if (f.getDiscountType() != null) existing.setDiscountType(f.getDiscountType());
+                if (f.getProductRole() != null) existing.setProductRole(f.getProductRole());
+                if (f.getIsActivityMet() != null) existing.setIsActivityMet(f.getIsActivityMet());
             }
         }
         return new ArrayList<>(map.values());
@@ -130,10 +173,14 @@ public class DiscountEngine {
             .filter(i -> {
                 if (discount.getScopeType() == 2) { // 單品
                     Set<Integer> pIds = discount.getDiscountProducts().stream()
+                        // ✨ 修改：補上致命的漏洞！加入角色(Role)過濾，確保主副商品完美分流不會混淆
+                        .filter(dp -> String_role.equals(dp.getProductRole()))
                         .map(dp -> dp.getProduct().getProductId()).collect(Collectors.toSet());
                     return pIds.contains(i.getProductId());
                 } else { // 分類
                     Set<Integer> cIds = discount.getDiscountCategories().stream()
+                        // ✨ 修改：補上致命的漏洞！加入角色(Role)過濾，確保主副商品完美分流不會混淆
+                        .filter(dc -> String_role.equals(dc.getCategoryRole()))
                         .map(dc -> dc.getCategory().getCategoryId()).collect(Collectors.toSet());
                     return cIds.contains(i.getCategoryId());
                 }
@@ -167,6 +214,7 @@ public class DiscountEngine {
 
             double bestProgress = -1; // 用於紀錄目前最高進度百分比
             String bestReminder = null; // 用於紀錄最高進度的提醒文字
+            Integer bestTypeId = null; // ✨ 修改：暫存最高進度的活動類型ID
 
             for (Discount discount : allActive) {
                 // 2. 【資格過濾】檢查這件單一商品是否有資格參加該活動 (Main 商品)
@@ -226,12 +274,17 @@ public class DiscountEngine {
                 if (currentProgress >= bestProgress && reminderText != null && !reminderText.isEmpty()) {
                     bestProgress = currentProgress;
                     bestReminder = reminderText;
+                    bestTypeId = typeId; // ✨ 修改：記錄贏得競爭的活動類型
                 }
             }
 
             // 6. 【貼上標籤】將贏得競爭的提醒文字存入 DTO，供後續合併並傳回前端
             if (bestReminder != null) {
                 item.setReminderText(bestReminder);
+                // ✨ 修改：寫入未達標相關屬性，並強制將角色設為 Main 來負擔吸引加購的任務
+                item.setIsActivityMet(false);
+                item.setDiscountType(String.valueOf(bestTypeId));
+                item.setProductRole("Main");
             }
         }
     }

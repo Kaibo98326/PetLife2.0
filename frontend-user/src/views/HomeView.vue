@@ -718,8 +718,7 @@ onMounted(async () => {
                         </div>
                         <div class="product-info product-name-area">
                           <h6 class="product-name fw-bold">{{ p.productName }}</h6>
-                          <span class="text-danger small fw-bold mt-1 d-block">{{ p.activityBadge }}</span>
-                        </div>
+                          </div>
                       </router-link>
                       <div class="product-info product-action-area pt-0">
                         <div class="product-footer">
@@ -753,8 +752,7 @@ onMounted(async () => {
                         </div>
                         <div class="product-info product-name-area">
                           <h6 class="product-name">{{ p.productName }}</h6>
-                          <span v-if="p.activityBadge" class="text-danger small fw-bold mt-1 d-block">{{ p.activityBadge }}</span>
-                        </div>
+                          </div>
                       </router-link>
                       <div class="product-info product-action-area pt-0">
                         <div class="product-footer">
