@@ -212,7 +212,6 @@ public class OrderService {
 			for (OrderDetail detail : details) {
 				Map<String, Object> itemMap = new HashMap<>();
 
-				// 這裡請對應你資料庫 OrderDetail 表的欄位名稱
 				itemMap.put("productName", detail.getProductName());
 				itemMap.put("productPrice", detail.getProductPrice());
 				itemMap.put("quantity", detail.getQuantity());
@@ -236,7 +235,7 @@ public class OrderService {
 
 	// 查詢單筆訂單
 	public Order findById(Integer orderId) {
-		// findById 回傳的是 Optional，我們用 .orElse(null) 表示找不到就回傳 null
+		// 回傳 Optional， .orElse(null)表示找不到就回傳 null
 		return or.findById(orderId).orElse(null);
 	}
 
