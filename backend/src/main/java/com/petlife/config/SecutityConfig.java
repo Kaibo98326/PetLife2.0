@@ -24,6 +24,7 @@ public class SecutityConfig {
 	                .requestMatchers("/api/categories", "/api/categories/**").permitAll() 
 	                .requestMatchers("/api/products", "/api/products/**").permitAll()
 	                .requestMatchers("/api/shop", "/api/shop/**").permitAll()
+	                .requestMatchers("/api/stay", "/api/stay/**").permitAll() // 住宿API開放
 					.requestMatchers("/error").permitAll()
 					.requestMatchers("/api/cart/**").permitAll()
 	                .requestMatchers("/api/orders/**").permitAll()

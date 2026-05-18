@@ -20,4 +20,6 @@ public interface PetRepository extends JpaRepository<Pet, Integer> {
 	Page<Pet> findByStatus(String status, Pageable pageable);
 
 	Page<Pet> findByMember_MemberId(Integer memberId, Pageable pageable);
+	
+	List<Pet> findByMember_MemberId(Integer memberId); 
 }
