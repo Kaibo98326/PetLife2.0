@@ -148,21 +148,7 @@ const routes = [
     ],
   },
   {
-<<<<<<< HEAD
-    path: '/member/center',
-    name: 'MemberCenter',
-    component: MemberCenter,
-    meta: { requiresAuth: true },
-    children: [
-      { path: 'profile', component: ProfileView },
-      { path: 'pets', component: PetListView },
-      { path: 'pets/add', component: AddPetView },
-    ],
-  },
-  {
-=======
     // 登入頁（獨立頁面，不套用 UserLayout）
->>>>>>> main
     path: '/login',
     name: 'login',
     component: LoginMember,
