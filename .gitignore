@@ -12,6 +12,9 @@ node_modules/
 **/target/
 *.log
 
+# Eclipse workspace metadata
+**/.metadata/
+
 
 # ========================
 # IDE
