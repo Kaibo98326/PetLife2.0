@@ -8,12 +8,17 @@ const route = useRoute()
 const router = useRouter()
 const appointment = ref(null)
 const loading = ref(false)
+const cancelling = ref(false)
 
 const details = computed(() => appointment.value?.details || [])
 const totalAmount = computed(() => `$${Number(appointment.value?.totalAmount || 0).toLocaleString()}`)
 const totalMinutes = computed(() => Number(appointment.value?.totalSlots || 0) * 30)
 const isOrderHistoryDetail = computed(() => route.name === 'prettyOrderDetail')
 const backButtonText = computed(() => (isOrderHistoryDetail.value ? '返回美容訂單' : '返回美容項目'))
+const formatStartTime = slotName => {
+  if (!slotName) return ''
+  return String(slotName).split('-')[0].trim()
+}
 
 const goBack = () => {
   router.push(isOrderHistoryDetail.value ? '/orderhistory/prettyorders' : '/beauty-booking')
@@ -21,6 +26,35 @@ const goBack = () => {
 
 const goBeautyOrders = () => {
   router.push({ name: 'prettyorders' })
+}
+
+const cancelAppointment = async () => {
+  if (!appointment.value?.appointmentId) return
+
+  const result = await Swal.fire({
+    title: '確定要取消這筆美容預約嗎？',
+    text: '取消後會釋放原預約時段。',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '確認取消',
+    cancelButtonText: '先不要',
+  })
+
+  if (!result.isConfirmed) return
+
+  cancelling.value = true
+  try {
+    const res = await axios.post(`/beauty/appointments/${appointment.value.appointmentId}/cancel`, {
+      cancelReason: '會員自行取消',
+    })
+    appointment.value = res.data
+    Swal.fire('已取消', '美容預約已取消。', 'success')
+  } catch (err) {
+    console.log(err)
+    Swal.fire('取消失敗', err.response?.data?.message || err.response?.data || '取消失敗，請稍後再試', 'error')
+  } finally {
+    cancelling.value = false
+  }
 }
 
 const loadAppointment = async () => {
@@ -73,7 +107,7 @@ onMounted(loadAppointment)
         </div>
         <div>
           <span>開始時段</span>
-          <strong>{{ appointment.startSlotName || appointment.startSlotId }}</strong>
+          <strong>{{ formatStartTime(appointment.startSlotName) || appointment.startSlotId }}</strong>
         </div>
         <div>
           <span>總時長</span>
@@ -97,6 +131,17 @@ onMounted(loadAppointment)
       </div>
 
       <div class="detail-actions">
+        <button
+          v-if="appointment.canCancel"
+          class="btn btn-outline-danger"
+          :disabled="cancelling"
+          @click="cancelAppointment"
+        >
+          {{ cancelling ? '取消中...' : '取消預約' }}
+        </button>
+        <span v-else-if="appointment.cancelUnavailableReason" class="cancel-unavailable">
+          {{ appointment.cancelUnavailableReason }}
+        </span>
         <button class="btn btn-outline-secondary" @click="goBack">
           {{ backButtonText }}
         </button>
@@ -238,6 +283,11 @@ onMounted(loadAppointment)
   color: #fff;
 }
 
+.detail-actions .btn-outline-danger:hover,
+.detail-actions .btn-outline-danger:focus-visible {
+  color: #fff;
+}
+
 .detail-actions .btn:hover,
 .detail-actions .btn:focus-visible {
   transform: translateY(-2px);
@@ -258,6 +308,12 @@ onMounted(loadAppointment)
 
 .detail-note p {
   margin: 0;
+}
+
+.cancel-unavailable {
+  align-self: center;
+  color: #8a5b00;
+  font-weight: 700;
 }
 
 .phone-note {

@@ -46,6 +46,10 @@ const goDetail = appointmentId => {
 
 const formatMoney = value => `$${Number(value || 0).toLocaleString()}`
 const formatMinutes = totalSlots => `${Number(totalSlots || 0) * 30} 分鐘`
+const formatStartTime = slotName => {
+  if (!slotName) return ''
+  return String(slotName).split('-')[0].trim()
+}
 
 const formatItems = details => {
   if (!details || details.length === 0) return '-'
@@ -107,7 +111,7 @@ onMounted(loadOrders)
               </td>
               <td>
                 <div class="fw-bold">{{ order.appointDate || '-' }}</div>
-                <small class="text-muted">{{ order.startSlotName || `時段 ${order.startSlotId}` }}</small>
+                <small class="text-muted">{{ formatStartTime(order.startSlotName) || `時段 ${order.startSlotId}` }}</small>
               </td>
               <td>{{ order.petName || '-' }}</td>
               <td>{{ order.groomerName || '-' }}</td>

@@ -27,6 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +39,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class BeautyAppointmentService {
+    private static final int MEMBER_CANCEL_DEADLINE_DAYS = 3;
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
+    private static final String CONTACT_STORE_TO_CANCEL = "\u5982\u9700\u53d6\u6d88\u8a02\u55ae\u8acb\u806f\u7d61\u5e97\u5bb6";
 
     private final BeautyAppointmentRepository appointmentRepository;
     private final BeautyAppointmentDetailRepository detailRepository;
@@ -217,6 +222,7 @@ public class BeautyAppointmentService {
             throw ApiException.forbidden("不可取消其他會員預約單");
         }
 
+        validateMemberCanCancel(appointment);
         cancel(appointment, req == null ? null : req.cancelReason());
         return toResponse(appointment);
     }
@@ -293,7 +299,50 @@ public class BeautyAppointmentService {
         List<BeautyAppointmentDetail> details = detailRepository
                 .findByAppointmentIdOrderByLineNoAsc(appointment.getAppointmentId());
 
-        return BeautyMapper.appointment(appointment, pet, groomer, slot, details);
+        return BeautyMapper.appointment(
+                appointment,
+                pet,
+                groomer,
+                slot,
+                details,
+                canMemberCancel(appointment),
+                getCancelUnavailableReason(appointment));
+    }
+
+    public boolean canMemberCancel(BeautyAppointment appointment) {
+        if (appointment == null || appointment.getAppointDate() == null) {
+            return false;
+        }
+
+        String status = appointment.getAppointmentStatus();
+        if (!BeautyConstants.APPOINTMENT_PENDING.equals(status)
+                && !BeautyConstants.APPOINTMENT_CONFIRMED.equals(status)) {
+            return false;
+        }
+
+        LocalDate cancelDeadline = LocalDate.now(BUSINESS_ZONE).plusDays(MEMBER_CANCEL_DEADLINE_DAYS);
+        return !appointment.getAppointDate().isBefore(cancelDeadline);
+    }
+
+    public String getCancelUnavailableReason(BeautyAppointment appointment) {
+        if (appointment == null || canMemberCancel(appointment)) {
+            return null;
+        }
+
+        String status = appointment.getAppointmentStatus();
+        if (BeautyConstants.APPOINTMENT_PENDING.equals(status)
+                || BeautyConstants.APPOINTMENT_CONFIRMED.equals(status)) {
+            return CONTACT_STORE_TO_CANCEL;
+        }
+
+        return null;
+    }
+
+    private void validateMemberCanCancel(BeautyAppointment appointment) {
+        if (!canMemberCancel(appointment)) {
+            String reason = getCancelUnavailableReason(appointment);
+            throw ApiException.badRequest(reason == null ? "\u76ee\u524d\u72c0\u614b\u4e0d\u53ef\u53d6\u6d88" : reason);
+        }
     }
 
     private String resolvePetSize(Pet pet) {

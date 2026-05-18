@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.petlife.config.ApiException;
+import com.petlife.repository.CancelAppointmentRequest;
 import com.petlife.repository.CreateBeautyAppointmentRequest;
 import com.petlife.service.BeautyAppointmentService;
 import com.petlife.service.BeautyAvailabilityService;
@@ -79,6 +80,16 @@ public class BeautyController {
 
         return ResponseEntity.ok(
                 beautyAppointmentService.getMemberAppointment(resolveMemberId(authorization), appointmentId));
+    }
+
+    @PostMapping("/appointments/{appointmentId}/cancel")
+    public ResponseEntity<?> cancelAppointment(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Integer appointmentId,
+            @RequestBody(required = false) CancelAppointmentRequest request) {
+
+        return ResponseEntity.ok(
+                beautyAppointmentService.cancelByMember(resolveMemberId(authorization), appointmentId, request));
     }
 
     private Integer resolveMemberId(String authorization) {

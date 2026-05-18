@@ -138,7 +138,9 @@ public class BeautyMapper {
             Pet pet,
             GroomerProfile groomer,
             BeautyTimeSlot slot,
-            List<BeautyAppointmentDetail> details) {
+            List<BeautyAppointmentDetail> details,
+            Boolean canCancel,
+            String cancelUnavailableReason) {
         return new AppointmentResponse(
                 appointment.getAppointmentId(),
                 appointment.getMemberId(),
@@ -155,6 +157,8 @@ public class BeautyMapper {
                 appointment.getAppointmentStatus(),
                 appointment.getContactNote(),
                 appointment.getCancelReason(),
+                canCancel,
+                cancelUnavailableReason,
                 appointment.getCreatedAt(),
                 details.stream().map(BeautyMapper::line).toList());
     }
