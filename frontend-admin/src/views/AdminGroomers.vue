@@ -31,6 +31,13 @@ const form = reactive({
   beautyIds: [],
 })
 
+const sampleGroomer = {
+  displayName: '暖心美容師',
+  intro: '擅長安撫緊張寵物，提供洗澡、修剪與基礎護理服務。',
+  seniorityYears: 3,
+  isBookable: true,
+}
+
 const filteredGroomers = computed(() => {
   return groomers.value.filter(groomer => {
     const name = groomer.displayName || String(groomer.groomerId)
@@ -108,6 +115,15 @@ const openAddDialog = () => {
   resetForm()
   isEditing.value = false
   dialogVisible.value = true
+}
+
+const fillSampleGroomer = () => {
+
+  form.displayName = sampleGroomer.displayName
+  form.intro = sampleGroomer.intro
+  form.seniorityYears = sampleGroomer.seniorityYears
+  form.isBookable = sampleGroomer.isBookable
+
 }
 
 const openEditDialog = async groomer => {
@@ -233,6 +249,9 @@ watch(totalPages, clampCurrentPage)
     </div>
 
     <el-dialog v-model="dialogVisible" title="美容師資料" width="720px">
+      <div v-if="!isEditing" class="beauty-dialog-actions">
+        <el-button type="success" plain @click="fillSampleGroomer">一鍵輸入</el-button>
+      </div>
       <el-form label-position="top">
         <div class="beauty-form-grid">
           <el-form-item label="選擇既有員工">

@@ -36,6 +36,19 @@ const emptyForm = () => ({
   ],
 })
 
+const sampleItem = {
+  itemName: '精油按摩',
+  itemDescription: '結合護毛、深層毛囊清潔、皮膚保健或精油按摩，主打精緻奢華的尊榮享受。',
+  imageUrl: '/images/beauty/精油按摩.jpg',
+  durationSlots: 2,
+  isActive: true,
+  prices: [
+    { petSize: '小型', itemPrice: 900, isActive: true },
+    { petSize: '中型', itemPrice: 1200, isActive: true },
+    { petSize: '大型', itemPrice: 1600, isActive: true },
+  ],
+}
+
 const form = reactive(emptyForm())
 
 const previewImageUrl = computed(() => {
@@ -96,6 +109,15 @@ const resetForm = () => {
 const openAddDialog = () => {
   resetForm()
   dialogVisible.value = true
+}
+
+const fillSampleItem = () => {
+  form.itemName = sampleItem.itemName
+  form.itemDescription = sampleItem.itemDescription
+  form.imageUrl = imageOptions.value.includes(sampleItem.imageUrl) ? sampleItem.imageUrl : DEFAULT_BEAUTY_IMAGE
+  form.durationSlots = sampleItem.durationSlots
+  form.isActive = sampleItem.isActive
+  form.prices = sampleItem.prices.map(price => ({ ...price }))
 }
 
 const openEditDialog = item => {
@@ -243,6 +265,9 @@ watch(totalPages, clampCurrentPage)
     </div>
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '修改美容項目' : '新增美容項目'" width="720px">
+      <div v-if="!editingId" class="beauty-dialog-actions">
+        <el-button type="success" plain @click="fillSampleItem">一鍵輸入</el-button>
+      </div>
       <el-form label-position="top">
         <div class="beauty-form-grid">
           <el-form-item label="項目名稱">

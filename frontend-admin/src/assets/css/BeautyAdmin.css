@@ -51,6 +51,12 @@
   grid-column: 1 / -1;
 }
 
+.beauty-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
 .price-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
