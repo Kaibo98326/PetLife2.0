@@ -42,6 +42,7 @@ public class BeautyAppointmentService {
     private static final int MEMBER_CANCEL_DEADLINE_DAYS = 3;
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
     private static final String CONTACT_STORE_TO_CANCEL = "\u5982\u9700\u53d6\u6d88\u8a02\u55ae\u8acb\u806f\u7d61\u5e97\u5bb6";
+    private static final String CONTACT_STORE_TO_RESCHEDULE = "\u5982\u9700\u6539\u671f\u8acb\u806f\u7d61\u5e97\u5bb6";
 
     private final BeautyAppointmentRepository appointmentRepository;
     private final BeautyAppointmentDetailRepository detailRepository;
@@ -238,7 +239,7 @@ public class BeautyAppointmentService {
             throw ApiException.forbidden("不可改期其他會員預約單");
         }
 
-        validateReschedulableStatus(appointment.getAppointmentStatus());
+        validateMemberCanReschedule(appointment);
 
         if (Objects.equals(appointment.getAppointDate(), req.appointDate())
                 && Objects.equals(appointment.getStartSlotId(), req.startSlotId())) {
@@ -306,7 +307,9 @@ public class BeautyAppointmentService {
                 slot,
                 details,
                 canMemberCancel(appointment),
-                getCancelUnavailableReason(appointment));
+                getCancelUnavailableReason(appointment),
+                canMemberReschedule(appointment),
+                getRescheduleUnavailableReason(appointment));
     }
 
     public boolean canMemberCancel(BeautyAppointment appointment) {
@@ -342,6 +345,31 @@ public class BeautyAppointmentService {
         if (!canMemberCancel(appointment)) {
             String reason = getCancelUnavailableReason(appointment);
             throw ApiException.badRequest(reason == null ? "\u76ee\u524d\u72c0\u614b\u4e0d\u53ef\u53d6\u6d88" : reason);
+        }
+    }
+
+    public boolean canMemberReschedule(BeautyAppointment appointment) {
+        return canMemberCancel(appointment);
+    }
+
+    public String getRescheduleUnavailableReason(BeautyAppointment appointment) {
+        if (appointment == null || canMemberReschedule(appointment)) {
+            return null;
+        }
+
+        String status = appointment.getAppointmentStatus();
+        if (BeautyConstants.APPOINTMENT_PENDING.equals(status)
+                || BeautyConstants.APPOINTMENT_CONFIRMED.equals(status)) {
+            return CONTACT_STORE_TO_RESCHEDULE;
+        }
+
+        return null;
+    }
+
+    private void validateMemberCanReschedule(BeautyAppointment appointment) {
+        if (!canMemberReschedule(appointment)) {
+            String reason = getRescheduleUnavailableReason(appointment);
+            throw ApiException.badRequest(reason == null ? "\u76ee\u524d\u72c0\u614b\u4e0d\u53ef\u6539\u671f" : reason);
         }
     }
 

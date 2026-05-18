@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.petlife.config.ApiException;
 import com.petlife.repository.CancelAppointmentRequest;
 import com.petlife.repository.CreateBeautyAppointmentRequest;
+import com.petlife.repository.RescheduleAppointmentRequest;
 import com.petlife.service.BeautyAppointmentService;
 import com.petlife.service.BeautyAvailabilityService;
 import com.petlife.service.BeautyItemService;
@@ -90,6 +92,16 @@ public class BeautyController {
 
         return ResponseEntity.ok(
                 beautyAppointmentService.cancelByMember(resolveMemberId(authorization), appointmentId, request));
+    }
+
+    @PutMapping("/appointments/{appointmentId}/reschedule")
+    public ResponseEntity<?> rescheduleAppointment(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Integer appointmentId,
+            @Valid @RequestBody RescheduleAppointmentRequest request) {
+
+        return ResponseEntity.ok(
+                beautyAppointmentService.rescheduleByMember(resolveMemberId(authorization), appointmentId, request));
     }
 
     private Integer resolveMemberId(String authorization) {

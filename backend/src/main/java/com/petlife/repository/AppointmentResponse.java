@@ -9,6 +9,7 @@ public record AppointmentResponse(
         Integer appointmentId, Integer memberId, Integer petId, String petName, Integer groomerId, String groomerName,
         LocalDate appointDate, Integer startSlotId, String startSlotName, String petSizeSnapshot,
         Integer totalSlots, BigDecimal totalAmount, String appointmentStatus, String contactNote, String cancelReason,
-        Boolean canCancel, String cancelUnavailableReason, LocalDateTime createdAt,
+        Boolean canCancel, String cancelUnavailableReason, Boolean canReschedule, String rescheduleUnavailableReason,
+        LocalDateTime createdAt,
         List<AppointmentDetailLineResponse> details) {
 }

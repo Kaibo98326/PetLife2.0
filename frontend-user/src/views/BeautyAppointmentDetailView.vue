@@ -9,6 +9,12 @@ const router = useRouter()
 const appointment = ref(null)
 const loading = ref(false)
 const cancelling = ref(false)
+const rescheduling = ref(false)
+const rescheduleLoading = ref(false)
+const showRescheduleForm = ref(false)
+const rescheduleDate = ref('')
+const rescheduleSlotId = ref('')
+const rescheduleSlots = ref([])
 
 const details = computed(() => appointment.value?.details || [])
 const totalAmount = computed(() => `$${Number(appointment.value?.totalAmount || 0).toLocaleString()}`)
@@ -26,6 +32,85 @@ const goBack = () => {
 
 const goBeautyOrders = () => {
   router.push({ name: 'prettyorders' })
+}
+
+const toDateInputValue = date => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const today = toDateInputValue(new Date())
+
+const beautyParam = () => details.value.map(detail => detail.beautyId).filter(Boolean).join(',')
+
+const loadRescheduleSlots = async () => {
+  rescheduleSlotId.value = ''
+  rescheduleSlots.value = []
+
+  if (!appointment.value?.groomerId || !rescheduleDate.value || !beautyParam()) return
+
+  rescheduleLoading.value = true
+  try {
+    const res = await axios.get('/beauty/available-slots', {
+      params: {
+        groomerId: appointment.value.groomerId,
+        date: rescheduleDate.value,
+        beautyIds: beautyParam(),
+      },
+    })
+    rescheduleSlots.value = res.data || []
+  } catch (err) {
+    console.log(err)
+    Swal.fire('讀取失敗', err.response?.data?.message || '可預約時段讀取失敗', 'error')
+  } finally {
+    rescheduleLoading.value = false
+  }
+}
+
+const openRescheduleForm = async () => {
+  showRescheduleForm.value = !showRescheduleForm.value
+  if (!showRescheduleForm.value) return
+
+  rescheduleDate.value = appointment.value?.appointDate || today
+  rescheduleSlotId.value = ''
+  await loadRescheduleSlots()
+}
+
+const submitReschedule = async () => {
+  if (!appointment.value?.appointmentId || !rescheduleDate.value || !rescheduleSlotId.value) {
+    Swal.fire('資料未完整', '請選擇新的日期與時段。', 'info')
+    return
+  }
+
+  const result = await Swal.fire({
+    title: '確定要改期這筆美容預約嗎？',
+    text: '確認後會改為新的預約日期與時段。',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: '確認改期',
+    cancelButtonText: '先不要',
+  })
+
+  if (!result.isConfirmed) return
+
+  rescheduling.value = true
+  try {
+    const res = await axios.put(`/beauty/appointments/${appointment.value.appointmentId}/reschedule`, {
+      appointDate: rescheduleDate.value,
+      startSlotId: Number(rescheduleSlotId.value),
+    })
+    appointment.value = res.data
+    showRescheduleForm.value = false
+    rescheduleSlots.value = []
+    Swal.fire('已改期', '美容預約已更新。', 'success')
+  } catch (err) {
+    console.log(err)
+    Swal.fire('改期失敗', err.response?.data?.message || err.response?.data || '改期失敗，請稍後再試', 'error')
+  } finally {
+    rescheduling.value = false
+  }
 }
 
 const cancelAppointment = async () => {
@@ -48,6 +133,7 @@ const cancelAppointment = async () => {
       cancelReason: '會員自行取消',
     })
     appointment.value = res.data
+    showRescheduleForm.value = false
     Swal.fire('已取消', '美容預約已取消。', 'success')
   } catch (err) {
     console.log(err)
@@ -130,6 +216,44 @@ onMounted(loadAppointment)
         </div>
       </div>
 
+      <div v-if="showRescheduleForm" class="reschedule-panel">
+        <h3>改期</h3>
+        <div class="reschedule-grid">
+          <label>
+            <span>新的預約日期</span>
+            <input
+              v-model="rescheduleDate"
+              type="date"
+              class="form-control"
+              :min="today"
+              @change="loadRescheduleSlots"
+            />
+          </label>
+          <label>
+            <span>新的預約時段</span>
+            <select v-model="rescheduleSlotId" class="form-select" :disabled="rescheduleLoading">
+              <option value="" disabled>
+                {{ rescheduleLoading ? '讀取中...' : '請選擇時段' }}
+              </option>
+              <option v-for="slot in rescheduleSlots" :key="slot.slotId" :value="slot.slotId">
+                {{ slot.startTime }}
+              </option>
+            </select>
+          </label>
+        </div>
+        <div v-if="!rescheduleLoading && rescheduleDate && rescheduleSlots.length === 0" class="reschedule-empty">
+          此日期目前沒有可改期時段
+        </div>
+        <div class="reschedule-actions">
+          <button class="btn btn-warning" :disabled="rescheduling" @click="submitReschedule">
+            {{ rescheduling ? '改期中...' : '確認改期' }}
+          </button>
+          <button class="btn btn-outline-secondary" :disabled="rescheduling" @click="showRescheduleForm = false">
+            取消
+          </button>
+        </div>
+      </div>
+
       <div class="detail-actions">
         <button
           v-if="appointment.canCancel"
@@ -141,6 +265,17 @@ onMounted(loadAppointment)
         </button>
         <span v-else-if="appointment.cancelUnavailableReason" class="cancel-unavailable">
           {{ appointment.cancelUnavailableReason }}
+        </span>
+        <button
+          v-if="appointment.canReschedule"
+          class="btn btn-outline-warning"
+          :disabled="rescheduling"
+          @click="openRescheduleForm"
+        >
+          改期
+        </button>
+        <span v-else-if="appointment.rescheduleUnavailableReason" class="cancel-unavailable">
+          {{ appointment.rescheduleUnavailableReason }}
         </span>
         <button class="btn btn-outline-secondary" @click="goBack">
           {{ backButtonText }}
@@ -251,6 +386,45 @@ onMounted(loadAppointment)
   font-size: 14px;
 }
 
+.reschedule-panel {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #eadfd6;
+  border-radius: 8px;
+  background: #fffaf4;
+}
+
+.reschedule-panel h3 {
+  margin-top: 0;
+}
+
+.reschedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.reschedule-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: #83746b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reschedule-empty {
+  margin-top: 12px;
+  color: #8a5b00;
+  font-weight: 700;
+}
+
+.reschedule-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .detail-actions {
   display: flex;
   justify-content: flex-end;
@@ -286,6 +460,11 @@ onMounted(loadAppointment)
 .detail-actions .btn-outline-danger:hover,
 .detail-actions .btn-outline-danger:focus-visible {
   color: #fff;
+}
+
+.detail-actions .btn-outline-warning:hover,
+.detail-actions .btn-outline-warning:focus-visible {
+  color: #4f4037;
 }
 
 .detail-actions .btn:hover,
@@ -328,11 +507,13 @@ onMounted(loadAppointment)
 @media (max-width: 768px) {
   .detail-heading,
   .detail-status,
-  .detail-actions {
+  .detail-actions,
+  .reschedule-actions {
     flex-direction: column;
   }
 
-  .detail-grid {
+  .detail-grid,
+  .reschedule-grid {
     grid-template-columns: 1fr;
   }
 }

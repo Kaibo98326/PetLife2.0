@@ -140,7 +140,9 @@ public class BeautyMapper {
             BeautyTimeSlot slot,
             List<BeautyAppointmentDetail> details,
             Boolean canCancel,
-            String cancelUnavailableReason) {
+            String cancelUnavailableReason,
+            Boolean canReschedule,
+            String rescheduleUnavailableReason) {
         return new AppointmentResponse(
                 appointment.getAppointmentId(),
                 appointment.getMemberId(),
@@ -159,6 +161,8 @@ public class BeautyMapper {
                 appointment.getCancelReason(),
                 canCancel,
                 cancelUnavailableReason,
+                canReschedule,
+                rescheduleUnavailableReason,
                 appointment.getCreatedAt(),
                 details.stream().map(BeautyMapper::line).toList());
     }
