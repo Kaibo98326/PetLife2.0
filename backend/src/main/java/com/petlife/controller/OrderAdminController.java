@@ -59,9 +59,6 @@ public class OrderAdminController {
             return ResponseEntity.status(500).body("更新失敗: " + e.getMessage());
         }
     }
-    
-    
-    
 
     // 刪除訂單(軟刪)
     @DeleteMapping("/delete/{id}")
@@ -78,4 +75,6 @@ public class OrderAdminController {
             return ResponseEntity.status(500).body("伺服器處理失敗");
         }
     }
+    
+    
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed ,watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import axios from '@/axios'
 import Swal from 'sweetalert2'
@@ -25,10 +25,30 @@ const actualFinalAmount = computed(() => {
 })
 
 // ✨ 新增/修改：計算這筆訂單完成後可獲得的紅利 (實付總額 * 0.01，無條件捨去)
-const estimatedEarnPoints = computed(() => {
-  return Math.floor(actualFinalAmount.value * 0.01)
-})
- 
+const estimatedEarnPoints = ref(0)
+ // ✨ 新增：監聽應付總額的變化，動態向後端 BonusController 索取預估紅利
+watch(actualFinalAmount, async (newAmount) => {
+  if (newAmount > 0) {
+    try {
+      const token = localStorage.getItem('token')
+      // 呼叫新獨立出來的紅利估算 API
+      const res = await axios.get(`/orders/estimate?amount=${newAmount}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      estimatedEarnPoints.value = res.data
+    } catch (error) {
+      console.error('獲取預計獲得紅利失敗:', error)
+      estimatedEarnPoints.value = 0
+    }
+  } else {
+    estimatedEarnPoints.value = 0
+  }
+}, { immediate: true })
+
+
+
 //活動折扣邏輯                                              --->活動新增
 const calculateDiscount = async () => {
   try {
@@ -147,10 +167,9 @@ const submitOrder = async () => {
       console.log('訂單 ID 已存入 sessionStorage:', res.data.order.orderId)
     }
 
-    // 2026-05-14 17:44 修改：優化綠界跳轉邏輯，強制設定 target 為 _self 解決「開新分頁」問題，並確保指令唯一
+
     if (res.data.form) {
       const div = document.createElement('div')
-      // 使用 innerHTML 插入時，HTML 內的 <script> 不會自動執行，這能精確控制由我們手動觸發一次提交
       div.innerHTML = res.data.form
       document.body.appendChild(div)
       const form = div.querySelector('form')
