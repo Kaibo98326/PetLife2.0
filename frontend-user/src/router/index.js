@@ -33,6 +33,30 @@ const routes = [
         name: 'productDetail',
         component: ProductDetailView,
       },
+      // 5/8 路徑stay/:房型ID  要有UserLayout
+      {
+        path: 'stay/:roomTypeId',
+        name: 'StayRoomTypeDetail',
+        component: () => import('@/views/stay/StayRoomTypeDetail.vue'),
+      },
+      // 5/9 路徑stay/:房型ID/calendar  要有UserLayout
+      {
+        path: 'stay/:roomTypeId/calendar',
+        name: 'StayCalendar',
+        component: () => import('@/views/stay/StayCalendar.vue'),
+      },
+      // 5/9 路徑stay/:房型ID/booking
+      {
+        path: 'stay/:roomTypeId/booking',
+        name: 'StayBooking',
+        component: () => import('@/views/stay/StayBooking.vue'),
+      },
+      // 5/13  訂單成功頁面
+      {
+        path: 'stay/booking-success',
+        name: 'StayBookingSuccess',
+        component: () => import('@/views/stay/StayBookingSuccess.vue'),
+      },
       {
         path: '/heart',
         name: 'heart',
@@ -59,6 +83,30 @@ const routes = [
       },
     ],
   },
+  // 5/8 stay 路徑 不希望有UserLayout
+  {
+    path: '/stay',
+    name: 'StayRoomTypeList',
+    component: () => import('@/views/stay/StayRoomTypeList.vue'),
+  },
+  {
+    // 購物車的router
+    path: '/cart',
+    name: 'cart',
+    component: CartView,
+    /*守衛，看會員有沒有登入*/
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/checkout',
+    name: 'checkout',
+    component: CheckoutView,
+  },
+  {
+    path: '/checkoutsuccess',
+    name: 'checkoutsuccess',
+    component: CheckoutSuccessView,
+  },
   {
     path: '/orderhistory',
     component: OrderHistoryView,
@@ -80,13 +128,6 @@ const routes = [
         component: () => import('@/views/StayOrderView.vue'),
       },
     ],
-  },
-  {
-    // 會員中心
-    path: '/member/center',
-    name: 'MemberCenter',
-    component: MemberCenter,
-    children: [{ path: 'profile', component: ProfileView }],
   },
   {
     // 登入頁（獨立頁面，不套用 UserLayout）
