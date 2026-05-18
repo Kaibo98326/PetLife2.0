@@ -246,24 +246,27 @@ public class OrderService {
 		StringBuilder itemNameBuilder = new StringBuilder("PetLifeOrder");
 
 		// 串接活動折扣明細
-		if (appliedDiscounts != null && !appliedDiscounts.isEmpty()) {
-			for (DiscountDetailDTO d : appliedDiscounts) {
-				itemNameBuilder.append("#").append(d.getName()).append(" -NT$").append(d.getAmount().intValue());
-			}
-		}
-
-		// 在綠界項目清單中加入紅利折抵項目
-		if (pointsUsed != null && pointsUsed > 0) {
-			itemNameBuilder.append("#紅利點數折抵 -NT$").append(pointsUsed);
-		}
-
+				if (appliedDiscounts != null && !appliedDiscounts.isEmpty()) {
+					for (DiscountDetailDTO d : appliedDiscounts) {
+						itemNameBuilder.append("#").append(d.getName()).append(" -NT$").append(d.getAmount().intValue());
+					}
+				}
+				
+				// 在綠界項目清單中加入紅利折抵項目
+				if (pointsUsed != null && pointsUsed > 0) {
+					itemNameBuilder.append("#紅利點數折抵 -NT$").append(pointsUsed);
+				}
+				
 		params.put("ItemName", itemNameBuilder.toString());
 		params.put("ChoosePayment", "ALL");
 		params.put("EncryptType", "1");
-		params.put("ClientBackURL", "http://localhost:5174/checkoutsuccess");
+		
+		params.put("ClientBackURL", "http://localhost:5173/checkoutsuccess");
 		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
+		
 		params.put("NeedExtraPaidInfo", "N");
 
+		
 		// 計算加密簽章CheckMacValue
 		String checkMacValue = calculateCheckMacValue(params);
 		params.put("CheckMacValue", checkMacValue);
