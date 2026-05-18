@@ -11,6 +11,7 @@ const employees = ref([])
 const beautyItems = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
+const isEditing = ref(false)
 const keyword = ref('')
 const bookableFilter = ref('')
 const pageSize = 10
@@ -45,6 +46,15 @@ const totalPages = computed(() => Math.max(1, Math.ceil(filteredGroomers.value.l
 const pagedGroomers = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredGroomers.value.slice(start, start + pageSize)
+})
+
+const availableEmployees = computed(() => {
+  if (isEditing.value) {
+    return employees.value.filter(emp => Number(emp.empId) === Number(form.groomerId))
+  }
+
+  const groomerIds = new Set(groomers.value.map(groomer => Number(groomer.groomerId)))
+  return employees.value.filter(emp => !groomerIds.has(Number(emp.empId)))
 })
 
 const clampCurrentPage = () => {
@@ -96,11 +106,13 @@ const resetForm = () => {
 
 const openAddDialog = () => {
   resetForm()
+  isEditing.value = false
   dialogVisible.value = true
 }
 
 const openEditDialog = async groomer => {
   resetForm()
+  isEditing.value = true
   form.groomerId = groomer.groomerId
   form.displayName = groomer.displayName
   form.intro = groomer.intro
@@ -119,7 +131,11 @@ const openEditDialog = async groomer => {
 
 const saveGroomer = async () => {
   try {
-    await request.put('/api/admin/beauty/groomers', form)
+    if (isEditing.value) {
+      await request.put('/api/admin/beauty/groomers', form)
+    } else {
+      await request.post('/api/admin/beauty/groomers', form)
+    }
     Swal.fire('成功', '美容師資料已儲存', 'success')
     dialogVisible.value = false
     loadGroomers()
@@ -222,7 +238,7 @@ watch(totalPages, clampCurrentPage)
           <el-form-item label="選擇既有員工">
             <el-select v-model="form.groomerId" filterable placeholder="選擇員工" style="width: 100%">
               <el-option
-                v-for="emp in employees"
+                v-for="emp in availableEmployees"
                 :key="emp.empId"
                 :label="`${emp.empId} - ${emp.empName || emp.username}`"
                 :value="emp.empId"

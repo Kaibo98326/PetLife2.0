@@ -70,6 +70,44 @@ public class GroomerService {
         return BeautyMapper.groomerManage(groomer, services);
     }
 
+    @Transactional
+    public GroomerManageResponse createGroomerWithServices(GroomerManageRequest req) {
+        validateManageRequest(req);
+
+        if (groomerRepository.existsById(req.groomerId())) {
+            throw ApiException.badRequest("該員工已是美容師");
+        }
+
+        GroomerProfile groomer = saveGroomerProfile(new GroomerProfileRequest(
+                req.groomerId(),
+                req.displayName(),
+                req.intro(),
+                req.seniorityYears(),
+                req.isBookable()));
+        List<GroomerServiceResponse> services = replaceServices(groomer.getGroomerId(), req.beautyIds());
+
+        return BeautyMapper.groomerManage(groomer, services);
+    }
+
+    @Transactional
+    public GroomerManageResponse updateGroomerWithServices(GroomerManageRequest req) {
+        validateManageRequest(req);
+
+        if (!groomerRepository.existsById(req.groomerId())) {
+            throw ApiException.notFound("找不到美容師");
+        }
+
+        GroomerProfile groomer = saveGroomerProfile(new GroomerProfileRequest(
+                req.groomerId(),
+                req.displayName(),
+                req.intro(),
+                req.seniorityYears(),
+                req.isBookable()));
+        List<GroomerServiceResponse> services = replaceServices(groomer.getGroomerId(), req.beautyIds());
+
+        return BeautyMapper.groomerManage(groomer, services);
+    }
+
     public List<GroomerServiceResponse> getServices(Integer groomerId) {
         return serviceRepository.findByGroomerIdOrderByBeautyIdAsc(groomerId)
                 .stream()
