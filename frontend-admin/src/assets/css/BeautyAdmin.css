@@ -1,0 +1,523 @@
+.beauty-admin-page {
+  padding: 2rem;
+  min-height: 100%;
+  font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+}
+
+.beauty-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 28px rgba(73, 80, 87, 0.08);
+  border: 1px solid #edf0f3;
+}
+
+.beauty-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.beauty-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.beauty-title {
+  margin: 0;
+  color: #4f4038;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.beauty-subtitle {
+  margin-top: 4px;
+  color: #8a817c;
+  font-size: 0.86rem;
+}
+
+.beauty-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.beauty-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.beauty-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.price-box {
+  border: 1px solid #ece7e1;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffaf3;
+}
+
+.price-box-title {
+  font-weight: 700;
+  color: #7a5b43;
+  margin-bottom: 8px;
+}
+
+.tag-soft {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.beauty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.beauty-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  color: #7b716b;
+  font-size: 0.86rem;
+  flex-wrap: wrap;
+}
+
+.beauty-pagination.compact {
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 0.78rem;
+}
+
+.beauty-thumb {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f8f2ec;
+  border: 1px solid #ece7e1;
+}
+
+.beauty-image-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #7a6a61;
+  font-size: 0.86rem;
+}
+
+.beauty-image-preview img {
+  width: 180px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f8f2ec;
+  border: 1px solid #ece7e1;
+}
+
+.beauty-file-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  color: #606266;
+  background: #fff;
+}
+
+.detail-lines {
+  border: 1px solid #edf0f3;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.detail-line {
+  display: grid;
+  grid-template-columns: 64px 1fr 100px 100px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf0f3;
+  align-items: center;
+}
+
+.detail-line:last-child {
+  border-bottom: none;
+}
+
+.schedule-overview {
+  margin-bottom: 20px;
+  border: 1px solid #edf0f3;
+  border-radius: 14px;
+  padding: 18px;
+  background: #fff;
+}
+
+.schedule-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.38fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.schedule-main {
+  min-width: 0;
+}
+
+.schedule-side {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+}
+
+.schedule-edit-button:hover,
+.schedule-edit-button:focus {
+  color: #e67e22;
+  border-color: #f6b66b;
+  background: #fff4e6;
+}
+
+.schedule-overview-head {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.schedule-week-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.schedule-calendar-panel {
+  min-width: 0;
+}
+
+.schedule-matrix-wrap {
+  overflow-x: auto;
+  border: 1px solid #edf0f3;
+  border-radius: 10px;
+  background: #f6f7f9;
+}
+
+.schedule-matrix {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.78rem;
+}
+
+.schedule-matrix th,
+.schedule-matrix td {
+  border-right: 1px solid #edf0f3;
+  border-bottom: 1px solid #edf0f3;
+  padding: 0;
+  background: #f6f7f9;
+}
+
+.schedule-matrix td {
+  height: 70px;
+}
+
+.schedule-matrix tr:last-child th,
+.schedule-matrix tr:last-child td {
+  border-bottom: 0;
+}
+
+.schedule-matrix th:last-child,
+.schedule-matrix td:last-child {
+  border-right: 0;
+}
+
+.groomer-head,
+.groomer-cell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 150px;
+  max-width: 150px;
+  padding: 10px 12px !important;
+  color: #4f4038;
+  text-align: left;
+  background: #f6f7f9 !important;
+}
+
+.groomer-head {
+  z-index: 3;
+}
+
+.date-head {
+  min-width: 78px;
+  padding: 8px 6px !important;
+  color: #6d5a4f;
+  text-align: center;
+  background: #f6f7f9 !important;
+}
+
+.date-head span,
+.date-head small {
+  display: block;
+  line-height: 1.35;
+}
+
+.date-head span {
+  font-weight: 800;
+}
+
+.date-head small {
+  color: #9a8e86;
+}
+
+.matrix-cell {
+  width: 100%;
+  min-width: 78px;
+  height: 100%;
+  min-height: 70px;
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  border: 0;
+  background: #f6f7f9;
+  color: #5f6b78;
+  cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.18s, background-color 0.18s;
+}
+
+.matrix-cell:hover {
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px #f6b66b;
+  transform: translateY(-1px);
+}
+
+.matrix-cell.selected {
+  box-shadow: inset 0 0 0 2px #e67e22;
+}
+
+.matrix-cell strong,
+.matrix-cell span {
+  display: block;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.matrix-cell strong {
+  color: #3f454a;
+  font-size: 0.82rem;
+}
+
+.matrix-cell span {
+  color: #6c757d;
+}
+
+.matrix-cell.work {
+  background: #f0faf3;
+}
+
+.matrix-cell.work strong {
+  color: #2f7d3b;
+}
+
+.matrix-cell.off {
+  background: #fff1f0;
+}
+
+.matrix-cell.off strong {
+  color: #b42318;
+}
+
+.matrix-cell.not-set {
+  background: #f6f7f9;
+}
+
+.schedule-matrix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  color: #7b716b;
+  font-size: 0.82rem;
+}
+
+.schedule-matrix-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.work {
+  background: #67c23a;
+}
+
+.legend-dot.off {
+  background: #f56c6c;
+}
+
+.legend-dot.not-set {
+  background: #a8abb2;
+}
+
+.schedule-calendar-panel .el-calendar-table .el-calendar-day {
+  height: auto;
+  min-height: 96px;
+  padding: 0;
+}
+
+.calendar-day {
+  min-height: 88px;
+  height: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-content: start;
+  column-gap: 4px;
+  overflow: hidden;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.calendar-day:hover {
+  background: #fffaf3;
+  box-shadow: inset 0 0 0 1px #ffe4c2;
+}
+
+.calendar-day.selected {
+  background: #fff4e6;
+  box-shadow: inset 0 0 0 1px #ffbe7a;
+}
+
+.calendar-date {
+  grid-column: 1;
+  font-weight: 800;
+  color: #53443c;
+  line-height: 1.4;
+}
+
+.calendar-summary {
+  grid-column: 2;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.calendar-status {
+  color: #6d5a4f;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-metrics {
+  display: grid;
+  gap: 3px;
+  color: #6c757d;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.calendar-metrics span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-panel {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.slot-status {
+  font-weight: 700;
+}
+
+.schedule-slot-picker {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.schedule-slot-option-list {
+  display: grid;
+  gap: 4px;
+}
+
+.beauty-check-line {
+  line-height: 1.9;
+}
+
+.beauty-section-title {
+  margin: 0 0 12px;
+  color: #4f4038;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.swal2-container {
+  z-index: 3000;
+}
+
+.swal2-icon.swal-google-icon {
+  border-color: #f5a623;
+  color: #f5a623;
+}
+
+.swal2-icon.swal-google-icon .material-symbols-outlined {
+  font-size: 42px;
+  line-height: 1;
+}
+
+@media (max-width: 1180px) {
+  .schedule-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-side {
+    position: static;
+  }
+
+  .day-panel {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .beauty-admin-page {
+    padding: 1rem;
+  }
+
+  .beauty-form-grid,
+  .price-grid {
+    grid-template-columns: 1fr;
+  }
+}
