@@ -7,6 +7,15 @@ import { useUserStore } from '@/stores/user'
 import '@/assets/css/ShopPanel.css'
 import { Carousel } from 'bootstrap/dist/js/bootstrap.bundle.min'
 
+// 將商品陣列智慧拆分為「主商品區」與「加購品區」
+const mainProducts = computed(() => products.value.filter(p => p.productRole !== 'Addon'))
+const addonProducts = computed(() => products.value.filter(p => p.productRole === 'Addon'))
+
+// ✨ 依據回傳商品自動判定目前頁面屬於哪一種折扣活動型態 (1, 2, 3, 4, 5)
+const currentActivityType = computed(() => {
+  return products.value.length > 0 ? products.value[0]?.discountType : null
+})
+
 // ── 使用者 Store（登入判斷、購物車） ──────────────────────────────────────
 const userStore = useUserStore()
 const route = useRoute()
@@ -77,33 +86,36 @@ const showCarousel = computed(() => {
 
 /** 麵包屑導覽路徑 */
 const breadcrumbs = computed(() => {
-  const crumbs = [{ label: '', id: null }]
+  const crumbs = [{ label: '首頁', id: null }] // 起點為首頁
 
+  // 1. 處理搜尋邏輯
   if (searchKeyword.value) {
     crumbs.push({ label: `搜尋關鍵字：「${searchKeyword.value}」`, id: 'search' })
     return crumbs
   }
 
+  // 2. 處理分類邏輯
   if (selectedCategoryId.value) {
     const current = categories.value.find((c) => c.categoryId === selectedCategoryId.value)
     if (current) {
-      // 如果有父分類 (大專區)，先放進去
-      if (current.parentId) {
-        const parent = categories.value.find((c) => c.categoryId === current.parentId)
-        if (parent) {
-          crumbs.push({ label: parent.categoryName, id: parent.categoryId })
-        }
+      // 補回：Type 3 自動插入父層容器「🔥優惠活動」
+      if (current.categoryType === 3 && current.categoryId !== 3) {
+        const container = categories.value.find(c => c.categoryId === 3)
+        crumbs.push({ label: container ? container.categoryName : '🔥優惠活動', id: 3 })
       }
+      // ✨【修正】這裡原本多了一個 } 導致函數提早結束，現在已刪除多餘括號
       crumbs.push({ label: current.categoryName, id: current.categoryId })
     }
     return crumbs
   }
 
+  // 3. 處理「全部商品」邏輯
+  // ✨【修正】現在此段落已正確包含在 computed 函式的 { } 範圍內
   if (route.query.view === 'all') {
     crumbs.push({ label: '全部商品', id: 'all' })
   }
 
-  return crumbs
+  return crumbs // 最終統一回傳
 })
 
 /** 頁面標題文字 */
@@ -155,10 +167,13 @@ const categoryTree = computed(() => {
   })
 
   // 3. 處理「活動標籤」(Type 3) - 獨立成一個區塊
-  const activityTags = all.filter((c) => c.categoryType === 3)
+  // ✨ 新增/修改：活動特報標籤與功能修復 - 修復 categoryTree 邏輯
+  const systemContainer = all.find(c => c.categoryId === 3) || { categoryName: '🔥優惠活動', categoryId: 3 }
+  const activityTags = all.filter((c) => c.categoryType === 3 && c.categoryId !== 3)
 
   return {
     shopTree: tree,
+    systemContainer: systemContainer,
     activityTags: activityTags,
   }
 })
@@ -218,6 +233,9 @@ async function fetchHistory() {
 
 // ── 分類篩選 ──────────────────────────────────────────────────────────────
 function selectCategory(categoryId) {
+  // ✨ 新增/修改：活動特報標籤與功能修復 - 禁用核心容器(ID: 3)的跳轉功能
+  if (categoryId === 3) return;
+
   if (categoryId === null) {
     // 點擊「全部商品」
     router.push({ path: '/', query: { view: 'all' } })
@@ -426,6 +444,8 @@ onMounted(async () => {
 
   await fetchProducts(1)
   fetchTop10() // 【新增】取得真實熱銷排行
+
+  // ✨ 將這行註解掉，暫時不向後端請求歷史紀錄 API 我沒辦法跑商品
   fetchHistory()
 
   const carouselElement = document.getElementById('shopCarousel')
@@ -442,12 +462,10 @@ onMounted(async () => {
 <template>
   <div class="shop-content container-fluid py-4 px-lg-5">
     <div class="row g-3">
-      <!-- ========== 左側欄：選單 + 未來歷史紀錄 ========== -->
       <aside class="col-lg-2">
         <div class="sticky-sidebar">
           <div class="category-sidebar">
             <nav class="sidebar-nav">
-              <!-- 全部商品 -->
               <a
                 href="#"
                 class="nav-item all-products-link"
@@ -457,7 +475,6 @@ onMounted(async () => {
                 全部商品
               </a>
 
-              <!-- 商城分類結構 (大專區 + 實體分類) -->
               <div v-for="area in categoryTree.shopTree" :key="area.categoryId" class="nav-group">
                 <div
                   class="group-title"
@@ -480,12 +497,12 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- 活動專區 -->
               <div v-if="categoryTree.activityTags.length > 0" class="nav-group mt-4">
-                <div class="group-title text-danger">
-                  <i class="fas fa-bullhorn me-2"></i>活動特報 (功能尚未完成)
+                <div class="activity-badge-header activity-badge-header-glow">
+                  {{ categoryTree.systemContainer.categoryName }}
                 </div>
-                <!-- <div class="group-content">
+                
+                <div class="group-content">
                   <a v-for="tag in categoryTree.activityTags" 
                      :key="tag.categoryId" 
                      href="#" 
@@ -495,12 +512,11 @@ onMounted(async () => {
                   >
                     <i class="fas fa-tag me-2"></i>{{ tag.categoryName }}
                   </a>
-                </div> -->
+                </div>
               </div>
             </nav>
           </div>
 
-          <!-- 這裡留給您未來放置「歷史紀錄」 -->
           <div v-if="userStore.token && viewHistory.length > 0" class="recent-history-section mt-5">
             <h6 class="history-title mb-3">最近看過 ...</h6>
             <div class="history-list">
@@ -523,9 +539,7 @@ onMounted(async () => {
         </div>
       </aside>
 
-      <!-- ========== 右側主內容區 ========== -->
       <main class="col-lg-10">
-        <!-- 麵包屑 -->
         <nav v-if="!showCarousel" aria-label="breadcrumb" class="mb-3">
           <ol class="breadcrumb">
             <li
@@ -538,9 +552,7 @@ onMounted(async () => {
                 v-if="index < breadcrumbs.length - 1"
                 href="#"
                 class="text-decoration-none text-muted"
-                @click.prevent="
-                  selectCategory(crumb.id === 'search' || crumb.id === 'all' ? null : crumb.id)
-                "
+                @click.prevent="selectCategory(crumb.id === 'search' || crumb.id === 'all' ? null : crumb.id)"
               >
                 {{ crumb.label }}
               </a>
@@ -549,7 +561,6 @@ onMounted(async () => {
           </ol>
         </nav>
 
-        <!-- 廣告輪播 -->
         <div
           v-if="showCarousel"
           id="shopCarousel"
@@ -578,25 +589,14 @@ onMounted(async () => {
               <img :src="img.src" :alt="img.alt" class="d-block w-100 img-fluid" />
             </div>
           </div>
-          <button
-            class="carousel-control-prev"
-            type="button"
-            data-bs-target="#shopCarousel"
-            data-bs-slide="prev"
-          >
+          <button class="carousel-control-prev" type="button" data-bs-target="#shopCarousel" data-bs-slide="prev">
             <span class="carousel-control-prev-icon"></span>
           </button>
-          <button
-            class="carousel-control-next"
-            type="button"
-            data-bs-target="#shopCarousel"
-            data-bs-slide="next"
-          >
+          <button class="carousel-control-next" type="button" data-bs-target="#shopCarousel" data-bs-slide="next">
             <span class="carousel-control-next-icon"></span>
           </button>
         </div>
 
-        <!-- TOP 5 熱銷排行 (固定展示) -->
         <section
           v-if="!loading && top10Products.length > 0 && showCarousel"
           class="top10-section mb-5"
@@ -624,11 +624,7 @@ onMounted(async () => {
                   <span class="top10-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
                   <div class="action-btns">
                     <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
-                      <i
-                        :class="
-                          favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'
-                        "
-                      ></i>
+                      <i :class="favoriteProducts.includes(p.productId) ? 'fas fa-heart' : 'far fa-heart'"></i>
                     </button>
                     <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
                       <i class="fas fa-shopping-basket"></i>
@@ -640,43 +636,19 @@ onMounted(async () => {
           </div>
         </section>
 
-        <!-- 商品列表 -->
         <section class="product-section">
           <div class="section-header d-flex justify-content-between align-items-center mb-2">
-            <h4 class="section-title mb-0">
+            <h4 class="section-title mb-0" style="border-left: none; padding-left: 0; margin-left: 0;">
               <span>{{ pageTitle }}</span>
             </h4>
           </div>
 
-          <!-- 排序工具列 -->
           <div class="sort-toolbar">
             <div class="sort-left">
-              <button
-                class="sort-btn"
-                :class="{ active: sortBy === 'default' }"
-                @click="setSort('default')"
-              >
-                推薦
-              </button>
-              <button
-                class="sort-btn"
-                :class="{ active: sortBy === 'sales' }"
-                @click="setSort('sales')"
-              >
-                熱銷
-              </button>
-              <button
-                class="sort-btn"
-                :class="{ active: sortBy === 'newest' }"
-                @click="setSort('newest')"
-              >
-                最新
-              </button>
-              <button
-                class="sort-btn"
-                :class="{ active: sortBy.startsWith('price') }"
-                @click="setSort('price')"
-              >
+              <button class="sort-btn" :class="{ active: sortBy === 'default' }" @click="setSort('default')">推薦</button>
+              <button class="sort-btn" :class="{ active: sortBy === 'sales' }" @click="setSort('sales')">熱銷</button>
+              <button class="sort-btn" :class="{ active: sortBy === 'newest' }" @click="setSort('newest')">最新</button>
+              <button class="sort-btn" :class="{ active: sortBy.startsWith('price') }" @click="setSort('price')">
                 價格
                 <i class="fas fa-sort" v-if="!sortBy.startsWith('price')"></i>
                 <i class="fas fa-sort-up" v-else-if="priceDirection === 'asc'"></i>
@@ -690,86 +662,118 @@ onMounted(async () => {
                 <option :value="50">顯示50筆/頁</option>
               </select>
               <div class="view-toggle ms-2">
-                <button
-                  class="view-btn"
-                  :class="{ active: viewMode === 'grid' }"
-                  @click="viewMode = 'grid'"
-                >
-                  <i class="fas fa-th"></i>
-                </button>
-                <button
-                  class="view-btn"
-                  :class="{ active: viewMode === 'list' }"
-                  @click="viewMode = 'list'"
-                >
-                  <i class="fas fa-th-list"></i>
-                </button>
+                <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'"><i class="fas fa-th"></i></button>
+                <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'"><i class="fas fa-th-list"></i></button>
               </div>
             </div>
           </div>
 
-          <!-- 商品卡片列表 -->
           <div v-if="loading" class="text-center py-5">
             <div class="spinner-border text-warning" role="status"></div>
           </div>
           <div v-else-if="products.length === 0" class="text-center py-5">
             <p class="text-muted">查無商品</p>
           </div>
-          <div
-            v-else
-            class="row g-2"
-            :class="
-              viewMode === 'grid'
-                ? 'row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5'
-                : 'row-cols-1 list-mode'
-            "
-          >
-            <!-- 使用 products.value 渲染，因為後端已經排好序了 -->
-            <div v-for="p in products" :key="p.productId" class="col">
-              <article class="product-card shadow-sm">
-                <div class="product-category-badge">{{ p.categoryName || '寵物好物' }}</div>
-
-                <!-- 主要連結：包含圖片與名稱 -->
-                <router-link
-                  :to="`/product/${p.productId}`"
-                  class="product-main-area text-decoration-none"
-                  style="color: inherit"
-                >
-                  <div class="product-img-wrapper">
-                    <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
-                  </div>
-                  <div class="product-info product-name-area">
-                    <h6 class="product-name">{{ p.productName }}</h6>
-                  </div>
-                </router-link>
-
-                <!-- 側邊或下方區域：包含價格與按鈕 -->
-                <div class="product-info product-action-area pt-0">
-                  <div class="product-footer">
-                    <span class="product-price"
-                      >$ {{ Number(p.productPrice).toLocaleString() }}</span
-                    >
-                    <div class="action-btns">
-                      <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
-                        <i
-                          :class="
-                            favoriteProducts.some((id) => Number(id) === Number(p.productId))
-                              ? 'fas fa-heart'
-                              : 'far fa-heart'
-                          "
-                        ></i>
-                      </button>
-                      <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
-                        <i class="fas fa-shopping-basket"></i>
-                      </button>
+          
+          <div v-else>
+            
+            <template v-if="currentActivityType === '4'">
+              <h4 class="section-title mt-4 mb-3" style="border-left: none; padding-left: 0; margin-left: 0;">🔥 主商品</h4>
+              <div class="row g-2" :class="viewMode === 'grid' ? 'row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5' : 'row-cols-1 list-mode'">
+                <div v-for="p in mainProducts" :key="p.productId" class="col">
+                  <article class="product-card shadow-sm">
+                    <router-link :to="`/product/${p.productId}`" class="product-main-area text-decoration-none" style="color: inherit">
+                      <div class="product-img-wrapper">
+                        <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
+                      </div>
+                      <div class="product-info product-name-area">
+                        <h6 class="product-name">{{ p.productName }}</h6>
+                      </div>
+                    </router-link>
+                    <div class="product-info product-action-area pt-0">
+                      <div class="product-footer">
+                        <span class="product-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
+                        <div class="action-btns">
+                          <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                            <i :class="favoriteProducts.some((id) => Number(id) === Number(p.productId)) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                          </button>
+                          <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                            <i class="fas fa-shopping-basket"></i>
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </article>
+                </div>
+              </div>
+
+              <div v-if="addonProducts.length > 0" class="addon-section mt-5 mb-4 p-4 rounded-3" style="background-color: #fff8f0; border: 1px solid #ffe0b2;">
+                <h4 class="section-title text-danger fw-bold mb-4" style="border-left: none; padding-left: 0; margin-left: 0;">🎁 超值加購品</h4>
+                <div class="row" :class="viewMode === 'grid' ? 'row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3' : 'row-cols-1 list-mode g-2'">
+                  <div v-for="p in addonProducts" :key="p.productId" class="col">
+                    <article class="product-card shadow-sm border-0 h-100 bg-white">
+                      <router-link :to="`/product/${p.productId}`" class="product-main-area text-decoration-none" style="color: inherit">
+                        <div class="product-img-wrapper">
+                          <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
+                        </div>
+                        <div class="product-info product-name-area">
+                          <h6 class="product-name fw-bold">{{ p.productName }}</h6>
+                          </div>
+                      </router-link>
+                      <div class="product-info product-action-area pt-0">
+                        <div class="product-footer">
+                          <span class="product-price text-danger">$ {{ Number(p.productPrice).toLocaleString() }}</span>
+                          <div class="action-btns">
+                            <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                              <i :class="favoriteProducts.some((id) => Number(id) === Number(p.productId)) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                            </button>
+                            <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                              <i class="fas fa-shopping-basket"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
                   </div>
                 </div>
-              </article>
-            </div>
-          </div>
+              </div>
+            </template>
 
-          <!-- 分頁 -->
+            <template v-else>
+              <div class="all-products-section p-4 rounded-3 bg-white" style="border: 1px solid #dee2e6;">
+                <h4 class="section-title text-dark fw-bold mb-4" style="border-left: none; padding-left: 0; margin-left: 0;">🛍️ 超值商品</h4>
+                
+                <div class="row g-2" :class="viewMode === 'grid' ? 'row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5' : 'row-cols-1 list-mode'">
+                  <div v-for="p in products" :key="p.productId" class="col">
+                    <article class="product-card shadow-sm">
+                      <router-link :to="`/product/${p.productId}`" class="product-main-area text-decoration-none" style="color: inherit">
+                        <div class="product-img-wrapper">
+                          <img :src="getImageUrl(p.productImage)" :alt="p.productName" loading="lazy" />
+                        </div>
+                        <div class="product-info product-name-area">
+                          <h6 class="product-name">{{ p.productName }}</h6>
+                          </div>
+                      </router-link>
+                      <div class="product-info product-action-area pt-0">
+                        <div class="product-footer">
+                          <span class="product-price">$ {{ Number(p.productPrice).toLocaleString() }}</span>
+                          <div class="action-btns">
+                            <button class="btn heart-btn" @click.stop.prevent="toggleHeart(p)">
+                              <i :class="favoriteProducts.some((id) => Number(id) === Number(p.productId)) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                            </button>
+                            <button class="btn add-to-cart-btn" @click.stop.prevent="addToCart(p)">
+                              <i class="fas fa-shopping-basket"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+          </div>
           <nav v-if="totalPages > 1" class="mt-5 d-flex justify-content-center">
             <ul class="pagination pagination-shop">
               <li class="page-item" :class="{ disabled: currentPage <= 1 }">
@@ -797,3 +801,6 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+<style scoped>
+@import '../assets/css/HomeView.css';
+</style>

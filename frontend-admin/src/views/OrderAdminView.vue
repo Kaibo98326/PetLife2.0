@@ -129,7 +129,7 @@
                 <td>
                  <div class="action-btns">
                   <template v-if="!order.isEditing">
-                    <button class="btn-icon edit" @click="order.isEditing = true">
+<button class="btn-icon edit" @click="order.isEditing = true">
                       修改 <i class="bi bi-pencil-square"></i>
                     </button>
                     <button class="btn-icon delete" @click="deleteOrder(order.orderId)">
@@ -225,12 +225,25 @@ import { ref, onMounted, computed, watch } from 'vue'
 import OrderDetailAdminView from './OrderDetailAdminView.vue'
 import { useEmployeeStore } from '@/stores/employee'
 
+
+// 建立的明細彈窗組件              --------------------->活動需要
+// ✨ 修改：已將獨立的明細組件與功能停用，為遵守不破壞原則，將其註解保留
+// import OrderDiscountModal from '@/components/OrderDiscountModal.vue'
+
 const employeeStore = useEmployeeStore()
 
 const orders = ref([])
 const searchQuery = ref('')
 const errorMessage = ref('')
 const selectedOrderId = ref(null)
+
+//  建立 ref 與開啟彈窗的方法       --------------------->活動需要
+// ✨ 修改：清理不再使用的明細點擊事件邏輯，為遵守不破壞原則，將其註解保留
+// const discountModalRef = ref(null)
+// const viewOrderDiscountDetails = (orderId) => {
+//     discountModalRef.value.openModal(orderId)
+// }
+
 
 // --- 分頁邏輯變數 ---
 const currentPage = ref(1)

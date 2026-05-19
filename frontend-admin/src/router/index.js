@@ -103,6 +103,19 @@ const routes = [
         component: () => import('@/views/stay/AdminStayCalendar.vue'),
       },
       {
+        path: '/admin/discount', // 或是 /admin/discounts
+        name: '優惠活動管理',
+        meta: { icon: 'fa-solid fa-gift' },
+        component: () => import('../views/DiscountView.vue'), // 確保組件路徑正確
+      },
+     // ✨ 新增：活動成效分析獨立頁面路由
+      {
+        path: '/admin/discount/analysis',
+        name: '活動成效分析',
+        meta: { icon: 'fa-solid fa-chart-pie' },
+        component: () => import('../views/DiscountAnalysis.vue'),
+      },
+      {
         path: 'chat-support',
         name: '客服中心',
         component: () => import('@/views/AdminChatSupport.vue'),
