@@ -103,7 +103,7 @@ const formatDateTime = (dateStr) => {
                                         <td class="text-muted small">{{ formatDateTime(item.orderDate) }}</td>
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
-                                                <img :src="item.productImage" alt="商品圖片" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+                                               <img :src="item.productImage ? `http://localhost:8082/${item.productImage}` : 'https://placehold.co/50x50?text=No+Image'" alt="商品圖片" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
                                                 <div>
                                                     <div class="fw-bold">{{ item.productName }}</div>
                                                     <div class="text-muted small">#{{ item.productId }}</div>
