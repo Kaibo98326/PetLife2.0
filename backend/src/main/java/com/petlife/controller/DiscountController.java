@@ -38,7 +38,7 @@ public class DiscountController {
         }
     }
 
-    //  新增這支 API：讓 Vue 來拿折扣類型選單
+    //  新增這支 API：讓 Vue 來拿折扣類型選單(useDiscount.js)
     @GetMapping("/types")
     public ResponseEntity<List<DiscountType>> getDiscountTypes() {
         try {

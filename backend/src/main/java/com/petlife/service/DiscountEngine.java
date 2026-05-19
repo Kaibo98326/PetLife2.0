@@ -16,7 +16,7 @@ public class DiscountEngine {
 
     @Autowired
     private DiscountTemplateHelper templateHelper;
-
+   
     public CartCalculateResponseDTO executeDiscount(List<CartItemDTO> originalItems, List<Discount> allActiveDiscounts) {
         // --- 活動新增：1. 攤平商品 (把數量拆成多筆單件商品) ---
         List<CartItemDTO> flattenedItems = flattenCartItems(originalItems);
@@ -166,7 +166,7 @@ public class DiscountEngine {
         return new ArrayList<>(map.values());
     }
 
-    // --- 活動新增：補齊 Filter 邏輯 (對接 Discount 實體) ---
+    //舊的活動分類篩選
     private List<CartItemDTO> filterEligibleItems(List<CartItemDTO> items, Discount discount, String String_role) {
         return items.stream()
             .filter(i -> !i.isProcessed())
