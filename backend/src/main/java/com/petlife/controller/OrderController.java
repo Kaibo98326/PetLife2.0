@@ -14,8 +14,6 @@ import com.petlife.model.Order;
 import com.petlife.service.JwtUtils;
 import com.petlife.service.OrderService;
 
-import jakarta.servlet.http.HttpSession;
-
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {

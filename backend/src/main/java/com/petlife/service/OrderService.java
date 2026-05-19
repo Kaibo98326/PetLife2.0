@@ -137,9 +137,7 @@ public class OrderService {
 		params.put("TradeDesc", "PetLifeOrder");
 		params.put("ItemName", "PetLifeProduct一批"); // 固定商品名稱
 		params.put("ChoosePayment", "ALL");
-		params.put("EncryptType", "1"); // 成功為1，失敗為0
-		// params.put("ClientBackURL", "http://localhost:5173/shop"); // 取消訂單時的退款按鈕要用
-		// 內網穿透工具(ngrok) 要正式測試要記得來改網址!!!
+		params.put("EncryptType", "1");
 		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
 		params.put("ClientBackURL", "http://localhost:5173/checkoutsuccess");
 		params.put("NeedExtraPaidInfo", "N");
@@ -377,7 +375,6 @@ public class OrderService {
 			}
 		}
 
-		// 扣除紅利點數 (假設 1 點 = 1 元)
 		if (pointsUsed != null && pointsUsed > 0) {
 			finalAmount = finalAmount.subtract(new BigDecimal(pointsUsed));
 		}
@@ -390,7 +387,7 @@ public class OrderService {
 		return finalAmount;
 	}
 
-	// 統一的紅利計算邏輯 (集中管理，未來好修改)
+	// 統一的紅利計算邏輯
 	public int calculateEarnedBonus(BigDecimal amount) {
 		if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
 			return 0;
