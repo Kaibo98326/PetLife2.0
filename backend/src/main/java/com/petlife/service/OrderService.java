@@ -121,7 +121,7 @@ public class OrderService {
 		params.put("ItemName", "PetLifeProduct一批");
 		params.put("ChoosePayment", "ALL");
 		params.put("EncryptType", "1"); // 成功為1，失敗為0
-		params.put("ClientBackURL", "http://localhost:5173/shop"); // 取消訂單時的退款按鈕要用
+//		params.put("ClientBackURL", "http://localhost:5173/shop"); // 取消訂單時的退款按鈕要用
 		// 內網穿透工具(ngrok) 要正式測試要記得來改網址!!!
 		params.put("ReturnURL", "https://enable-impeach-caress.ngrok-free.dev/api/payment/callback");
 //		params.put("OrderResultURL", "http://localhost:5173/checkoutsuccess");// 結帳完導回的頁面
