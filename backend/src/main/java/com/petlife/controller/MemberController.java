@@ -138,15 +138,32 @@ public class MemberController {
 	
 	
 	//會員資料api
-	@GetMapping("/me")
-	public ResponseEntity<Member> getMyProfile(@RequestHeader("Authorization") String token){
-		String jwt = token.replace("Bearer ", "");
-		String memberId = JwtUtils.validateToken(jwt);
-		
-		return memberService.findById(Integer.valueOf(memberId))
-				.map(ResponseEntity::ok)
-				.orElse(ResponseEntity.notFound().build());
-	}
+//	@GetMapping("/me")
+//	public ResponseEntity<Member> getMyProfile(@RequestHeader("Authorization") String token){
+//		String jwt = token.replace("Bearer ", "");
+//		String memberId = JwtUtils.validateToken(jwt);
+//		
+//		return memberService.findById(Integer.valueOf(memberId))
+//				.map(ResponseEntity::ok)
+//				.orElse(ResponseEntity.notFound().build());
+//	}
+	
+	//會員資料api
+		@GetMapping("/me")
+		public ResponseEntity<?> getMyProfile(@RequestHeader("Authorization") String token){ // ✨ 修改：回傳型態從 <Member> 改為 <?> 以支援錯誤字串
+			String jwt = token.replace("Bearer ", "");
+			String memberId = JwtUtils.validateToken(jwt);
+			
+			// 防呆機制，如果 Token 解析失敗、過期或無效，優雅回傳 401 狀態碼
+			if (memberId == null || memberId.trim().isEmpty()) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("無效的憑證或 Token 已過期");
+			}
+			
+			return memberService.findById(Integer.valueOf(memberId))
+					.map(ResponseEntity::ok)
+					.orElse(ResponseEntity.notFound().build());
+		}
+	
 	
 	//處理大頭貼
 	@PostMapping("/{id}/avatar")

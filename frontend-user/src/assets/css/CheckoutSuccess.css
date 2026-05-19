@@ -171,3 +171,70 @@
   font-family:' Microsoft JhengHei';
   padding-left: 450px;
 }
+
+
+/* 5/14 活動新增*/
+.success-total-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 強制靠右對齊 */
+  margin-top: 20px;
+  padding-right: 15px;
+}
+
+.success-summary-line {
+  display: flex;
+  justify-content: flex-end;
+  width: 300px;
+  margin-bottom: 8px;
+}
+
+.success-total-label {
+  flex: 1;
+  text-align: left;
+  font-size: 16px;
+  color: #666;
+  font-weight: bold;
+}
+
+.success-total-value {
+  font-size: 18px;
+  color: #666;
+  font-weight: bold;
+}
+
+.success-discount-label, .success-discount-value {
+  color: #ff4d4f !important;
+}
+
+.success-detail-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 300px;
+  margin-bottom: 10px;
+}
+
+.success-detail-line {
+  font-size: 0.9em;
+  color: #888;
+  margin-bottom: 3px;
+}
+
+.success-final-line {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+  margin-top: 5px;
+}
+
+.success-final-label {
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.success-final-value {
+  color: #fd7e14 !important;
+  font-size: 22px;
+  font-weight: bold;
+}

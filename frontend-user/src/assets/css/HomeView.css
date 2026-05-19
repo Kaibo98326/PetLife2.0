@@ -1,0 +1,59 @@
+/*優惠活動紅色勳章標題與禁用點擊邏輯 */
+.activity-badge-header {
+  background-color: #dc3545; /* 實心紅色 */
+  color: #ffffff !important; /* 白色文字 */
+  padding: 8px 15px; /* 勳章內距 */
+  border-radius: 8px; /* 圓角矩形 */
+  font-weight: bold; /* 粗體字 */
+  font-size: 1rem;
+  display: flex; /* 使用 flex 讓文字與圖示對齊 */
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  cursor: default; /* 禁用手型游標，提示不可點擊 */
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+  border: none;
+}
+
+/* 1. 大標題重置 */
+.activity-badge-header-glow {
+    background: transparent !important;     /* 徹底移除紅色背景，改為透明/白底 */
+    box-shadow: none !important;            /* 徹底移除發光陰影 */
+    border-radius: 0 !important;            /* 移除圓角，匹配其他選單項 */
+    cursor: default !important;
+    
+    /* 💡 核心樣式：與上方大標題（如 🐶狗狗專區）的文字大小與粗細維持一致 */
+    font-size: 1rem !important;             
+    font-weight: 700 !important;
+    color: #333333 !important;              /* 字體改為深灰色/黑色 */
+    
+    /* 🌟 核心對齊再修正：將第四個參數 (padding-left) 精準調校為 28px，完美解決偏左問題 */
+    /* （註：若在您的螢幕上因瀏覽器字體渲染仍有 1px 差距，可自由在 27px ~ 29px 之間微調） */
+    padding: 10px 15px 10px 28px !important;  
+    margin-bottom: 12px !important;
+    
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important; /* 因移除箭頭，調整對齊方式 */
+}
+
+
+
+/* 子標籤的微調，搭配漸層標題更有整體感 */
+.activity-item {
+    border-left: none !important;           /* 徹底移除左側出現的直線 */
+    margin-left: 0 !important;               /* 重置左側間距 */
+    padding-left: 30px !important;          /* 保持與上方選單一致的子項目縮排 */
+    color: #333333 !important;              /* 字體改為深灰色/黑色 */
+    background-color: transparent !important;
+    transition: all 0.2s ease !important;
+}
+
+.activity-item:hover, 
+.activity-item.active {
+    font-weight: 700 !important;             /* 滑鼠滑過或選中時，只將字體加粗 */
+    color: #333333 !important;              /* 保持字體為深灰色/黑色，絕不用紅色 */
+    background-color: transparent !important;
+    border-left: none !important;            /* 再次確認移除直線 */
+}

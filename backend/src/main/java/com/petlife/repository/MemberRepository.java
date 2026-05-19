@@ -6,8 +6,10 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.petlife.model.Member;
 
@@ -44,6 +46,20 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 	long countByProvider(String provider);
 	
 	
+	//  新增/修改：扣除紅利點數，確保剩餘點數足夠
+    @Modifying
+    @Transactional
+    @Query("UPDATE Member m SET m.bonusPoints = m.bonusPoints - :points " +
+           "WHERE m.memberId = :memberId AND m.bonusPoints >= :points")
+    int deductBonusPoints(@Param("memberId") Integer memberId, @Param("points") Integer points);
+	
+ // 增加紅利點數 (用於訂單完成發放、或取消退回)
+    @Modifying
+    @Transactional
+    @Query("UPDATE Member m SET m.bonusPoints = m.bonusPoints + :points WHERE m.memberId = :memberId")
+    int addBonusPoints(@Param("memberId") Integer memberId, @Param("points") Integer points);
+    
+    
 	//每月註冊趨勢圖
 	@Query(value = """
 		    SELECT 

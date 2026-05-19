@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.petlife.model.Cart;
 import com.petlife.model.CartItem;
+import com.petlife.model.Category;
 import com.petlife.model.Product;
 import com.petlife.repository.CartItemRepository;
 import com.petlife.repository.CartRepository;
@@ -75,21 +76,20 @@ public class CartService {
 			cir.save(newItem);
 		}
 	}
-	
+
 	// +跟-按鈕
 	public void updateCartItemQuantity(Integer itemId, Integer quantity) {
-	    CartItem item = cir.findById(itemId)
-	            .orElseThrow(() -> new RuntimeException("找不到該購物車品項"));
-	    
-	    // 設定新數量
-	    item.setQuantity(quantity);
-	    
-	    // 防呆：確保折扣不是 NULL，否則小計會變NULL
-	    if (item.getDiscountAmount() == null) {
-	        item.setDiscountAmount(BigDecimal.ZERO);
-	    }
-	    // 存檔，SQLServer會自動更新subtotal
-	    cir.save(item);
+		CartItem item = cir.findById(itemId).orElseThrow(() -> new RuntimeException("找不到該購物車品項"));
+
+		// 設定新數量
+		item.setQuantity(quantity);
+
+		// 防呆：確保折扣不是 NULL，否則小計會變NULL
+		if (item.getDiscountAmount() == null) {
+			item.setDiscountAmount(BigDecimal.ZERO);
+		}
+		// 存檔，SQLServer會自動更新subtotal
+		cir.save(item);
 	}
 
 	// 取得購物車清單
@@ -97,7 +97,27 @@ public class CartService {
 		Cart cart = cr.findByMemberId(memberId);
 		if (cart == null)
 			return new ArrayList<>();
-		return cir.findByCartId(cart.getCartId());
+		// return cir.findByCartId(cart.getCartId()); 原本的
+		// --------------------下方是為了活動新增------------------------------
+		List<CartItem> items = cir.findByCartId(cart.getCartId());
+
+		// 確保每個購物車品項都有 categoryId
+		for (CartItem item : items) {
+			if (item.getCategoryId() == null) {
+				Product p = pr.findById(item.getProductId()).orElse(null);
+				if (p != null && p.getCategories() != null && !p.getCategories().isEmpty()) {
+					// 優先尋找「實體子分類」(CategoryType == 1)
+					Integer specificCatId = p.getCategories().stream()
+							.filter(c -> c.getCategoryType() != null && c.getCategoryType() == 1)
+							.map(Category::getCategoryId).findFirst()
+							// 如果找不到子分類，才退而求其次抓第一個
+							.orElse(p.getCategories().iterator().next().getCategoryId());
+
+					item.setCategoryId(specificCatId);
+				}
+			}
+		}
+		return items;
 	}
 
 	// 結帳清空購物車(軟刪除)
@@ -137,17 +157,16 @@ public class CartService {
 		}
 		return items;
 	}
+
 	// 計算購物車總金額
 	public BigDecimal calculateCartTotal(Integer memberId) {
-	    List<CartItem> items = queryCartItemsByMemberId(memberId);
-	    return items.stream()
-	            .map(item -> {
-	                // 如果資料庫沒算好小計，這裡手動補強
-	                if (item.getSubtotal() == null) {
-	                    return item.getProductPrice().multiply(new BigDecimal(item.getQuantity()));
-	                }
-	                return item.getSubtotal();
-	            })
-	            .reduce(BigDecimal.ZERO, BigDecimal::add);
+		List<CartItem> items = queryCartItemsByMemberId(memberId);
+		return items.stream().map(item -> {
+			// 如果資料庫沒算好小計，這裡手動補強
+			if (item.getSubtotal() == null) {
+				return item.getProductPrice().multiply(new BigDecimal(item.getQuantity()));
+			}
+			return item.getSubtotal();
+		}).reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 }

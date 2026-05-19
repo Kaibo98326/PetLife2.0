@@ -27,7 +27,7 @@
             <th style="width: 14%">總額</th>
             <th style="width: 14%" class="text-center">狀態</th>
             <th style="width: 14%">付款方式</th>
-            <th style="width: 14%" class="text-center">取消訂單</th>
+            <th style="width: 14%" class="text-center">訂單操作</th>
             <th style="width: 14%" class="text-center">訂單明細</th>
           </tr>
         </thead>
@@ -54,21 +54,29 @@
 
             <!-- 取消訂單邏輯 -->
             <td class="text-center">
-              <button
-                v-if="order.orderStatus !== '已取消' && order.orderStatus !== '已完成'"
-                @click="handleCancel(order.orderId)"
-                :disabled="!isWithinThreeDays(order.orderDate)"
-                :class="[
-                  'btn btn-sm rounded-pill px-3',
-                  isWithinThreeDays(order.orderDate) ? 'btn-outline-danger' : 'btn-readonly',
-                ]"
-              >
-                {{ isWithinThreeDays(order.orderDate) ? '取消訂單' : '不可取消' }}
-              </button>
-              <span v-else-if="order.orderStatus === '已取消'" class="text-muted small"
-                >已取消</span
-              >
-              <span v-else class="text-muted small">-</span>
+              <div class="d-flex flex-column gap-2 align-items-center">
+                <button
+                  v-if="order.orderStatus === '處理中' || order.orderStatus === '1'"
+                  @click="handleComplete(order.orderId)"
+                  class="btn btn-sm btn-success rounded-pill px-3"
+                >
+                  確認收貨
+                </button>
+
+                <button
+                  v-if="order.orderStatus !== '已取消' && order.orderStatus !== '已完成'"
+                  @click="handleCancel(order.orderId)"
+                  :disabled="!isWithinThreeDays(order.orderDate)"
+                  :class="[
+                    'btn btn-sm rounded-pill px-3',
+                    isWithinThreeDays(order.orderDate) ? 'btn-outline-danger' : 'btn-readonly',
+                  ]"
+                >
+                  {{ isWithinThreeDays(order.orderDate) ? '取消訂單' : '不可取消' }}
+                </button>
+                <span v-else-if="order.orderStatus === '已取消'" class="text-muted small">已取消</span>
+                <span v-else-if="order.orderStatus === '已完成'" class="text-success small fw-bold">訂單已結案</span>
+              </div>
             </td>
 
             <td class="text-center">
@@ -198,18 +206,23 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from '@/axios'
 import { Modal } from 'bootstrap'
+
+import { useUserStore } from '@/stores/user'
+const userStore = useUserStore()
 
 // 狀態宣告
 const orders = ref([])
 const selectedOrderDetail = ref(null)
 const isLoading = ref(true)
 const route = useRoute()
+const router = useRouter()
 let detailModal = null
 const currentPage = ref(1)
 const pageSize = 10
+
 
 //換頁效果
 const paginatedOrders = computed(() => {
@@ -226,16 +239,43 @@ function goToPage(page) {
   }
 }
 
+// 將 checkAndOpenOrder 獨立成一個方法
+const checkAndOpenOrder = async () => {
+  const openOrderId = route.query.openOrderId;
+  if (openOrderId && orders.value.length > 0) {
+    const targetId = parseInt(openOrderId);
+    // 1. 找出該筆訂單在陣列中的 Index
+    const index = orders.value.findIndex(o => o.orderId === targetId);
+    if (index !== -1) {
+      // 2. 精準計算這筆訂單在哪一頁 (無條件捨去 + 1)
+      const targetPage = Math.floor(index / pageSize) + 1;
+      
+      // 3. 把背景切換到正確的頁碼
+      goToPage(targetPage);
+      
+      // 4. 等待畫面渲染後，彈出明細視窗
+      await nextTick();
+      await openModal(targetId);
+      
+      // 5. 將網址上的參數抹除，避免使用者按 F5 重新整理時又一直打開
+      // ✨ 修改：徹底替換原本會引發響應式重繪自毀的 router.replace。改用 HTML5 原生 History API 隱形抹除參數，不驚動 Vue 核心，防爆閃退
+      window.history.replaceState(null, '', route.path);
+    }
+  }
+}
+
+
+
 // 核心功能：抓取歷史訂單  移除路徑 includes 判斷，改由 watch 觸發點來控制，確保穩定
+
 
 const fetchOrders = async () => {
   console.log('開始抓取訂單，目前路徑:', route.path)
   isLoading.value = true
 
   try {
-    // 確保 axios 配置正確，路徑前綴依照你的後端設定
+    
     const response = await axios.get('/orders/historyorders')
-
     if (response.data) {
       orders.value = response.data
       console.log('資料抓取成功:', response.data.length, '筆紀錄')
@@ -243,9 +283,10 @@ const fetchOrders = async () => {
   } catch (err) {
     console.error('抓取歷史訂單失敗:', err)
   } finally {
-    // 稍微延遲讓 DOM 有時間反應，避免 isLoading 閃爍
-    setTimeout(() => {
+    
+    setTimeout(async () => {
       isLoading.value = false
+      await checkAndOpenOrder()
     }, 150)
   }
 }
@@ -315,12 +356,36 @@ const handleCancel = async (orderId) => {
       if (order) {
         order.orderStatus = '已取消'
       }
-      alert('訂單已成功取消！')
+     // 若有退回點數，觸發 store 更新全站點數
+      await userStore.fetchUser()
+      alert('訂單已成功取消！(若有使用紅利已全數退回)')
     }
   } catch (err) {
     console.error('取消訂單失敗:', err)
     // 處理後端回傳的錯誤訊息(超過3天)
     const errorMsg = err.response?.data || '取消失敗，請稍後再試'
+    alert(errorMsg)
+  }
+}
+
+// 確認收貨邏輯          活動新增：當訂單狀態為「已完成」時，會員會自動獲得紅利點數，這裡的 API 會處理點數發放的邏輯
+const handleComplete = async (orderId) => {
+  if (!confirm('收到商品了嗎？確認收貨後，系統將自動發放紅利點數！')) return
+
+  try {
+    const response = await axios.post(`/orders/complete/${orderId}`)
+    if (response.status === 200) {
+      const order = orders.value.find((o) => o.orderId === orderId)
+      if (order) {
+        order.orderStatus = '已完成'
+      }
+      // 紅利發放後，立即觸發 store 更新全站的會員資訊與點數餘額
+      await userStore.fetchUser()
+      alert('成功確認收貨！紅利點數已發放至您的帳戶。')
+    }
+  } catch (err) {
+    console.error('確認收貨失敗:', err)
+    const errorMsg = err.response?.data || '確認失敗，請稍後再試'
     alert(errorMsg)
   }
 }
