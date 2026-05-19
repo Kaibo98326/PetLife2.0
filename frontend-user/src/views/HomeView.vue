@@ -800,7 +800,11 @@ onMounted(async () => {
       </main>
     </div>
   </div>
+<<<<<<< HEAD
 </template>
 <style scoped>
 @import '../assets/css/HomeView.css';
 </style>
+=======
+</template>
+>>>>>>> main

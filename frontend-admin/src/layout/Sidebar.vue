@@ -1,5 +1,5 @@
 <template>
-  <el-menu
+    <el-menu
     class="sidebar-menu"
     background-color="#2c3e50"
     text-color="#adb5bd"
@@ -60,7 +60,9 @@
     </el-sub-menu>
 
     <el-menu-item index="/admin/order">
-      <el-icon><ShoppingCart /></el-icon>
+      <el-icon>
+        <ShoppingCart />
+      </el-icon>
       <span>訂單管理</span>
     </el-menu-item>
 
@@ -72,8 +74,10 @@
         </el-icon>
         <span>寵物美容管理</span>
       </template>
-      <el-menu-item index="/admin/beauty/service">服務項目</el-menu-item>
-      <el-menu-item index="/admin/beauty/order">預約訂單</el-menu-item>
+      <el-menu-item index="/admin/beauty/items">美容項目管理</el-menu-item>
+      <el-menu-item index="/admin/beauty/appointments">美容預約管理</el-menu-item>
+      <el-menu-item index="/admin/beauty/groomers">美容師管理</el-menu-item>
+      <el-menu-item index="/admin/beauty/schedules">班表管理</el-menu-item>
     </el-sub-menu>
 
     <el-sub-menu index="hotel-group">
