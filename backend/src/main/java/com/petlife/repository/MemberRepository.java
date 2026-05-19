@@ -59,6 +59,9 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     @Query("UPDATE Member m SET m.bonusPoints = m.bonusPoints + :points WHERE m.memberId = :memberId")
     int addBonusPoints(@Param("memberId") Integer memberId, @Param("points") Integer points);
     
+    //紅利專區顯示每次訂單紅利點數的使用情況
+    @Query("SELECT m.bonusPoints FROM Member m WHERE m.memberId = :memberId")
+    Integer findBonusPointsByMemberId(@Param("memberId") Integer memberId);
     
 	//每月註冊趨勢圖
 	@Query(value = """
