@@ -64,6 +64,7 @@ public class DiscountEngine {
                         // ✨ 修改：寫入達標狀態(true)、活動類型與商品角色，供 Vue 動態切換
                         i.setIsActivityMet(true);
                         i.setDiscountType(String.valueOf(discount.getDiscountType().getDiscountTypeId()));
+                        i.setDiscountId(discount.getDiscountId());
                         if (addonPids.contains(i.getProductId())) {
                             i.setProductRole("Addon");
                         } else if (mainPids.contains(i.getProductId())) {
@@ -107,6 +108,7 @@ public class DiscountEngine {
                         // ✨ 修改：寫入達標狀態(true)、活動類型與商品角色，供 Vue 動態切換
                         i.setIsActivityMet(true);
                         i.setDiscountType(String.valueOf(discount.getDiscountType().getDiscountTypeId()));
+                        i.setDiscountId(discount.getDiscountId());
                         if (addonCids.contains(i.getCategoryId())) {
                             i.setProductRole("Addon");
                         } else if (mainCids.contains(i.getCategoryId())) {
@@ -138,6 +140,7 @@ public class DiscountEngine {
                 single.setCategoryId(item.getCategoryId());
                 single.setPrice(item.getPrice());
                 single.setQuantity(1); // 強制變 1
+                single.setDiscountAmount(BigDecimal.ZERO);
                 flattened.add(single);
             }
         }
@@ -153,6 +156,17 @@ public class DiscountEngine {
             } else {
                 CartItemDTO existing = map.get(f.getItemId());
                 existing.setQuantity(existing.getQuantity() + 1);
+                //kkb新增
+                BigDecimal oldDiscount = existing.getDiscountAmount() == null
+                        ? BigDecimal.ZERO
+                        : existing.getDiscountAmount();
+
+                BigDecimal newDiscount = f.getDiscountAmount() == null
+                        ? BigDecimal.ZERO
+                        : f.getDiscountAmount();
+
+                existing.setDiscountAmount(oldDiscount.add(newDiscount));
+                //-----
                 // 只要子項目有標籤或提醒，就保留
                 if (f.getAppliedDiscountText() != null) existing.setAppliedDiscountText(f.getAppliedDiscountText());
                 if (f.getReminderText() != null) existing.setReminderText(f.getReminderText());
