@@ -1,5 +1,5 @@
 <template>
-    <el-menu
+  <el-menu
     class="sidebar-menu"
     background-color="#2c3e50"
     text-color="#adb5bd"
@@ -62,7 +62,6 @@
       </el-menu-item>
     </el-sub-menu>
 
-<<<<<<< HEAD
     <el-sub-menu index="/admin/order">
       <template #title>
         <el-icon>
@@ -73,15 +72,6 @@
       <el-menu-item index="/admin/order">訂單管理</el-menu-item>
       <el-menu-item index="/admin/order/orderanalysis">訂單分析</el-menu-item>
     </el-sub-menu>
-=======
-    <el-menu-item index="/admin/order">
-      <el-icon>
-        <ShoppingCart />
-      </el-icon>
-      <span>訂單管理</span>
-    </el-menu-item>
-
->>>>>>> main
 
     <el-sub-menu index="beauty-group">
       <template #title>
