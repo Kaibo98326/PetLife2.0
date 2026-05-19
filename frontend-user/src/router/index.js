@@ -147,6 +147,7 @@ const routes = [
       },
     ],
   },
+
   {
     // 登入頁（獨立頁面，不套用 UserLayout）
     path: '/login',
@@ -168,6 +169,11 @@ const routes = [
       { path: 'pets', component: PetListView },
       { path: 'pets/add', component: AddPetView },
       { path: 'favorites', component: favoritesView },
+      {
+        path: 'points',
+        name: 'MemberPoints',
+        component: () => import('@/views/OpenBonusModal.vue'),
+      },
     ],
   },
   {

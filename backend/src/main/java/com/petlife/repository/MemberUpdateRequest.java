@@ -14,5 +14,6 @@ public class MemberUpdateRequest {
     private String providerUserId; 
 	
     private String userImage;      // 新增：使用者大頭像
+
     private Integer bonusPoints;   // 新增：紅利點數（預設 0，不可為負）
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed ,watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import axios from '@/axios'
 import Swal from 'sweetalert2'
@@ -7,6 +7,72 @@ import Swal from 'sweetalert2'
 const userStore = useUserStore()
 const cartItems = ref([])
 const isProcessing = ref(false)
+
+//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
+const discountAmount = ref(0)
+const finalAmount = ref(0)
+const appliedDiscounts = ref([])
+const discountedCartItems = ref([])//kkb新增
+const isDiscountExpanded = ref(false)
+// 5/14更新：新增接收後端原始總額與明細清單的變數
+const backendOriginalTotal = ref(0) //   5/14更新
+
+// ✨ 新增/修改：從購物車讀取使用者決定使用的紅利點數 (CheckoutView)
+const usedBonusPoints = ref(parseInt(sessionStorage.getItem('usedBonusPoints')) || 0)
+
+// ✨ 新增/修改：計算真正的應付總額 (活動折抵後，再扣紅利)
+const actualFinalAmount = computed(() => {
+  return Math.max(0, finalAmount.value - usedBonusPoints.value)
+})
+
+// ✨ 新增/修改：計算這筆訂單完成後可獲得的紅利 (實付總額 * 0.01，無條件捨去)
+const estimatedEarnPoints = ref(0)
+ // ✨ 新增：監聽應付總額的變化，動態向後端 BonusController 索取預估紅利
+watch(actualFinalAmount, async (newAmount) => {
+  if (newAmount > 0) {
+    try {
+      const token = localStorage.getItem('token')
+      // 呼叫新獨立出來的紅利估算 API
+      const res = await axios.get(`/orders/estimate?amount=${newAmount}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      estimatedEarnPoints.value = res.data
+    } catch (error) {
+      console.error('獲取預計獲得紅利失敗:', error)
+      estimatedEarnPoints.value = 0
+    }
+  } else {
+    estimatedEarnPoints.value = 0
+  }
+}, { immediate: true })
+
+
+
+//活動折扣邏輯                                              --->活動新增
+const calculateDiscount = async () => {
+  try {
+    const requestData = {
+      cartItems: cartItems.value.map(item => ({
+       itemId: item.itemId, //   5/14更新：補上 itemId 供後端對應
+        productId: item.productId,
+        categoryId: item.categoryId, 
+        price: item.productPrice,
+        quantity: item.quantity
+      }))
+    }
+    const res = await axios.post('/cart/calculate', requestData)
+    discountAmount.value = res.data.discountAmount || 0
+    finalAmount.value = res.data.finalAmount || 0
+    //   5/14更新：同步後端傳回的原始總額與明細
+    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新
+    appliedDiscounts.value = res.data.appliedDiscounts || []
+    discountedCartItems.value = res.data.cartItems || [] //kkb新增
+  } catch (error) {
+    console.error('結帳折扣計算失敗', error)
+  }
+}
 
 // 表單資料綁定
 const orderForm = ref({
@@ -43,6 +109,10 @@ const fetchCart = async () => {
       userStore.cartId = res.data[0].cartId
       console.log('✅ cartId 已更新:', userStore.cartId)
     }
+
+    // 資料抓完後，呼叫後端算折扣   ---->活動新增
+    await calculateDiscount()
+
   } catch (error) {
     console.error('獲取購物車失敗:', error)
   }
@@ -84,30 +154,45 @@ const submitOrder = async () => {
       orderAddress: orderForm.value.shippingAddress,
       orderPayment: orderForm.value.paymentMethod,
       orderNote: orderForm.value.orderNotes,
-      usedPoint: 0,
+      // ✨ 新增/修改：將前台計算的紅利數值帶給後端 (後端將以此進行原子化扣除)
+      usedPoint: usedBonusPoints.value,
       remainingPoint: 0,
     }
 
     console.log('準備送出的 cartId:', userStore.cartId)
-    const res = await axios.post('/orders/checkout', orderData, {
-      params: { cartId: userStore.cartId },
-    })
+   const checkoutData = {
+     order: orderData,
+     appliedDiscounts: appliedDiscounts.value,
+     cartItems: discountedCartItems.value  //kkb新增
+   }
+   const res = await axios.post('/orders/checkout', checkoutData, {
+  params: { cartId: userStore.cartId },
+})
 
     if (res.data.order?.orderId) {
       sessionStorage.setItem('lastOrderId', res.data.order.orderId)
       console.log('訂單 ID 已存入 sessionStorage:', res.data.order.orderId)
     }
 
+
     if (res.data.form) {
       const div = document.createElement('div')
       div.innerHTML = res.data.form
       document.body.appendChild(div)
       const form = div.querySelector('form')
-      if (form) form.submit()
+      if (form) {
+        // 強制指定在當前視窗跳轉，避免瀏覽器因非同步延遲將其判定為彈出視窗
+        form.setAttribute('target', '_self')
+        form.submit()
+      }
     } else {
       const backupForm = document.getElementById('ecpayForm')
-      if (backupForm) backupForm.submit()
+      if (backupForm) {
+        backupForm.setAttribute('target', '_self')
+        backupForm.submit()
+      }
     }
+    // 2026-05-14 17:44 結束修改
   } catch (error) {
     console.error('下單失敗詳細資訊:', error.response?.data)
     Swal.fire('錯誤', '訂單處理失敗，請檢查後端 Console', 'error')
@@ -202,9 +287,42 @@ onMounted(async () => {
       </div>
 
       <div class="checkout-footer">
-        <div class="total-amount-box">
-          <span class="label">應付總額：</span>
-          <span class="amount">$ {{ totalAmount.toLocaleString() }}</span>
+        <div class="total-amount-box" style="display: flex; flex-direction: column; align-items: flex-end;">
+          
+          <div class="checkout-summary-row">
+            <span class="checkout-row-label">商品總額：</span>
+            <span class="checkout-row-amount">$ {{ (backendOriginalTotal || totalAmount).toLocaleString() }}</span>
+          </div>
+
+          <div v-if="discountAmount > 0" class="checkout-summary-row checkout-discount-clickable" @click="isDiscountExpanded = !isDiscountExpanded">
+            <span class="checkout-row-label checkout-discount-label">
+              <i :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="checkout-chevron-icon"></i>
+              活動折抵明細：
+            </span>
+            <span class="checkout-row-amount checkout-discount-amount">- $ {{ discountAmount.toLocaleString() }}</span>
+          </div>
+
+          <div v-if="isDiscountExpanded && appliedDiscounts.length > 0" class="checkout-detail-box">
+            <div v-for="(ad, index) in appliedDiscounts" :key="index" class="checkout-detail-line">
+              <span class="checkout-detail-name">　　{{ ad.name }}</span>
+              <span class="checkout-detail-amount">- $ {{ ad.amount.toLocaleString() }}</span>
+            </div>
+          </div>
+
+          <div v-if="usedBonusPoints > 0" class="checkout-summary-row">
+            <span class="checkout-row-label" style="color: #666;">紅利點數折抵：</span>
+            <span class="checkout-row-amount" style="color: #ff4d4f;">- $ {{ usedBonusPoints.toLocaleString() }}</span>
+          </div>
+
+          <div class="checkout-summary-row checkout-final-row">
+            <span class="checkout-row-label checkout-final-label">應付總額：</span>
+            <span class="checkout-row-amount checkout-final-amount">$ {{ actualFinalAmount.toLocaleString() }}</span>
+          </div>
+
+          <div style="text-align: right; margin-top: 5px; color: #e67e22; font-size: 0.95em; font-weight: 700;">
+            <i class="fas fa-coins me-1"></i> 此單預計獲得紅利：{{ estimatedEarnPoints }} 點
+          </div>
+
         </div>
 
         <div class="button-group">
@@ -214,6 +332,7 @@ onMounted(async () => {
           </button>
         </div>
       </div>
+
     </div>
   </div>
 </template>

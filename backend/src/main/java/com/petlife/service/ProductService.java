@@ -1,7 +1,9 @@
 package com.petlife.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +27,9 @@ import java.util.List;
 @Transactional 
 public class ProductService {
 
+	@Autowired
+	private com.petlife.repository.DiscountRepository discountRepository;
+	
     private final ProductRepository productRepository;
     private final com.petlife.repository.CategoryRepository categoryRepository;
     private final com.petlife.repository.ProductImageRepository productImageRepository;
@@ -257,6 +262,76 @@ public class ProductService {
 
     public void incrementClickCount(Integer productId) {
         productRepository.incrementClickCount(productId);
+    }
+    
+    
+ //  新增：透過活動標籤(Type 3)獲取適用的商品，並賦予活動徽章
+    @Transactional(readOnly = true)
+    public Page<Product> getProductsByActivityTag(Integer tagId, Pageable pageable) {
+        
+        // 1. 找出該標籤綁定的「進行中」活動
+        List<com.petlife.model.Discount> activeDiscounts = discountRepository.findActiveDiscountsByTagId(tagId, java.time.LocalDate.now());
+        
+        if (activeDiscounts.isEmpty()) {
+            return Page.empty(pageable); // 標籤下沒有進行中的活動，回傳空分頁
+        }
+        
+        // 2. 收集所有符合條件的商品 ID (使用 Set 避免重複)
+        java.util.Set<Integer> validProductIds = new java.util.HashSet<>();
+        java.util.Map<Integer, String> productBadgeMap = new java.util.HashMap<>(); // 紀錄商品對應的活動名稱
+        java.util.Map<Integer, String> productRoleMap = new java.util.HashMap<>(); // 紀錄商品的角色 (Main 還是 Addon)
+        // ✨ 新增：紀錄商品對應的活動類型 ID (1, 2, 3, 4, 5)
+        java.util.Map<Integer, String> productTypeMap = new java.util.HashMap<>(); 
+        
+        for (com.petlife.model.Discount d : activeDiscounts) {
+            String badgeName = d.getDiscountName(); // 要顯示在前端的徽章文字
+            // ✨ 新增：獲取活動類型 ID
+            String typeIdStr = d.getDiscountType() != null ? d.getDiscountType().getDiscountTypeId().toString() : "";
+            
+            // ✨ 修改：同時抓取 Main 與 Addon 的分類關聯商品 (修正為 Set 避免 Type mismatch 錯誤)
+            java.util.Set<com.petlife.model.DiscountCategory> dCats = d.getDiscountCategories();
+            for(com.petlife.model.DiscountCategory dc : dCats) {
+                if("Main".equals(dc.getCategoryRole()) || "Addon".equals(dc.getCategoryRole())) {
+                    List<Integer> pIds = productRepository.findProductIdsByCategoryIds(java.util.Collections.singletonList(dc.getCategory().getCategoryId()));
+                    for (Integer pid : pIds) {
+                        validProductIds.add(pid);
+                        productBadgeMap.put(pid, badgeName); 
+                        productRoleMap.put(pid, dc.getCategoryRole()); // 標記角色
+                        productTypeMap.put(pid, typeIdStr); // ✨ 新增：綁定活動類型
+                    }
+                }
+            }
+            
+            // ✨ 修改：同時抓取 Main 與 Addon 的單品關聯商品 (修正為 Set 避免 Type mismatch 錯誤)
+            java.util.Set<com.petlife.model.DiscountProduct> dProds = d.getDiscountProducts();
+            for(com.petlife.model.DiscountProduct dp : dProds) {
+                if("Main".equals(dp.getProductRole()) || "Addon".equals(dp.getProductRole())) {
+                    Integer pid = dp.getProduct().getProductId();
+                    validProductIds.add(pid);
+                    productBadgeMap.put(pid, badgeName);
+                    productRoleMap.put(pid, dp.getProductRole()); // 標記角色
+                    productTypeMap.put(pid, typeIdStr); // ✨ 新增：綁定活動類型
+                }
+            }
+        }
+        
+        // 如果這個標籤下的活動剛好都沒圈選到商品，直接回傳空
+        if (validProductIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        
+        // 3. 透過 ID 清單查詢商品並分頁
+        Page<Product> productPage = productRepository.findByProductIdIn(new java.util.ArrayList<>(validProductIds), pageable);
+        
+        // 4. 將活動名稱、角色與活動類型塞入虛擬欄位，讓 Vue 顯示
+        for (Product p : productPage.getContent()) {
+            p.setActivityBadge(productBadgeMap.get(p.getProductId()));
+            p.setProductRole(productRoleMap.get(p.getProductId())); 
+            // ✨ 新增：將活動類型 ID 寫入商品虛擬欄位
+            p.setDiscountType(productTypeMap.get(p.getProductId())); 
+        }
+        
+        return productPage;
     }
     
 }
