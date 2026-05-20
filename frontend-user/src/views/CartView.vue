@@ -9,11 +9,11 @@ const userStore = useUserStore()
 const router = useRouter()
 const cartItems = ref([])
 
-  //  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
+//  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
 const discountAmount = ref(0)
 const finalAmount = ref(0)
-const backendOriginalTotal = ref(0) 
-const appliedDiscounts = ref([])    
+const backendOriginalTotal = ref(0)
+const appliedDiscounts = ref([])
 const isDiscountExpanded = ref(false)
 
 // ✨ 新增/修改：紅利點數狀態管理 (CartView)
@@ -56,8 +56,8 @@ const fetchCart = async () => {
     const res = await axios.get(`/cart/${mId}`)
     // console.log('購物車 API 回傳結果:', res.data)
     cartItems.value = res.data
-  //  資料抓完後，立刻呼叫計算折扣的 API                   --->活動新增
-    await calculateDiscount() 
+    //  資料抓完後，立刻呼叫計算折扣的 API                   --->活動新增
+    await calculateDiscount()
   } catch (error) {
     console.error('獲取購物車失敗', error)
   }
@@ -79,37 +79,39 @@ const calculateDiscount = async () => {
   //防呆：先把應付金額預設為原價，避免 API 失敗時變成 0
   finalAmount.value = totalAmount.value
 
- try {
+  try {
     // 將前端的 cartItems 轉成後端需要的 DTO 格式
     // ⚠️ 注意：請確保你的 res.data 裡面有 productId 和 categoryId，如果沒有，後端分類折扣會算不出來！
     const requestData = {
-      cartItems: cartItems.value.map(item => ({
+      cartItems: cartItems.value.map((item) => ({
         // ✨ 修改 A：在組合 requestData 時，務必將 itemId 補進去傳給後端
         itemId: item.itemId,
         productId: item.productId,
-        categoryId: item.categoryId, 
+        categoryId: item.categoryId,
         price: item.productPrice,
-        quantity: item.quantity
-      }))
+        quantity: item.quantity,
+      })),
     }
-    console.log("傳給後端的購物車資料：", requestData);
+    console.log('傳給後端的購物車資料：', requestData)
     const res = await axios.post('/cart/calculate', requestData)
-    
-   // 將後端算好的金額存進變數
+
+    // 將後端算好的金額存進變數
     discountAmount.value = res.data.discountAmount || 0
     finalAmount.value = res.data.finalAmount || 0
     //   5/14更新：同步後端傳回的原始總額與明細清單
-    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新  
+    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新
     appliedDiscounts.value = res.data.appliedDiscounts || []
-    
+
     // ✨ 新增/修改：當活動折扣重算導致總額變更時，重新驗證紅利是否超過上限
     validateBonus()
 
     // 更新原本的 cartItems 的標籤 (對應 itemId)
     if (res.data.cartItems) {
-      cartItems.value = cartItems.value.map(item => {
+      cartItems.value = cartItems.value.map((item) => {
         // ✨ 修改 B：將 find 條件改為「itemId 或是 productId」雙重保險比對，確保 reminderText 絕對能成功貼回商品上
-        const found = res.data.cartItems.find(i => i.itemId === item.itemId || i.productId === item.productId)
+        const found = res.data.cartItems.find(
+          (i) => i.itemId === item.itemId || i.productId === item.productId,
+        )
         if (found) {
           return {
             ...item,
@@ -118,7 +120,7 @@ const calculateDiscount = async () => {
             discountType: found.discountType,
             productRole: found.productRole,
             // ✨ 修改：補全後端回傳資料的「達標狀態」對接，供 template 智慧分流切換
-            isActivityMet: found.isActivityMet
+            isActivityMet: found.isActivityMet,
           }
         }
         return item
@@ -140,8 +142,8 @@ const changeQty = async (item, delta) => {
     await axios.put(`/cart/update/${item.itemId}`, null, {
       params: { quantity: newQty },
     })
-    await fetchCart()  //  觸發自動算前----->活動新增
-//    fetchCart()  --->原本的
+    await fetchCart() //  觸發自動算前----->活動新增
+    //    fetchCart()  --->原本的
   } catch {
     Swal.fire('錯誤', '更新數量失敗', 'error')
   }
@@ -202,7 +204,7 @@ onMounted(() => {
     <div class="cart-card">
       <h2 class="cart-title">🛒 我的購物車</h2>
 
-      <table class="cart-table">
+      <table v-if="cartItems.length > 0" class="cart-table">
         <thead>
           <tr>
             <th>商品名稱</th>
@@ -217,8 +219,29 @@ onMounted(() => {
           <tr v-for="item in cartItems" :key="item.itemId">
             <td style="text-align: left">
               <div>{{ item.productName }}</div>
-              <div v-if="item.reminderText && (item.discountType !== '4' || (item.isActivityMet ? item.productRole === 'Addon' : item.productRole === 'Main'))" class="cart-reminder-text" v-html="item.reminderText"></div>
-              <div v-if="item.appliedDiscountText && (item.discountType !== '4' || (item.isActivityMet ? item.productRole === 'Addon' : item.productRole === 'Main'))" class="cart-discount-badge">{{ item.appliedDiscountText }}</div>
+              <div
+                v-if="
+                  item.reminderText &&
+                  (item.discountType !== '4' ||
+                    (item.isActivityMet
+                      ? item.productRole === 'Addon'
+                      : item.productRole === 'Main'))
+                "
+                class="cart-reminder-text"
+                v-html="item.reminderText"
+              ></div>
+              <div
+                v-if="
+                  item.appliedDiscountText &&
+                  (item.discountType !== '4' ||
+                    (item.isActivityMet
+                      ? item.productRole === 'Addon'
+                      : item.productRole === 'Main'))
+                "
+                class="cart-discount-badge"
+              >
+                {{ item.appliedDiscountText }}
+              </div>
             </td>
             <td class="price-text">$ {{ item.productPrice }}</td>
             <td>
@@ -233,28 +256,38 @@ onMounted(() => {
               </button>
             </td>
           </tr>
-
-          <tr v-if="cartItems.length === 0">
-            <td colspan="5" class="empty-msg">💡 目前購物車是空的喔！</td>
-          </tr>
         </tbody>
       </table>
 
+      <div v-else class="empty-cart-wrapper">
+        <div class="empty-msg-box">
+          <i class="fa-regular fa-lightbulb empty-icon"></i>
+          <span>目前購物車是空的喔！</span>
+        </div>
+      </div>
+
       <div class="total-section-enhanced" v-if="cartItems.length > 0">
         <div class="cart-summary-container">
-          <div class="cart-summary-line" style="font-size: 0.9em; color: #666;">
+          <div class="cart-summary-line" style="font-size: 0.9em; color: #666">
             <span class="cart-summary-label">商品總計：</span>
             <span>$ {{ totalAmount.toLocaleString() }}</span>
           </div>
-          
-          <div v-if="discountAmount > 0" class="cart-discount-row" @click="isDiscountExpanded = !isDiscountExpanded">
+
+          <div
+            v-if="discountAmount > 0"
+            class="cart-discount-row"
+            @click="isDiscountExpanded = !isDiscountExpanded"
+          >
             <span class="cart-discount-label">
-              <i :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="cart-chevron-icon"></i>
+              <i
+                :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"
+                class="cart-chevron-icon"
+              ></i>
               活動折抵明細：
             </span>
             <span class="cart-discount-value">- $ {{ discountAmount.toLocaleString() }}</span>
           </div>
-          
+
           <div v-if="isDiscountExpanded && appliedDiscounts.length > 0" class="cart-detail-box">
             <div v-for="(ad, index) in appliedDiscounts" :key="index" class="cart-detail-line">
               <span class="cart-detail-name">{{ ad.detailText }}</span>
@@ -262,28 +295,71 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="cart-bonus-row" style="margin-top: 10px; font-size: 0.9em; border-top: 1px dashed #eee; padding-top: 10px;">
-            <label style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: nowrap; gap: 8px;">
-              <div style="color: #666; white-space: nowrap; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;">
+          <div
+            class="cart-bonus-row"
+            style="
+              margin-top: 10px;
+              font-size: 0.9em;
+              border-top: 1px dashed #eee;
+              padding-top: 10px;
+            "
+          >
+            <label
+              style="
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                flex-wrap: nowrap;
+                gap: 8px;
+              "
+            >
+              <div
+                style="
+                  color: #666;
+                  white-space: nowrap;
+                  flex-shrink: 1;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                "
+              >
                 <input type="checkbox" v-model="isBonusEnabled" @change="toggleBonus" />
-                <span style="margin-left: 8px;">使用紅利點數折抵 (目前擁有: {{ userStore.user?.bonusPoints || 0 }} 點)</span>
+                <span style="margin-left: 8px"
+                  >使用紅利點數折抵 (目前擁有: {{ userStore.user?.bonusPoints || 0 }} 點)</span
+                >
               </div>
-              <div :style="{ opacity: isBonusEnabled ? 1 : 0.4, color: isBonusEnabled ? '#000' : '#999' }" style="white-space: nowrap; flex-shrink: 0;">
-                - $ 
-                <input 
-                  type="number" 
-                  v-model.number="useBonusPoints" 
-                  @input="validateBonus" 
-                  :disabled="!isBonusEnabled" 
-                  style="width: 60px; text-align: right; border: 1px solid #ddd; border-radius: 4px; padding: 2px 4px; outline: none;" 
+              <div
+                :style="{
+                  opacity: isBonusEnabled ? 1 : 0.4,
+                  color: isBonusEnabled ? '#000' : '#999',
+                }"
+                style="white-space: nowrap; flex-shrink: 0"
+              >
+                - $
+                <input
+                  type="number"
+                  v-model.number="useBonusPoints"
+                  @input="validateBonus"
+                  :disabled="!isBonusEnabled"
+                  style="
+                    width: 60px;
+                    text-align: right;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 2px 4px;
+                    outline: none;
+                  "
                 />
               </div>
             </label>
           </div>
-          
-          <div class="cart-final-line" style="margin-top: 10px;">
+
+          <div class="cart-final-line" style="margin-top: 10px">
             <span class="cart-final-label">總計金額：</span>
-            <span class="cart-final-value">$ {{ Math.max(0, finalAmount - useBonusPoints).toLocaleString() }}</span>
+            <span class="cart-final-value"
+              >$ {{ Math.max(0, finalAmount - useBonusPoints).toLocaleString() }}</span
+            >
           </div>
         </div>
       </div>
@@ -297,7 +373,6 @@ onMounted(() => {
           <i class="fa-solid fa-credit-card me-1"></i>前往結帳
         </button>
       </div>
-
     </div>
   </div>
 </template>

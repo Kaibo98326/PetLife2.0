@@ -32,11 +32,7 @@
 
       <div class="content-card shadow-sm">
         <div class="child-route-content">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" :key="$route.path" />
-            </transition>
-          </router-view>
+          <router-view :key="$route.path" />
         </div>
 
         <div class="bottom-action-area">
