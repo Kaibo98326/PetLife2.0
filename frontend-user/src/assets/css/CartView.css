@@ -247,3 +247,28 @@
   color: #666;
   font-size: 0.95em;
 }
+
+/* --- 空購物車置中優化 --- */
+.empty-cart-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px; /* 給空狀態一個舒適的基礎高度，讓它垂直居中 */
+  width: 100%;
+  margin: 20px 0;
+}
+
+.empty-msg-box {
+  display: flex;
+  flex-direction: row;    /* 讓燈泡與文字橫向並排 */
+  align-items: center;
+  gap: 10px;              /* 圖示與文字的間距 */
+  color: #999;            /* 溫和的灰色 */
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.empty-icon {
+  font-size: 1.4rem;
+  color: #fd7e14;         /* 讓小燈泡亮起你的主題橘色 */
+}

@@ -204,7 +204,7 @@ onMounted(() => {
     <div class="cart-card">
       <h2 class="cart-title">🛒 我的購物車</h2>
 
-      <table class="cart-table">
+      <table v-if="cartItems.length > 0" class="cart-table">
         <thead>
           <tr>
             <th>商品名稱</th>
@@ -256,12 +256,15 @@ onMounted(() => {
               </button>
             </td>
           </tr>
-
-          <tr v-if="cartItems.length === 0">
-            <td colspan="5" class="empty-msg">💡 目前購物車是空的喔！</td>
-          </tr>
         </tbody>
       </table>
+
+      <div v-else class="empty-cart-wrapper">
+        <div class="empty-msg-box">
+          <i class="fa-regular fa-lightbulb empty-icon"></i>
+          <span>目前購物車是空的喔！</span>
+        </div>
+      </div>
 
       <div class="total-section-enhanced" v-if="cartItems.length > 0">
         <div class="cart-summary-container">
