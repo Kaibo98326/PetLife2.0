@@ -38,18 +38,18 @@
       <div class="stat-mini status-working">
         <div class="mini-content">
           <span class="mini-label">處理中</span>
-          <span class="mini-value">{{
-            (orders || []).filter((o) => o.orderStatus === '處理中').length
-          }} 筆</span>
+          <span class="mini-value"
+            >{{ (orders || []).filter((o) => o.orderStatus === '處理中').length }} 筆</span
+          >
         </div>
         <i class="bi bi-clock-history"></i>
       </div>
       <div class="stat-mini status-done">
         <div class="mini-content">
           <span class="mini-label">已完成</span>
-          <span class="mini-value">{{
-            (orders || []).filter((o) => o.orderStatus === '已完成').length
-          }} 筆</span>
+          <span class="mini-value"
+            >{{ (orders || []).filter((o) => o.orderStatus === '已完成').length }} 筆</span
+          >
         </div>
         <i class="bi bi-check2-circle"></i>
       </div>
@@ -63,7 +63,7 @@
               <th>訂單編號</th>
               <th>姓名</th>
               <th>聯絡電話</th>
-              <th>下單時間</th>
+              <th>訂單成立時間</th>
               <th>使用點數</th>
               <th>剩餘點數</th>
               <th>實付金額</th>
@@ -127,28 +127,28 @@
                   <span v-else class="payment-text">{{ order.orderPayment }}</span>
                 </td>
                 <td>
-                 <div class="action-btns">
-                  <template v-if="!order.isEditing">
-<button class="btn-icon edit" @click="order.isEditing = true">
-                      修改 <i class="bi bi-pencil-square"></i>
-                    </button>
-                    <button class="btn-icon delete" @click="deleteOrder(order.orderId)">
-                      刪除 <i class="bi bi-trash3"></i>
-                    </button>
-                  </template>
-                                  <template v-else>
-                    <button class="btn-icon save" @click="saveOrder(order)">
-                      儲存 <i class="bi bi-check-lg"></i>
-                    </button>
-                    <button
-                      class="btn-icon cancel"
-                      @click="order.isEditing = false"
-                      style="background: #eee; color: #666;"
-                    >
-                      取消 <i class="bi bi-x-lg"></i>
-                    </button>
-                  </template>
-                </div>
+                  <div class="action-btns">
+                    <template v-if="!order.isEditing">
+                      <button class="btn-icon edit" @click="order.isEditing = true">
+                        修改 <i class="bi bi-pencil-square"></i>
+                      </button>
+                      <button class="btn-icon delete" @click="deleteOrder(order.orderId)">
+                        刪除 <i class="bi bi-trash3"></i>
+                      </button>
+                    </template>
+                    <template v-else>
+                      <button class="btn-icon save" @click="saveOrder(order)">
+                        儲存 <i class="bi bi-check-lg"></i>
+                      </button>
+                      <button
+                        class="btn-icon cancel"
+                        @click="order.isEditing = false"
+                        style="background: #eee; color: #666"
+                      >
+                        取消 <i class="bi bi-x-lg"></i>
+                      </button>
+                    </template>
+                  </div>
                 </td>
               </tr>
             </TransitionGroup>
@@ -162,23 +162,13 @@
           共 {{ orders.length }} 筆訂單，第 {{ currentPage }} / {{ totalPages }} 頁
         </div>
         <div class="page-controls">
-          <button 
-            class="p-btn" 
-            :disabled="currentPage === 1" 
-            @click="currentPage = 1"
-          >« 
-          </button>
-          <button 
-            class="p-btn" 
-            :disabled="currentPage === 1" 
-            @click="currentPage--"
-          >上一頁
-          </button>
-          
+          <button class="p-btn" :disabled="currentPage === 1" @click="currentPage = 1">«</button>
+          <button class="p-btn" :disabled="currentPage === 1" @click="currentPage--">上一頁</button>
+
           <div class="page-numbers">
-            <button 
-              v-for="p in totalPages" 
-              :key="p" 
+            <button
+              v-for="p in totalPages"
+              :key="p"
               class="num-btn"
               :class="{ active: currentPage === p }"
               @click="currentPage = p"
@@ -188,17 +178,15 @@
             </button>
           </div>
 
-          <button 
-            class="p-btn" 
-            :disabled="currentPage === totalPages" 
-            @click="currentPage++"
-          >下一頁
+          <button class="p-btn" :disabled="currentPage === totalPages" @click="currentPage++">
+            下一頁
           </button>
-          <button 
-            class="p-btn" 
-            :disabled="currentPage === totalPages" 
+          <button
+            class="p-btn"
+            :disabled="currentPage === totalPages"
             @click="currentPage = totalPages"
-          > »
+          >
+            »
           </button>
         </div>
       </div>
@@ -225,7 +213,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import OrderDetailAdminView from './OrderDetailAdminView.vue'
 import { useEmployeeStore } from '@/stores/employee'
 
-
 // 建立的明細彈窗組件              --------------------->活動需要
 // ✨ 修改：已將獨立的明細組件與功能停用，為遵守不破壞原則，將其註解保留
 // import OrderDiscountModal from '@/components/OrderDiscountModal.vue'
@@ -243,7 +230,6 @@ const selectedOrderId = ref(null)
 // const viewOrderDiscountDetails = (orderId) => {
 //     discountModalRef.value.openModal(orderId)
 // }
-
 
 // --- 分頁邏輯變數 ---
 const currentPage = ref(1)
@@ -313,7 +299,7 @@ const saveOrder = async (order) => {
 
     order.isEditing = false
     alert('訂單更新成功！')
-    fetchOrders() 
+    fetchOrders()
   } catch (err) {
     errorMessage.value = err.message
     alert('錯誤: ' + err.message)

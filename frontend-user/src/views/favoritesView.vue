@@ -19,18 +19,18 @@
         </div>
       </div>
 
-      <!-- 1. 讀取狀態 -->
+      <!-- 讀取狀態 -->
       <div v-if="loading" class="loader-container text-center py-5">
         <div class="warm-spinner mx-auto"></div>
         <p class="mt-3 text-muted">正在搬運您的收藏清單...</p>
       </div>
 
-      <!-- 2. 列表區 -->
+      <!-- 列表區 -->
       <div v-else-if="favoriteList.length > 0">
         <!-- 卡片一排 5 個 -->
         <div class="row g-3 row-cols-2 row-cols-md-4 row-cols-lg-5">
           <div v-for="item in paginatedList" :key="item.heartId" class="col">
-            <div class="pet-card">
+            <div class="pet-card clickable-card" @click="goToProduct(item.product.productId)">
               <div class="img-wrapper">
                 <img
                   :src="
@@ -49,13 +49,13 @@
                 <div class="price-val">NT$ {{ item.product.productPrice.toLocaleString() }}</div>
 
                 <div class="action-group">
-                  <!-- 加入按鈕改橘色 -->
-                  <button class="action-btn cart-btn-orange" @click="addToCart(item.product)">
+                  <!-- ⚠️ 按鈕皆加上 .stop 以防點擊按鈕時也跑去商品頁 -->
+                  <button class="action-btn cart-btn-orange" @click.stop="addToCart(item.product)">
                     <i class="bi bi-basket2-fill"></i> 加入購物車
                   </button>
                   <button
                     class="action-btn remove-btn-minimal"
-                    @click="handleRemove(item.product.productId)"
+                    @click.stop="handleRemove(item.product.productId)"
                   >
                     <i class="bi bi-trash3"></i> 取消收藏
                   </button>
@@ -98,20 +98,22 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from '@/axios.js'
 import Swal from 'sweetalert2'
 import { useUserStore } from '@/stores/user'
 
+const router = useRouter()
 const userStore = useUserStore()
 const favoriteList = ref([])
 const loading = ref(true)
 const currentPage = ref(1)
 const itemsPerPage = 10
 
-// --- 分頁邏輯 ---
+// --- 分頁邏輯修正 ---
 const totalPages = computed(() => {
   const total = Math.ceil(favoriteList.value.length / itemsPerPage)
-  // 最少要有1頁，這樣01按鈕才會出現
+  // 強制最少要有1頁，這樣01按鈕才會出現
   return total > 0 ? total : 1
 })
 
@@ -132,7 +134,13 @@ watch(totalPages, (newTotal) => {
   if (currentPage.value > newTotal) currentPage.value = newTotal || 1
 })
 
-// --- API 功能邏輯 ---
+// --- 導頁功能 ---
+const goToProduct = (productId) => {
+  // 對齊 HomeView.vue 的 /product/:id 格式
+  router.push(`/product/${productId}`)
+}
+
+// --- API 與功能邏輯 ---
 const fetchWishlist = async () => {
   if (!userStore.memberId) {
     loading.value = false
