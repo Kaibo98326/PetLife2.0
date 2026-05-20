@@ -22,6 +22,7 @@
 .wishlist-count span {
   color: #ff8c00;
   font-weight: 700;
+  font-size: 30px;
 }
 
 /* 導航按鈕 */
@@ -187,4 +188,16 @@
   background: #fafafa;
   color: #d1d1d1 !important;
   cursor: not-allowed;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
+}
+
+.clickable-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
