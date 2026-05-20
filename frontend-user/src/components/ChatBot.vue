@@ -29,7 +29,7 @@ let pollTimer = null
 // 分類選單
 const categoryMenu = [
   { icon: '🛒', label: '購物相關', category: '購物' },
-  { icon: '📦', label: '訂單/物流', category: '__ORDER__' },
+  { icon: '📦', label: '查詢訂單', category: '__ORDER__' },
   { icon: '⭐', label: '會員/點數', category: '會員' },
   { icon: '💬', label: '其他問題（AI 回答）', category: '__AI__' },
   { icon: '👤', label: '聯繫真人客服', category: '__HUMAN__' }
@@ -113,7 +113,7 @@ function toggleChat() {
 async function selectCategory(cat) {
   if (cat.category === '__ORDER__') {
     chatMessages.value.push({ id: Date.now(), type: 'user', text: cat.icon + ' ' + cat.label, time: new Date().toLocaleTimeString() })
-    sendFaq({ question: '📦 查詢我的訂單', answer: '__ORDER_QUERY__' })
+    sendFaq({ question: '', answer: '__ORDER_QUERY__' })
     chatStep.value = 'chat'
     return
   }
@@ -262,7 +262,9 @@ function stopPolling() {
 }
 
 function sendFaq(faq) {
-  chatMessages.value.push({ id: Date.now(), type: 'user', text: faq.question, time: new Date().toLocaleTimeString() })
+  if (faq.question) {
+    chatMessages.value.push({ id: Date.now(), type: 'user', text: faq.question, time: new Date().toLocaleTimeString() })
+  }
   isTyping.value = true
   if (faq.answer === '__ORDER_QUERY__') {
     if (!userStore.token || !userStore.user) {
