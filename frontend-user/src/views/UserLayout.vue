@@ -135,6 +135,14 @@ const handleLogout = () => {
   })
 }
 
+// 5/20 新增此監聽器：當路徑改變時，自動更新最新標籤
+watch(
+  () => route.path,
+  async () => {
+    await fetchCategories()
+  }
+)
+
 // ── 初始化 ────────────────────────────────────────────────────────────────
 onMounted(async () => {
   userStore.initFromLocalStorage()

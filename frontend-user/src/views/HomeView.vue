@@ -397,29 +397,55 @@ async function fetchFavoriteIds() {
 }
 
 // ── 監聽 URL query 變化（Header 搜尋 / 分類連結點擊） ─────────────────────
+// watch(
+//   () => route.query,
+//   (query) => {
+//     if (query.keyword) {
+//       searchKeyword.value = query.keyword
+//       selectedCategoryId.value = null
+//       fetchProducts(1)
+//     } else if (query.catId) {
+//       selectedCategoryId.value = parseInt(query.catId)
+//       searchKeyword.value = ''
+//       fetchProducts(1)
+//     } else if (query.view === 'all') {
+//       selectedCategoryId.value = null
+//       searchKeyword.value = ''
+//       fetchProducts(1)
+//     } else {
+//       // 點 LOGO 回首頁時，query 是空的
+//       selectedCategoryId.value = null
+//       searchKeyword.value = ''
+//       fetchProducts(1)
+//     }
+//   },
+// )
+
 watch(
-  () => route.query,
-  (query) => {
-    if (query.keyword) {
-      searchKeyword.value = query.keyword
-      selectedCategoryId.value = null
-      fetchProducts(1)
-    } else if (query.catId) {
-      selectedCategoryId.value = parseInt(query.catId)
-      searchKeyword.value = ''
-      fetchProducts(1)
-    } else if (query.view === 'all') {
-      selectedCategoryId.value = null
-      searchKeyword.value = ''
-      fetchProducts(1)
-    } else {
-      // 點 LOGO 回首頁時，query 是空的
-      selectedCategoryId.value = null
-      searchKeyword.value = ''
-      fetchProducts(1)
-    }
-  },
-)
+    () => route.query,
+    (query) => {
++     // 每次切換首頁分類或搜尋時，同步載入最新的活動標籤
++     fetchCategories()
+      
+      if (query.keyword) {
+        searchKeyword.value = query.keyword
+        selectedCategoryId.value = null
+        fetchProducts(1)
+      } else if (query.catId) {
+        selectedCategoryId.value = parseInt(query.catId)
+        searchKeyword.value = ''
+        fetchProducts(1)
+      } else if (query.view === 'all') {
+        selectedCategoryId.value = null
+        searchKeyword.value = ''
+        fetchProducts(1)
+      } else {
+        selectedCategoryId.value = null
+        searchKeyword.value = ''
+        fetchProducts(1)
+      }
+    },
+  )
 
 // ── 初始化 ────────────────────────────────────────────────────────────────
 onMounted(async () => {

@@ -17,6 +17,17 @@ const {
 const showAdvancedFilter = ref(false);
 const formModalRef = ref(null);
 
+//5/20新增
+// 1. 新增此變數，對應標籤元件
+const quickCategoryAddRef = ref(null);
+// 2. 新增此函數，同時刷新活動與標籤
+const handleSaved = () => {
+    fetchDiscounts(); // 重新讀取活動列表
+    if (quickCategoryAddRef.value) {
+        quickCategoryAddRef.value.fetchTags(); // 重新讀取標籤盒子
+    }
+};
+
 const currentPage = ref(1);
 const pageSize = ref(10);
 // ✨ 修改：總筆數改為動態連動「進階篩選後」的陣列長度！這樣點選篩選按鈕時，分頁總數才會跟著即時變動
@@ -60,8 +71,8 @@ onMounted(() => {
 
 <template>
     <div class="container-fluid py-4 px-4">
-        
-        <QuickCategoryAdd @success="handleTagSuccess" @tag-select="(tagId) => selectedTagFilter = tagId" />
+        <!-- 5/20新增：快速新增分類的元件，放在這裡讓它能同時刷新活動列表與標籤列表 -->
+        <QuickCategoryAdd ref="quickCategoryAddRef" @success="handleTagSuccess" @tag-select="(tagId) => selectedTagFilter = tagId" />
 
         <div id="listView">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -171,8 +182,8 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-
-        <DiscountFormModal ref="formModalRef" :discount-types="discountTypesList" @saved="fetchDiscounts" />
+<!-- 5/20新增 -->      
+        <DiscountFormModal ref="formModalRef" :discount-types="discountTypesList" @saved="handleSaved" />
         <DiscountUsageDetailModal ref="usageDetailModalRef" />
     </div>
 </template>

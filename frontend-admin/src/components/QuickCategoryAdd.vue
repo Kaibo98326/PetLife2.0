@@ -128,6 +128,10 @@ const confirmDelete = (tag) => {
     }
   })
 }
+//5/20新增
+defineExpose({
+  fetchTags
+})
 
 onMounted(() => {
   fetchTags()
