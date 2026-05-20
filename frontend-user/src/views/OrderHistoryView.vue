@@ -1,15 +1,11 @@
 <template>
   <div class="order-history-container py-5">
-    <!-- 改用 container-fluid 並增加左右內距 (px-5)，達成全寬度感 -->
     <div class="container-fluid px-lg-5 px-md-4">
-      <!-- 標題區：保留原本的裝飾與漸層 -->
       <div class="header-section mb-5">
         <div class="title-group">
           <div class="title-wrapper position-relative">
-            <!-- 原本的可愛裝飾點點 -->
             <div class="title-decoration-dots"></div>
             <h2 class="title">
-              <!-- 原本的搖擺圖示（加入 icon-pulse 類別） -->
               <div class="icon-pulse">
                 <i class="fas fa-paw"></i>
               </div>
@@ -22,7 +18,6 @@
         </div>
       </div>
 
-      <!-- 導覽按鈕區：維持原本的膠囊風格，但確保它們能橫向伸展 -->
       <div class="nav-wrapper d-flex gap-3 mb-4">
         <router-link to="/orderhistory" class="custom-nav-btn" exact-active-class="active">
           <i class="fas fa-shopping-bag me-1"></i> 購買紀錄
@@ -35,19 +30,15 @@
         </router-link>
       </div>
 
-      <!-- 實際顯示內容區塊：加大 Padding 並設定最小高度 -->
       <div class="content-card shadow-sm">
         <div class="child-route-content">
-          <!-- 子路由內容 -->
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
-              <!-- 加上 :key 確保組件完全重新導航 -->
-              <component :is="Component" :key="$route.fullPath" />
+              <component :is="Component" :key="$route.path" />
             </transition>
           </router-view>
         </div>
 
-        <!-- 返回按鈕區 -->
         <div class="bottom-action-area">
           <router-link to="/member/center" class="back-btn-center">
             <i class="fas fa-reply me-2"></i>返回會員中心

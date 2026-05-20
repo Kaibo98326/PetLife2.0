@@ -9,6 +9,41 @@ const userStore = useUserStore()
 const router = useRouter()
 const cartItems = ref([])
 
+  //  因應活動新增  用來裝後端算好的折扣與最終金額              --->活動新增
+const discountAmount = ref(0)
+const finalAmount = ref(0)
+const backendOriginalTotal = ref(0) 
+const appliedDiscounts = ref([])    
+const isDiscountExpanded = ref(false)
+
+// ✨ 新增/修改：紅利點數狀態管理 (CartView)
+const isBonusEnabled = ref(false)
+const useBonusPoints = ref(0)
+
+// ✨ 新增/修改：計算可用紅利最大值 (不能超過自己擁有的點數，也不能超過折抵後的總額)
+const maxUsablePoints = computed(() => {
+  const points = userStore.user?.bonusPoints || 0
+  return Math.min(points, finalAmount.value)
+})
+
+// ✨ 新增/修改：切換紅利開關時，自動帶入最大可折抵金額或歸零
+const toggleBonus = () => {
+  if (isBonusEnabled.value) {
+    useBonusPoints.value = maxUsablePoints.value
+  } else {
+    useBonusPoints.value = 0
+  }
+}
+
+// ✨ 新增/修改：防呆驗證輸入框，防止手動輸入負數或超過上限
+const validateBonus = () => {
+  if (!isBonusEnabled.value) return
+  let val = parseInt(useBonusPoints.value) || 0
+  if (val < 0) val = 0
+  if (val > maxUsablePoints.value) val = maxUsablePoints.value
+  useBonusPoints.value = val
+}
+
 // 取得購物車資料
 const fetchCart = async () => {
   const mId = userStore.memberId
@@ -21,6 +56,8 @@ const fetchCart = async () => {
     const res = await axios.get(`/cart/${mId}`)
     // console.log('購物車 API 回傳結果:', res.data)
     cartItems.value = res.data
+  //  資料抓完後，立刻呼叫計算折扣的 API                   --->活動新增
+    await calculateDiscount() 
   } catch (error) {
     console.error('獲取購物車失敗', error)
   }
@@ -30,6 +67,67 @@ const fetchCart = async () => {
 const totalAmount = computed(() => {
   return cartItems.value.reduce((sum, item) => sum + (item.subtotal || 0), 0)
 })
+
+// 後端 API 計算最新折扣                 --->活動新增
+const calculateDiscount = async () => {
+  if (cartItems.value.length === 0) {
+    discountAmount.value = 0
+    finalAmount.value = 0
+    return
+  }
+
+  //防呆：先把應付金額預設為原價，避免 API 失敗時變成 0
+  finalAmount.value = totalAmount.value
+
+ try {
+    // 將前端的 cartItems 轉成後端需要的 DTO 格式
+    // ⚠️ 注意：請確保你的 res.data 裡面有 productId 和 categoryId，如果沒有，後端分類折扣會算不出來！
+    const requestData = {
+      cartItems: cartItems.value.map(item => ({
+        // ✨ 修改 A：在組合 requestData 時，務必將 itemId 補進去傳給後端
+        itemId: item.itemId,
+        productId: item.productId,
+        categoryId: item.categoryId, 
+        price: item.productPrice,
+        quantity: item.quantity
+      }))
+    }
+    console.log("傳給後端的購物車資料：", requestData);
+    const res = await axios.post('/cart/calculate', requestData)
+    
+   // 將後端算好的金額存進變數
+    discountAmount.value = res.data.discountAmount || 0
+    finalAmount.value = res.data.finalAmount || 0
+    //   5/14更新：同步後端傳回的原始總額與明細清單
+    backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新  
+    appliedDiscounts.value = res.data.appliedDiscounts || []
+    
+    // ✨ 新增/修改：當活動折扣重算導致總額變更時，重新驗證紅利是否超過上限
+    validateBonus()
+
+    // 更新原本的 cartItems 的標籤 (對應 itemId)
+    if (res.data.cartItems) {
+      cartItems.value = cartItems.value.map(item => {
+        // ✨ 修改 B：將 find 條件改為「itemId 或是 productId」雙重保險比對，確保 reminderText 絕對能成功貼回商品上
+        const found = res.data.cartItems.find(i => i.itemId === item.itemId || i.productId === item.productId)
+        if (found) {
+          return {
+            ...item,
+            appliedDiscountText: found.appliedDiscountText,
+            reminderText: found.reminderText,
+            discountType: found.discountType,
+            productRole: found.productRole,
+            // ✨ 修改：補全後端回傳資料的「達標狀態」對接，供 template 智慧分流切換
+            isActivityMet: found.isActivityMet
+          }
+        }
+        return item
+      })
+    }
+  } catch (error) {
+    console.error('計算折扣失敗:', error)
+  }
+}
 
 // 修改數量
 const changeQty = async (item, delta) => {
@@ -42,7 +140,8 @@ const changeQty = async (item, delta) => {
     await axios.put(`/cart/update/${item.itemId}`, null, {
       params: { quantity: newQty },
     })
-    fetchCart()
+    await fetchCart()  //  觸發自動算前----->活動新增
+//    fetchCart()  --->原本的
   } catch {
     Swal.fire('錯誤', '更新數量失敗', 'error')
   }
@@ -88,6 +187,8 @@ const goToCheckout = () => {
     Swal.fire('提示', '購物車是空的，無法結帳喔！', 'warning')
     return
   }
+  // ✨ 新增/修改：前往結帳前，將決定的紅利點數存入 sessionStorage
+  sessionStorage.setItem('usedBonusPoints', useBonusPoints.value || 0)
   router.push('/checkout')
 }
 
@@ -114,7 +215,11 @@ onMounted(() => {
 
         <tbody>
           <tr v-for="item in cartItems" :key="item.itemId">
-            <td style="text-align: left">{{ item.productName }}</td>
+            <td style="text-align: left">
+              <div>{{ item.productName }}</div>
+              <div v-if="item.reminderText && (item.discountType !== '4' || (item.isActivityMet ? item.productRole === 'Addon' : item.productRole === 'Main'))" class="cart-reminder-text" v-html="item.reminderText"></div>
+              <div v-if="item.appliedDiscountText && (item.discountType !== '4' || (item.isActivityMet ? item.productRole === 'Addon' : item.productRole === 'Main'))" class="cart-discount-badge">{{ item.appliedDiscountText }}</div>
+            </td>
             <td class="price-text">$ {{ item.productPrice }}</td>
             <td>
               <button class="btn-qty" @click="changeQty(item, -1)">-</button>
@@ -129,19 +234,60 @@ onMounted(() => {
             </td>
           </tr>
 
-          <!-- 空購物車顯示 -->
           <tr v-if="cartItems.length === 0">
             <td colspan="5" class="empty-msg">💡 目前購物車是空的喔！</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- 總計區塊 -->
-      <div class="total-section" v-if="cartItems.length > 0">
-        總計金額：<span class="price-text">$ {{ totalAmount }}</span>
+      <div class="total-section-enhanced" v-if="cartItems.length > 0">
+        <div class="cart-summary-container">
+          <div class="cart-summary-line" style="font-size: 0.9em; color: #666;">
+            <span class="cart-summary-label">商品總計：</span>
+            <span>$ {{ totalAmount.toLocaleString() }}</span>
+          </div>
+          
+          <div v-if="discountAmount > 0" class="cart-discount-row" @click="isDiscountExpanded = !isDiscountExpanded">
+            <span class="cart-discount-label">
+              <i :class="isDiscountExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="cart-chevron-icon"></i>
+              活動折抵明細：
+            </span>
+            <span class="cart-discount-value">- $ {{ discountAmount.toLocaleString() }}</span>
+          </div>
+          
+          <div v-if="isDiscountExpanded && appliedDiscounts.length > 0" class="cart-detail-box">
+            <div v-for="(ad, index) in appliedDiscounts" :key="index" class="cart-detail-line">
+              <span class="cart-detail-name">{{ ad.detailText }}</span>
+              <span class="cart-detail-amount">- $ {{ ad.amount.toLocaleString() }}</span>
+            </div>
+          </div>
+
+          <div class="cart-bonus-row" style="margin-top: 10px; font-size: 0.9em; border-top: 1px dashed #eee; padding-top: 10px;">
+            <label style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: nowrap; gap: 8px;">
+              <div style="color: #666; white-space: nowrap; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;">
+                <input type="checkbox" v-model="isBonusEnabled" @change="toggleBonus" />
+                <span style="margin-left: 8px;">使用紅利點數折抵 (目前擁有: {{ userStore.user?.bonusPoints || 0 }} 點)</span>
+              </div>
+              <div :style="{ opacity: isBonusEnabled ? 1 : 0.4, color: isBonusEnabled ? '#000' : '#999' }" style="white-space: nowrap; flex-shrink: 0;">
+                - $ 
+                <input 
+                  type="number" 
+                  v-model.number="useBonusPoints" 
+                  @input="validateBonus" 
+                  :disabled="!isBonusEnabled" 
+                  style="width: 60px; text-align: right; border: 1px solid #ddd; border-radius: 4px; padding: 2px 4px; outline: none;" 
+                />
+              </div>
+            </label>
+          </div>
+          
+          <div class="cart-final-line" style="margin-top: 10px;">
+            <span class="cart-final-label">總計金額：</span>
+            <span class="cart-final-value">$ {{ Math.max(0, finalAmount - useBonusPoints).toLocaleString() }}</span>
+          </div>
+        </div>
       </div>
 
-      <!-- 按鈕區塊 -->
       <div class="action-buttons">
         <router-link to="/" class="btn-orange no-underline">
           <i class="fa-solid fa-house me-1"></i>返回首頁
@@ -151,6 +297,7 @@ onMounted(() => {
           <i class="fa-solid fa-credit-card me-1"></i>前往結帳
         </button>
       </div>
+
     </div>
   </div>
 </template>

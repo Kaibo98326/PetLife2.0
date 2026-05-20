@@ -1,10 +1,11 @@
 <script setup>
-import { useUserStore } from '@/stores/user'
-import { useRouter } from 'vue-router'
-import Swal from 'sweetalert2'
-import logo from '@/assets/images/logo01.png'
-import Cropper from 'cropperjs'
-import 'cropperjs/dist/cropper.css'
+import { useUserStore } from '@/stores/user';
+import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
+import logo from '@/assets/images/logo01.png';
+import Cropper from "cropperjs";
+import "cropperjs/dist/cropper.css";
+
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -123,6 +124,7 @@ const handleLogout = () => {
   })
 }
 </script>
+
 <template>
   <div class="member-center container-fluid mt-4">
     <header class="member-header d-flex align-items-center justify-content between p-3 bg-light">
@@ -157,8 +159,9 @@ const handleLogout = () => {
       <div class="menu-item" @click="router.push('/member/center/profile')">👤 個人資料</div>
       <div class="menu-item" @click="router.push('/member/center/favorites')">❤️ 我的收藏</div>
       <div class="menu-item" @click="router.push('/member/center/pets')">🐕 寵物管理</div>
-      <div class="menu-item" @click="router.push('/member/points')">💎 紅利點數</div>
+      <div class="menu-item" @click="router.push('/member/center/points')">💎 紅利點數</div>
       <div class="menu-item" @click="handleLogout">🔒 登出</div>
+
     </div>
 
     <!-- 子路由顯示區 -->
@@ -174,6 +177,9 @@ const handleLogout = () => {
         若遇可疑電話請勿理會，並撥打 165 反詐騙專線查證。
       </p>
     </section>
+
+
+    
   </div>
 </template>
 <style scoped>

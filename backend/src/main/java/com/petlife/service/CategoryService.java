@@ -44,8 +44,19 @@ public class CategoryService {
         return categoryRepository.save(category);
     }
 
-//===== 刪除分類 ============================================================================================
+  //===== 刪除分類 ============================================================================================
     public void deleteCategory(Integer id) {
+        //  新增/修改：系統核心容器防呆機制
+        // 若傳入的 ID 為 3 (🔥優惠活動)，拋出例外，禁止刪除此保留項目
+        if (id != null && id == 3) {
+            throw new IllegalArgumentException("此為系統保留之核心容器，禁止刪除！");
+        }
         categoryRepository.deleteById(id);
+    }
+    
+ // 專供消費者前台取得分類清單 (隱藏空標籤與未生效標籤)
+    @Transactional(readOnly = true)
+    public List<Category> getFrontEndCategories() {
+        return categoryRepository.findFrontEndCategories();
     }
 }

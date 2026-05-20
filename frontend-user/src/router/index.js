@@ -6,29 +6,26 @@ import MemberCenter from '@/views/MemberCenter.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import CartView from '@/views/CartView.vue'
 import CheckoutView from '@/views/CheckoutView.vue'
-import { useUserStore } from '@/stores/user'
 import CheckoutSuccessView from '@/views/CheckoutSuccessView.vue'
 import OrderHistoryView from '@/views/OrderHistoryView.vue'
 import ProductDetailView from '@/views/ProductDetailView.vue'
 import PetListView from '@/views/PetListView.vue'
 import AddPetView from '@/views/AddPetView.vue'
+import { useUserStore } from '@/stores/user'
 import HeartView from '@/views/HeartView.vue'
 import favoritesView from '@/views/favoritesView.vue'
 
 const routes = [
   {
-    // ── 商城主框架（Header + Nav 由 UserLayout 提供） ──
     path: '/',
     component: UserLayout,
     children: [
       {
-        // 商城首頁（輪播 + 商品列表）
         path: '',
         name: 'home',
         component: HomeView,
       },
       {
-        // 商品詳情
         path: 'product/:id',
         name: 'productDetail',
         component: ProductDetailView,
@@ -56,6 +53,21 @@ const routes = [
         path: 'stay/booking-success',
         name: 'StayBookingSuccess',
         component: () => import('@/views/stay/StayBookingSuccess.vue'),
+      },
+      {
+        path: 'beauty-booking',
+        name: 'BeautyItems',
+        component: () => import('@/views/BeautyItemsView.vue'),
+      },
+      {
+        path: 'beauty-booking/reserve',
+        name: 'BeautyBooking',
+        component: () => import('@/views/BeautyBookingView.vue'),
+      },
+      {
+        path: 'beauty-booking/appointments/:appointmentId',
+        name: 'BeautyAppointmentDetail',
+        component: () => import('@/views/BeautyAppointmentDetailView.vue'),
       },
       {
         path: '/heart',
@@ -94,18 +106,19 @@ const routes = [
     path: '/cart',
     name: 'cart',
     component: CartView,
-    /*守衛，看會員有沒有登入*/
     meta: { requiresAuth: true },
   },
   {
     path: '/checkout',
     name: 'checkout',
     component: CheckoutView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/checkoutsuccess',
     name: 'checkoutsuccess',
     component: CheckoutSuccessView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/orderhistory',
@@ -123,12 +136,18 @@ const routes = [
         component: () => import('@/views/PrettyOrderView.vue'),
       },
       {
+        path: 'prettyorders/:appointmentId',
+        name: 'prettyOrderDetail',
+        component: () => import('@/views/BeautyAppointmentDetailView.vue'),
+      },
+      {
         path: 'stayorders',
         name: 'stayorders',
         component: () => import('@/views/StayOrderView.vue'),
       },
     ],
   },
+
   {
     // 登入頁（獨立頁面，不套用 UserLayout）
     path: '/login',
@@ -150,6 +169,11 @@ const routes = [
       { path: 'pets', component: PetListView },
       { path: 'pets/add', component: AddPetView },
       { path: 'favorites', component: favoritesView },
+      {
+        path: 'points',
+        name: 'MemberPoints',
+        component: () => import('@/views/OpenBonusModal.vue'),
+      },
     ],
   },
   {
@@ -164,15 +188,11 @@ const router = createRouter({
   routes,
 })
 
-// 掛在router上的守衛
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const userStore = useUserStore()
 
-  // 檢查有沒有 memberId
   if (to.matched.some((record) => record.meta.requiresAuth) && !userStore.memberId) {
-    next('/login')
-  } else {
-    next()
+    return '/login'
   }
 })
 

@@ -16,6 +16,7 @@ const modalTitle = ref('')
 const modalMessage = ref('')
 const showWarningModal = ref(false)
 const currentWarningAction = ref(null)
+const bypassValidation = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -218,7 +219,10 @@ const showPetWarning = (title, message, actionType) => {
 
 // 處理 Modal 的三個選項
 const handleContinue = () => {
+  console.log('handleContinue 被觸發') // 加這行
   showWarningModal.value = false
+  if (currentWarningAction.value === 'no-pet') return
+  bypassValidation.value = true
   goToBooking()
 }
 
@@ -303,6 +307,19 @@ const goToBooking = () => {
 
   if (!checkIn.value || !checkOut.value) return
 
+  // 如果是用戶按繼續跳過驗證，直接跳轉
+  if (bypassValidation.value) {
+    bypassValidation.value = false
+    router.push({
+      path: `/stay/${route.params.roomTypeId}/booking`,
+      query: {
+        checkIn: checkIn.value,
+        checkOut: checkOut.value,
+        pets: selectedPets.value.join(','),
+      },
+    })
+    return
+  }
   // 檢查寵物類型是否符合房型
   if (!validatePetTypeForRoom()) {
     return // 不符合，顯示警告，停止

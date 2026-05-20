@@ -44,5 +44,11 @@ public class Category implements Serializable {
 //自訂排序順序
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
+    
+ 
+    // ✨ 用於傳遞給前端，標示此標籤是否在消費者前台被自動隱藏 (不存入實體資料庫)
+    @Transient
+    private Boolean isHiddenInFront = false;
 }
+
 

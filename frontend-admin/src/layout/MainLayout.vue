@@ -14,7 +14,7 @@
             <span class="separator"> > </span>
             <span class="current-path">{{ $route.name || '管理系統' }}</span>
           </div>
-          <h2 class="page-title">{{ $route.name }}</h2>
+          <i v-if="$route.meta.icon" :class="[$route.meta.icon, 'me-2']"></i>{{ $route.name }}
         </div>
 
         <router-view />

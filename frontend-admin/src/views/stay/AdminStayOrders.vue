@@ -122,7 +122,7 @@ const search = async () => {
       const res = await request.get('/api/stay/search/checkin', {
         params: { date: today },
       })
-      orders.value = res.data
+      orders.value = res.data.sort((a, b) => b.stayId - a.stayId)
     } catch (e) {
       console.error('搜尋失敗', e)
     } finally {
@@ -152,7 +152,7 @@ const search = async () => {
         params: { phone: searchKeyword.value },
       })
     }
-    orders.value = res.data
+    orders.value = res.data.sort((a, b) => b.stayId - a.stayId)
   } catch (e) {
     console.error('搜尋失敗', e)
   } finally {
@@ -167,7 +167,7 @@ const searchToday = async () => {
     const res = await request.get('/api/stay/search/checkin', {
       params: { date: today },
     })
-    orders.value = res.data
+    orders.value = res.data.sort((a, b) => b.stayId - a.stayId)
   } catch (e) {
     console.error('搜尋失敗', e)
   } finally {

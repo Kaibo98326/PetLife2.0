@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import com.petlife.model.Category;
 import com.petlife.service.CategoryService;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/categories")
 public class InnerCategoryController {
@@ -22,10 +25,24 @@ public class InnerCategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    // 取得所有分類 (回傳 JSON 陣列)
+ // 取得所有分類 (回傳 JSON 陣列)
     @GetMapping
     public ResponseEntity<List<Category>> getAll() {
-        return ResponseEntity.ok(categoryService.getAllCategory());
+        // 取得所有分類與前台可見分類，進行交叉比對，計算隱藏狀態
+        List<Category> allCategories = categoryService.getAllCategory();
+        List<Category> frontCategories = categoryService.getFrontEndCategories();
+
+        // 將前台可見的分類 ID 收集成 Set，大幅提升比對效能
+        Set<Integer> frontCategoryIds = frontCategories.stream()
+                .map(Category::getCategoryId)
+                .collect(Collectors.toSet());
+
+        // 遍歷所有分類，如果該 ID 不在前台可見的清單中，就將其標記為隱藏
+        for (Category category : allCategories) {
+            category.setIsHiddenInFront(!frontCategoryIds.contains(category.getCategoryId()));
+        }
+
+        return ResponseEntity.ok(allCategories);
     }
 
     // 取得單一分類 (Vue 的修改頁面可以根據 ID 查資料)
