@@ -45,22 +45,31 @@ public class DiscountEngine {
 			// ... (這裡原本的 for 迴圈內容完全不變) ...
 		}
 
-		// ==================== 🚀 修改：【分類層級擇優】排序 🚀 ====================
-		categoryLevelDiscounts.sort((d1, d2) -> {
-			// 每次試算前，複製一份獨立的複製品，防止 isProcessed 狀態在排序時被部分活動污染
-			List<CartItemDTO> copyForD1 = deepCopyCartItems(flattenedItems);
-			List<CartItemDTO> copyForD2 = deepCopyCartItems(flattenedItems);
-			BigDecimal saved1 = dispatchCalculation(copyForD1, d1, true);
-			BigDecimal saved2 = dispatchCalculation(copyForD2, d2, true);
-			return saved2.compareTo(saved1);
-		});
+		flattenedItems.stream()
+				.filter(i -> i.isProcessed() && !beforeProcessedIds.contains(i.getItemId()))
+				.forEach(i -> {
+					i.setAppliedDiscountText(badgeText);
+					// ✨ 修改：寫入達標狀態(true)、活動類型與商品角色，供 Vue 動態切換
+					i.setIsActivityMet(true);
+					i.setDiscountType(String.valueOf(discount.getDiscountType().getDiscountTypeId()));
+					i.setDiscountId(discount.getDiscountId());
+					if (addonPids.contains(i.getProductId())) {
+						i.setProductRole("Addon");
+					} else if (mainPids.contains(i.getProductId())) {
+						i.setProductRole("Main");
+					}
+				});
+	}}
 
-		for (Discount discount : categoryLevelDiscounts) {
-			// ... (這裡原本的 for 迴圈內容完全不變) ...
-		}
+	for(
 
-		// 3. 計算門檻提醒並合併還原
-		calculateReminders(flattenedItems, allActiveDiscounts);
+	Discount discount:categoryLevelDiscounts)
+	{
+		// ... (這裡原本的 for 迴圈內容完全不變) ...
+	}
+
+	// 3. 計算門檻提醒並合併還原
+	calculateReminders(flattenedItems, allActiveDiscounts);
 		List<CartItemDTO> mergedItems = mergeCartItems(flattenedItems);
 
 		CartCalculateResponseDTO response = new CartCalculateResponseDTO();
@@ -70,6 +79,21 @@ public class DiscountEngine {
 		return response;
 	}
 
+	flattenedItems.stream().filter(i->i.isProcessed()&&!beforeProcessedIds.contains(i.getItemId())).forEach(i->
+
+	{
+		i.setAppliedDiscountText(badgeText);
+		// ✨ 修改：寫入達標狀態(true)、活動類型與商品角色，供 Vue 動態切換
+		i.setIsActivityMet(true);
+		i.setDiscountType(String.valueOf(discount.getDiscountType().getDiscountTypeId()));
+		i.setDiscountId(discount.getDiscountId());
+		if (addonCids.contains(i.getCategoryId())) {
+			i.setProductRole("Addon");
+		} else if (mainCids.contains(i.getCategoryId())) {
+			i.setProductRole("Main");
+		}
+	});
+	}}
 
 	// --- 活動新增：攤平邏輯 ---
 	private List<CartItemDTO> flattenCartItems(List<CartItemDTO> originalItems) {
@@ -103,6 +127,50 @@ public class DiscountEngine {
 				if (f.getReminderText() != null)
 					existing.setReminderText(f.getReminderText());
 
+    // --- 活動新增：攤平邏輯 ---
+	private List<CartItemDTO> flattenCartItems(List<CartItemDTO> originalItems) {
+		List<CartItemDTO> flattened = new ArrayList<>();
+		for (CartItemDTO item : originalItems) {
+			for (int i = 0; i < item.getQuantity(); i++) {
+				CartItemDTO single = new CartItemDTO();
+				single.setItemId(item.getItemId()); // 保持同款商品 ID 一致
+				single.setProductId(item.getProductId());
+				single.setCategoryId(item.getCategoryId());
+				single.setPrice(item.getPrice());
+				single.setQuantity(1); // 強制變 1
+				single.setDiscountAmount(BigDecimal.ZERO);
+				flattened.add(single);
+			}
+		}
+		return flattened;
+	}
+
+	// --- 活動新增：合併邏輯 (只要部分有折抵就帶標籤) ---
+	private List<CartItemDTO> mergeCartItems(List<CartItemDTO> flattened) {
+		Map<Integer, CartItemDTO> map = new LinkedHashMap<>();
+		for (CartItemDTO f : flattened) {
+			if (!map.containsKey(f.getItemId())) {
+				map.put(f.getItemId(), f);
+			} else {
+				CartItemDTO existing = map.get(f.getItemId());
+				existing.setQuantity(existing.getQuantity() + 1);
+				// kkb新增
+				BigDecimal oldDiscount = existing.getDiscountAmount() == null
+						? BigDecimal.ZERO
+						: existing.getDiscountAmount();
+
+				BigDecimal newDiscount = f.getDiscountAmount() == null
+						? BigDecimal.ZERO
+						: f.getDiscountAmount();
+
+				existing.setDiscountAmount(oldDiscount.add(newDiscount));
+				// -----
+				// 只要子項目有標籤或提醒，就保留
+				if (f.getAppliedDiscountText() != null)
+					existing.setAppliedDiscountText(f.getAppliedDiscountText());
+				if (f.getReminderText() != null)
+					existing.setReminderText(f.getReminderText());
+
 				// ✨ 修改：合併時也必須一併保留這些新寫入的狀態屬性
 				if (f.getDiscountType() != null)
 					existing.setDiscountType(f.getDiscountType());
@@ -115,45 +183,26 @@ public class DiscountEngine {
 		return new ArrayList<>(map.values());
 	}
 
-	// 舊的活動分類篩選
-	private List<CartItemDTO> filterEligibleItems(List<CartItemDTO> items, Discount discount, String String_role) {
-		return items.stream().filter(i -> !i.isProcessed()).filter(i -> {
-			if (discount.getScopeType() == 2) { // 單品
-				Set<Integer> pIds = discount.getDiscountProducts().stream()
-						// ✨ 修改：補上致命的漏洞！加入角色(Role)過濾，確保主副商品完美分流不會混淆
-						.filter(dp -> String_role.equals(dp.getProductRole())).map(dp -> dp.getProduct().getProductId())
-						.collect(Collectors.toSet());
-				return pIds.contains(i.getProductId());
-			} else { // 分類
-				Set<Integer> cIds = discount.getDiscountCategories().stream()
-						// ✨ 修改：補上致命的漏洞！加入角色(Role)過濾，確保主副商品完美分流不會混淆
-						.filter(dc -> String_role.equals(dc.getCategoryRole()))
-						.map(dc -> dc.getCategory().getCategoryId()).collect(Collectors.toSet());
-				return cIds.contains(i.getCategoryId());
-			}
-		}).collect(Collectors.toList());
-	}
-
 	private BigDecimal dispatchCalculation(List<CartItemDTO> cartItems, Discount discount, boolean isDryRun) {
 		List<CartItemDTO> eligibleItems = filterEligibleItems(cartItems, discount, "Main");
 		if (eligibleItems.isEmpty())
 			return BigDecimal.ZERO;
 		Integer typeId = discount.getDiscountType().getDiscountTypeId();
 		switch (typeId) {
-		case 1:
-			return calculationService.calculatePercentageDiscount(eligibleItems, discount, isDryRun);
-		case 2:
-			return calculationService.calculateFixedDiscount(eligibleItems, discount, isDryRun);
-		case 3:
-			return calculationService.calculateBuyNGetMDiscount(eligibleItems,
-					filterEligibleItems(cartItems, discount, "Addon"), discount, isDryRun);
-		case 4:
-			return calculationService.calculateAddOnDiscount(eligibleItems,
-					filterEligibleItems(cartItems, discount, "Addon"), discount, isDryRun);
-		case 5:
-			return calculationService.calculateBundleDiscount(eligibleItems, discount, isDryRun);
-		default:
-			return BigDecimal.ZERO;
+			case 1:
+				return calculationService.calculatePercentageDiscount(eligibleItems, discount, isDryRun);
+			case 2:
+				return calculationService.calculateFixedDiscount(eligibleItems, discount, isDryRun);
+			case 3:
+				return calculationService.calculateBuyNGetMDiscount(eligibleItems,
+						filterEligibleItems(cartItems, discount, "Addon"), discount, isDryRun);
+			case 4:
+				return calculationService.calculateAddOnDiscount(eligibleItems,
+						filterEligibleItems(cartItems, discount, "Addon"), discount, isDryRun);
+			case 5:
+				return calculationService.calculateBundleDiscount(eligibleItems, discount, isDryRun);
+			default:
+				return BigDecimal.ZERO;
 		}
 	}
 
@@ -245,6 +294,7 @@ public class DiscountEngine {
 			}
 		}
 	}
+
 	// 💡 補在 DiscountEngine.java 最下方，專門用來複製商品清單的輔助方法
 	private List<CartItemDTO> deepCopyCartItems(List<CartItemDTO> source) {
 		List<CartItemDTO> copy = new ArrayList<>();

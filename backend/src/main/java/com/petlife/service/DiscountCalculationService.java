@@ -27,7 +27,7 @@ public class DiscountCalculationService {
 			markItems(validItems, validItems.size());
 			apportionDiscount(validItems, discountAmount);
 		}
-		return discountAmount.setScale(0, RoundingMode.HALF_UP);
+		return discountAmount.setScale(0, RoundingMode.DOWN);
 	}
 
 	// 【滿額折扣】
@@ -47,7 +47,7 @@ public class DiscountCalculationService {
 			markItems(validItems, validItems.size());
 			apportionDiscount(validItems, discountAmount);
 		}
-		return discountAmount.setScale(0, RoundingMode.HALF_UP);
+		return discountAmount.setScale(0, RoundingMode.DOWN);
 	}
 
 	// 【買 N 送 M】
@@ -122,18 +122,37 @@ public class DiscountCalculationService {
 			originalTotal = originalTotal.add(validItems.get(i).getPrice());
 		}
 
-		BigDecimal bundleTotal = new BigDecimal(discount.getDiscountValue().toString()).multiply(new BigDecimal(sets));
-		BigDecimal discountAmount = originalTotal.subtract(bundleTotal);
+        BigDecimal accumulated = BigDecimal.ZERO;
+        for (int i = 0; i < markedItems.size(); i++) {
+            CartItemDTO item = markedItems.get(i);
+            BigDecimal itemShare;
+            
+            if (i == markedItems.size() - 1) {
+                itemShare = totalDiscount.subtract(accumulated);
+            } else {
+                itemShare = totalDiscount.multiply(item.getPrice()).divide(originalTotal, 0, RoundingMode.DOWN);
+            }
+            //kkb新增----
+            BigDecimal oldDiscount = item.getDiscountAmount() == null
+                    ? BigDecimal.ZERO
+                    : item.getDiscountAmount();
 
-		if (discountAmount.compareTo(BigDecimal.ZERO) < 0)
-			return BigDecimal.ZERO;
+            item.setDiscountAmount(oldDiscount.add(itemShare));
+            //-----
+            accumulated = accumulated.add(itemShare);
+            
+        }
+    }
 
-		// --- 活動新增：判斷是否為假算 ---
-		if (!isDryRun) {
-			List<CartItemDTO> markedItems = markItems(validItems, sets * requiredQty);
-			apportionDiscount(markedItems, discountAmount);
-		}
-		return discountAmount.setScale(0, RoundingMode.HALF_UP);
+	if(discountAmount.compareTo(BigDecimal.ZERO)<0)return BigDecimal.ZERO;
+
+	// --- 活動新增：判斷是否為假算 ---
+	if(!isDryRun)
+
+	{
+		List<CartItemDTO> markedItems = markItems(validItems, sets * requiredQty);
+		apportionDiscount(markedItems, discountAmount);
+	}return discountAmount.setScale(0,RoundingMode.HALF_UP);
 	}
 
 	// ==========================================
