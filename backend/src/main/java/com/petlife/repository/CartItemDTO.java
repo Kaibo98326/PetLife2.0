@@ -21,9 +21,21 @@ public class CartItemDTO {
     private BigDecimal price;
     private Integer quantity;
     private boolean isProcessed = false; // 標記是否已被更高級活動處理過
+    //kkb新增
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+    private Integer discountId;
 
+    public Integer getDiscountId() {
+        return discountId;
+    }
+
+    public void setDiscountId(Integer discountId) {
+        this.discountId = discountId;
+    }
+    //------
+    
     public CartItemDTO() {}
-
+    
     // --- 活動新增開始：Getters and Setters ---
     public Integer getItemId() { return itemId; }
     public void setItemId(Integer itemId) { this.itemId = itemId; }
@@ -58,4 +70,12 @@ public class CartItemDTO {
 
     public boolean isProcessed() { return isProcessed; }
     public void setProcessed(boolean processed) { this.isProcessed = processed; }
+    //kkb新增
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
 }

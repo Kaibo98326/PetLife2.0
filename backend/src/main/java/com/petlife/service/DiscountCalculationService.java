@@ -26,7 +26,7 @@ public class DiscountCalculationService {
             markItems(validItems, validItems.size());
             apportionDiscount(validItems, discountAmount); 
         }
-        return discountAmount.setScale(0, RoundingMode.HALF_UP);
+        return discountAmount.setScale(0, RoundingMode.DOWN);
     }
 
     // 【滿額折扣】
@@ -44,7 +44,7 @@ public class DiscountCalculationService {
             markItems(validItems, validItems.size());
             apportionDiscount(validItems, discountAmount); 
         }
-        return discountAmount.setScale(0, RoundingMode.HALF_UP);
+        return discountAmount.setScale(0, RoundingMode.DOWN);
     }
 
     // 【買 N 送 M】
@@ -149,12 +149,21 @@ public class DiscountCalculationService {
         for (int i = 0; i < markedItems.size(); i++) {
             CartItemDTO item = markedItems.get(i);
             BigDecimal itemShare;
+            
             if (i == markedItems.size() - 1) {
                 itemShare = totalDiscount.subtract(accumulated);
             } else {
-                itemShare = totalDiscount.multiply(item.getPrice()).divide(originalTotal, 0, RoundingMode.HALF_UP);
+                itemShare = totalDiscount.multiply(item.getPrice()).divide(originalTotal, 0, RoundingMode.DOWN);
             }
+            //kkb新增----
+            BigDecimal oldDiscount = item.getDiscountAmount() == null
+                    ? BigDecimal.ZERO
+                    : item.getDiscountAmount();
+
+            item.setDiscountAmount(oldDiscount.add(itemShare));
+            //-----
             accumulated = accumulated.add(itemShare);
+            
         }
     }
 

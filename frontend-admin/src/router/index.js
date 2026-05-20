@@ -57,6 +57,11 @@ const routes = [
         component: OrderAdminView
       },
       {
+        path: 'order/orderanalysis',
+        name: '訂單狀態分析',
+        component: () => import('@/views/AdminOrderAnalysis.vue'),
+      },
+      {
         path: 'employee',
         name: '員工管理',
         component: () => import('@/views/AdminEmployeeList.vue')
@@ -106,14 +111,14 @@ const routes = [
         path: '/admin/discount', // 或是 /admin/discounts
         name: '優惠活動管理',
         meta: { icon: 'fa-solid fa-gift' },
-        component: () => import('../views/DiscountView.vue'), // 確保組件路徑正確
+        component: () => import('@/views/DiscountView.vue'), // 確保組件路徑正確
       },
      // ✨ 新增：活動成效分析獨立頁面路由
       {
         path: '/admin/discount/analysis',
         name: '活動成效分析',
         meta: { icon: 'fa-solid fa-chart-pie' },
-        component: () => import('../views/DiscountAnalysis.vue'),
+        component: () => import('@/views/DiscountAnalysis.vue'),
       },
       {
         path: 'chat-support',

@@ -12,6 +12,7 @@ const isProcessing = ref(false)
 const discountAmount = ref(0)
 const finalAmount = ref(0)
 const appliedDiscounts = ref([])
+const discountedCartItems = ref([])//kkb新增
 const isDiscountExpanded = ref(false)
 // 5/14更新：新增接收後端原始總額與明細清單的變數
 const backendOriginalTotal = ref(0) //   5/14更新
@@ -67,6 +68,7 @@ const calculateDiscount = async () => {
     //   5/14更新：同步後端傳回的原始總額與明細
     backendOriginalTotal.value = res.data.originalTotal || totalAmount.value //   5/14更新
     appliedDiscounts.value = res.data.appliedDiscounts || []
+    discountedCartItems.value = res.data.cartItems || [] //kkb新增
   } catch (error) {
     console.error('結帳折扣計算失敗', error)
   }
@@ -158,9 +160,14 @@ const submitOrder = async () => {
     }
 
     console.log('準備送出的 cartId:', userStore.cartId)
-   const res = await axios.post('/orders/checkout', orderData, {
-      params: { cartId: userStore.cartId },
-    })
+   const checkoutData = {
+     order: orderData,
+     appliedDiscounts: appliedDiscounts.value,
+     cartItems: discountedCartItems.value  //kkb新增
+   }
+   const res = await axios.post('/orders/checkout', checkoutData, {
+  params: { cartId: userStore.cartId },
+})
 
     if (res.data.order?.orderId) {
       sessionStorage.setItem('lastOrderId', res.data.order.orderId)

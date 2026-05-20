@@ -156,15 +156,32 @@
   width: 100%;
   border-collapse: collapse;
 }
-.custom-table th {
-  background: #fff3e0;
-  color: #bf360c;
-  padding: 1.2rem;
-  /* text-align: left; */
+.custom-table th, 
+.custom-table td{
+  padding: 1rem 0.8rem;
+  white-space: nowrap;
+  text-align: center;      
+  vertical-align: middle; 
 }
-.custom-table td {
-  padding: 1.2rem;
-  border-bottom: 1px solid #f1f1f1;
+
+.custom-table th:nth-child(2),
+.custom-table td:nth-child(2) {
+  text-align: left;       
+}
+
+
+/* 編輯按鈕區塊置中時寬度與排版正常 */
+.action-btns {
+  display: inline-flex;    /* 改為 inline-flex 配合置中 */
+  justify-content: center;
+  gap: 8px;
+  min-width: 150px;
+}
+
+/* 修改下拉選單置中（編輯狀態） */
+.edit-select {
+  display: flex;
+  justify-content: center;
 }
 
 .order-id {
