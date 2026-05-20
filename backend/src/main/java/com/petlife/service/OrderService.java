@@ -480,7 +480,6 @@ public class OrderService {
 			}
 		}
 
-		// 扣除紅利點數 (假設 1 點 = 1 元)
 		if (pointsUsed != null && pointsUsed > 0) {
 			finalAmount = finalAmount.subtract(new BigDecimal(pointsUsed));
 		}
@@ -493,7 +492,7 @@ public class OrderService {
 		return finalAmount;
 	}
 
-	// ✨ 新增：統一的紅利計算邏輯 (集中管理，未來好修改)
+	// 統一的紅利計算邏輯
 	public int calculateEarnedBonus(BigDecimal amount) {
 		if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
 			return 0;

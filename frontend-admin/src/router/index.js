@@ -57,6 +57,11 @@ const routes = [
         component: OrderAdminView
       },
       {
+        path: 'order/orderanalysis',
+        name: '訂單狀態分析',
+        component: () => import('@/views/AdminOrderAnalysis.vue'),
+      },
+      {
         path: 'employee',
         name: '員工管理',
         component: () => import('@/views/AdminEmployeeList.vue')

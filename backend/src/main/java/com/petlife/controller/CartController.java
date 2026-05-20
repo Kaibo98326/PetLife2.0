@@ -20,7 +20,7 @@ import com.petlife.model.Member;
 //活動匯入，因應即時折扣計算
 import com.petlife.service.DiscountEngine; //  折扣分類核心
 //專門用來裝單一個購物車商品的核心資訊（如：商品ID、分類ID、價格、數量）
-import com.petlife.repository.CartItemDTO;  
+import com.petlife.repository.CartItemDTO;
 //處理CartItemDTO，當前端按下結帳或計算時，就是把這個list傳給後端，後端才知道購物車裡到底有哪些東西要算錢
 import com.petlife.repository.CartRequestDTO;
 import com.petlife.repository.DiscountRepository;
@@ -32,123 +32,121 @@ import com.petlife.repository.CartCalculateResponseDTO;
 @RequestMapping("/api/cart")
 public class CartController {
 
-    @Autowired
-    private CartService cartService;
-    
-    @Autowired
-    private MemberService memberService;
+	@Autowired
+	private CartService cartService;
 
- // 折扣相關
-    @Autowired
-    private DiscountEngine discountEngine;
-    //活動
-    @Autowired
-    private DiscountRepository discountRepository;
-    
-    // 取得購物車清單
-    @GetMapping("/{memberId}")
-    public ResponseEntity<List<CartItem>> getMyCart(@PathVariable Integer memberId) {
-        return ResponseEntity.ok(cartService.getCartItems(memberId));
-    }
+	@Autowired
+	private MemberService memberService;
 
-    // 取得購物車商品總件數
-    @GetMapping("/count/{memberId}")
-    public ResponseEntity<Integer> getCartCount(@PathVariable Integer memberId) {
-        Integer count = cartService.getCartTotalQuantity(memberId);
-        return ResponseEntity.ok(count);
-    }
+	// 折扣相關
+	@Autowired
+	private DiscountEngine discountEngine;
+	// 活動
+	@Autowired
+	private DiscountRepository discountRepository;
 
-    // 加入購物車
-    @PostMapping("/add/{memberId}")
-    public ResponseEntity<String> addItem(@PathVariable Integer memberId, @RequestBody CartItem item) {
-        try {
-            cartService.addToCart(memberId, item);
-            return ResponseEntity.ok("success");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
+	// 取得購物車清單
+	@GetMapping("/{memberId}")
+	public ResponseEntity<List<CartItem>> getMyCart(@PathVariable Integer memberId) {
+		return ResponseEntity.ok(cartService.getCartItems(memberId));
+	}
 
-    // 刪除特定品項
-    @DeleteMapping("/item/{itemId}")
-    public ResponseEntity<String> removeItem(@PathVariable Integer itemId) {
-        cartService.removeItemFromCart(itemId);
-        return ResponseEntity.ok("removed");
-    }
+	// 取得購物車商品總件數
+	@GetMapping("/count/{memberId}")
+	public ResponseEntity<Integer> getCartCount(@PathVariable Integer memberId) {
+		Integer count = cartService.getCartTotalQuantity(memberId);
+		return ResponseEntity.ok(count);
+	}
 
-    // 更新數量(取代原本的/update)
-    // + - 按鈕
-    @PutMapping("/update/{itemId}")
-    public ResponseEntity<String> updateQuantity(
-            @PathVariable Integer itemId, 
-            @RequestParam Integer quantity) {
-        try {
-            cartService.updateCartItemQuantity(itemId, quantity);
-            return ResponseEntity.ok("updated");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
-    // 提供給 CheckoutView.vue 呼叫的接口
-    @GetMapping("/member/info/{id}")
-    public ResponseEntity<?> getMemberInfoForCheckout(@PathVariable Integer id) {
-    	Member member = memberService.findById(id).orElse(null);
-        if (member != null) {
-            return ResponseEntity.ok(member); // 回傳會員物件
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("找不到會員");
-    }
-    
-    
-    
- // -即時折扣計算 API
-    @PostMapping("/calculate")
-    public ResponseEntity<Map<String, Object>> calculateCartDiscount(@RequestBody CartRequestDTO request) {
-        List<CartItemDTO> cartItems = request.getCartItems();
+	// 加入購物車
+	@PostMapping("/add/{memberId}")
+	public ResponseEntity<String> addItem(@PathVariable Integer memberId, @RequestBody CartItem item) {
+		try {
+			cartService.addToCart(memberId, item);
+			return ResponseEntity.ok("success");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+		}
+	}
 
-        // 1. 計算原價總額 (Original Total)
-        BigDecimal originalTotal = cartItems.stream()
-                .map(item -> item.getPrice().multiply(new BigDecimal(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+	// 刪除特定品項
+	@DeleteMapping("/item/{itemId}")
+	public ResponseEntity<String> removeItem(@PathVariable Integer itemId) {
+		cartService.removeItemFromCart(itemId);
+		return ResponseEntity.ok("removed");
+	}
 
-        // 2. 取得進行中的活動
-        java.time.LocalDate today = java.time.LocalDate.now();
-        List<Discount> activeDiscounts = discountRepository.findAll().stream()
-                .filter(d -> "active".equals(d.getStatus()))
-                .filter(d -> d.getStartDate() != null && d.getEndDate() != null)
-                .filter(d -> !today.isBefore(d.getStartDate()) && !today.isAfter(d.getEndDate()))
-                .collect(Collectors.toList());
+	// 更新數量(取代原本的/update)
+	// + - 按鈕
+	@PutMapping("/update/{itemId}")
+	public ResponseEntity<String> updateQuantity(@PathVariable Integer itemId, @RequestParam Integer quantity) {
+		try {
+			cartService.updateCartItemQuantity(itemId, quantity);
+			return ResponseEntity.ok("updated");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+		}
+	}
 
-        try {
-            // 3. 呼叫折扣引擎執行計算
-            // --- 活動新增開始：改為接收新的 Response DTO 格式 ---
-            CartCalculateResponseDTO calcResponse = discountEngine.executeDiscount(cartItems, activeDiscounts);
-            BigDecimal discountAmount = calcResponse.getDiscountAmount();
-            // --- 活動新增結束 ---
+	// 提供給 CheckoutView.vue 呼叫的接口
+	@GetMapping("/member/info/{id}")
+	public ResponseEntity<?> getMemberInfoForCheckout(@PathVariable Integer id) {
+		Member member = memberService.findById(id).orElse(null);
+		if (member != null) {
+			return ResponseEntity.ok(member); // 回傳會員物件
+		}
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("找不到會員");
+	}
 
-            // 4. 計算應付總額 (Final Amount)
-            BigDecimal finalAmount = originalTotal.subtract(discountAmount);
-            if (finalAmount.compareTo(BigDecimal.ZERO) < 0) finalAmount = BigDecimal.ZERO;
+	// -即時折扣計算 API
+	@PostMapping("/calculate")
+	public ResponseEntity<Map<String, Object>> calculateCartDiscount(@RequestBody CartRequestDTO request) {
+		List<CartItemDTO> cartItems = request.getCartItems();
 
-            // 5. 回傳結果給前端
-            Map<String, Object> result = new HashMap<>();
-            result.put("originalTotal", originalTotal);
-            result.put("discountAmount", discountAmount);
-            result.put("finalAmount", finalAmount);
-            
-            // --- 活動新增開始：將明細清單與綁好標籤的商品回傳給 Vue ---
-            result.put("appliedDiscounts", calcResponse.getAppliedDiscounts());
-            result.put("cartItems", calcResponse.getCartItems());
-            // --- 活動新增結束 ---
+		// 1. 計算原價總額 (Original Total)
+		BigDecimal originalTotal = cartItems.stream()
+				.map(item -> item.getPrice().multiply(new BigDecimal(item.getQuantity())))
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            java.io.StringWriter sw = new java.io.StringWriter();
-            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
-            e.printStackTrace(pw);
-            Map<String, Object> errorResult = new HashMap<>();
-            errorResult.put("error", sw.toString());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
-        }
-    }
+		// 2. 取得進行中的活動
+		java.time.LocalDate today = java.time.LocalDate.now();
+		List<Discount> activeDiscounts = discountRepository.findAll().stream()
+				.filter(d -> "active".equals(d.getStatus()))
+				.filter(d -> d.getStartDate() != null && d.getEndDate() != null)
+				.filter(d -> !today.isBefore(d.getStartDate()) && !today.isAfter(d.getEndDate()))
+				.collect(Collectors.toList());
+
+		try {
+			// 3. 呼叫折扣引擎執行計算
+			// --- 活動新增開始：改為接收新的 Response DTO 格式 ---
+			CartCalculateResponseDTO calcResponse = discountEngine.executeDiscount(cartItems, activeDiscounts);
+			BigDecimal discountAmount = calcResponse.getDiscountAmount();
+			// --- 活動新增結束 ---
+
+			// 4. 計算應付總額 (Final Amount)
+			BigDecimal finalAmount = originalTotal.subtract(discountAmount);
+			if (finalAmount.compareTo(BigDecimal.ZERO) < 0)
+				finalAmount = BigDecimal.ZERO;
+
+			// 5. 回傳結果給前端
+			Map<String, Object> result = new HashMap<>();
+			result.put("originalTotal", originalTotal);
+			result.put("discountAmount", discountAmount);
+			result.put("finalAmount", finalAmount);
+
+			// --- 活動新增開始：將明細清單與綁好標籤的商品回傳給 Vue ---
+			result.put("appliedDiscounts", calcResponse.getAppliedDiscounts());
+			result.put("cartItems", calcResponse.getCartItems());
+			// --- 活動新增結束 ---
+
+			return ResponseEntity.ok(result);
+		} catch (Exception e) {
+			java.io.StringWriter sw = new java.io.StringWriter();
+			java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+			e.printStackTrace(pw);
+			Map<String, Object> errorResult = new HashMap<>();
+			errorResult.put("error", sw.toString());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResult);
+		}
+	}
 }
