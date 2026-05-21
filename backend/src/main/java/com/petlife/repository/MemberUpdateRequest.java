@@ -6,6 +6,7 @@ import lombok.Data;
 public class MemberUpdateRequest {
 	
 	private Integer memberId;
+	private String memberName;
     private String phone;
     private String email;
     private String address;

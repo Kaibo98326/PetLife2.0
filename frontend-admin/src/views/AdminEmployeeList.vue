@@ -94,7 +94,7 @@ const fillRegisterDemo = () =>{
     addForm.value.username = 'marylin'
     addForm.value.passwordHash = '123'
     addForm.value.empName = '瑪莉琳'
-    addForm.value.empPhone = '0912345678'
+    addForm.value.empPhone = '09125475488'
     addForm.value.empAddress = '台北市信義區松仁路123號'
     addForm.value.emergencyContact = '張小明'
     addForm.value.emergencyPhone = '0987654321'

@@ -118,6 +118,7 @@ public class MemberService implements IMemberService{
 					.ifPresent(m ->{throw new IllegalArgumentException("此電話已被使用");});
 		
 		//可修改欄位
+		member.setMemberName(req.getMemberName());
 		member.setPhone(req.getPhone());
 		member.setEmail(req.getEmail());
 		member.setAddress(req.getAddress());
