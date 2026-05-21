@@ -34,7 +34,7 @@ body {
 
 .user-layout {
     width: 100% !important;
-    overflow-x: hidden;
+    /* overflow-x: hidden; */
 }
 
 .row {
