@@ -38,6 +38,7 @@
 .cart-table td {
   padding: 15px;
   text-align: center; /* 預設全部置中 */
+  vertical-align: middle; /* 確保所有內容在垂直方向置中 */
   border-bottom: 1px solid #eee;
 }
 
@@ -45,14 +46,28 @@
 .cart-table th:nth-child(1),
 .cart-table td:nth-child(1) {
   text-align: left;       
-  padding-left: 25px;     
-  width: 40%;             
+  padding-left: 20px;     
+  width: 35%;             
+}
+
+/* 單價與小計欄位：強制不換行，確保金額始終在同一行 */
+.cart-table th:nth-child(2), .cart-table td:nth-child(2),
+.cart-table th:nth-child(4), .cart-table td:nth-child(4) {
+  width: 15%;
+  white-space: nowrap;
 }
 
 /* 給數量控制欄位一個固定寬度，確保按鈕跟數字在正中間不會晃動 */
 .cart-table th:nth-child(3),
 .cart-table td:nth-child(3) {
-  width: 18%;
+  width: 20%;
+  white-space: nowrap; /* 防止螢幕縮小時按鈕與數字斷行 */
+}
+
+/* 操作欄位 (刪除按鈕) */
+.cart-table th:nth-child(5), .cart-table td:nth-child(5) {
+  width: 15%;
+  white-space: nowrap;
 }
 
 .price-text {
@@ -65,6 +80,9 @@
   background-color: #eee;
   border: none;
   padding: 5px 12px;
+  width: 34px; /* 固定寬度讓視覺更一致 */
+  display: inline-flex;
+  justify-content: center;
   border-radius: 5px;
   cursor: pointer;
   transition: 0.3s;
@@ -75,7 +93,9 @@
 }
 
 .qty-display {
-  padding: 0 15px;
+  display: inline-block;
+  min-width: 40px; /* 固定最小寬度，防止 1 位數變 2 位數時寬度晃動 */
+  text-align: center;
   font-weight: bold;
 }
 
@@ -160,15 +180,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  width: 100%;
+  width: 100% !important;
   padding: 20px 0;
-  padding-right: 40px; /* 對齊操作欄位 */
+  padding-right: 20px; /* 對齊操作欄位 */
   box-sizing: border-box;
 }
 
 .cart-summary-container {
-  /*將總計區塊的寬度從 320px 放大至 420px，實質拉大文字與金額中間的橫向空白間距 */
-  width: 420px; /* 獨立總計區塊的寬度 */
+  /* 使用 max-width 確保在小螢幕時能自動縮小，不產生橫向滾動條 */
+  width: 100%;
+  max-width: 420px; 
   display: flex;
   flex-direction: column;
 }

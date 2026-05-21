@@ -8,13 +8,13 @@
     </el-card>
 
     <el-row :gutter="20" class="stat-row">
-      <el-col :span="6">
+      <el-col :span="12">
         <el-card shadow="hover" class="stat-card">
           <template #header>今日商城訂單</template>
           <div class="stat-number">{{ todayOrderCount }}</div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <!-- <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <template #header>美容預約</template>
           <div class="stat-number">5</div>
@@ -25,8 +25,8 @@
           <template #header>旅館空房</template>
           <div class="stat-number">8</div>
         </el-card>
-      </el-col>
-      <el-col :span="6">
+      </el-col> -->
+      <el-col :span="12">
         <el-card 
           shadow="hover" 
           class="stat-card clickable-card" 
