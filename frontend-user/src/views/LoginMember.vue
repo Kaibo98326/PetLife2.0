@@ -274,7 +274,7 @@ onMounted(() => {
 });
 
 const fillMemberDemo = () => {
-  loginForm.email = 'demo@test.com'
+  loginForm.email = 'rock@gmail.com'
   loginForm.password = '123'
 }
 
@@ -283,11 +283,11 @@ const fillAdminDemo = () => {
   loginForm.password = '123'
 }
 const fillRegisterDemo = () => {
-  registerForm.memberName = '測試會員'
-  registerForm.phone = '091237895485'
-  registerForm.email = 'demo@test.com'
+  registerForm.memberName = '李洛克'
+  registerForm.phone = '09096654821'
+  registerForm.email = 'rock@gmail.com'
   registerForm.password = '123'
-  registerForm.address = '台北市信義區松仁路100號'
+  registerForm.address = '台北市信義區松仁路644號'
 }
 
 const goShop = () => {
