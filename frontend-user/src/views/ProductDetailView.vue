@@ -163,10 +163,11 @@ async function directBuy() {
   if (!product.value || quantity.value <= 0) return
 
   try {
-    await axios.post(`/api/cart/add/${userStore.memberId}`, {
+    await axios.post(`/cart/add/${userStore.memberId}`, {
       productId: product.value.productId,
       quantity: quantity.value
     })
+    await userStore.updateCartCount()
     // 直接跳到購物車頁
     router.push('/cart')
   } catch (e) {
@@ -193,6 +194,7 @@ async function addToCart() {
       productId: product.value.productId,
       quantity: quantity.value
     })
+    await userStore.updateCartCount()
     Swal.fire({
       icon: 'success',
       title: '加入成功！',

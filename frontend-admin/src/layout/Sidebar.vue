@@ -138,7 +138,7 @@ const productStore = useProductStore()
 <style scoped>
 /* 確保側邊欄是滿版的 */
 .sidebar-menu {
-  height: 100vh;
+  min-height: 100%;
   border-right: none;
 }
 

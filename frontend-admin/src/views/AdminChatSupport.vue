@@ -108,7 +108,7 @@
 
                 <div :class="['admin-msg-row', msg.role]">
                   <div class="admin-msg-bubble">
-                    <div class="admin-msg-role">{{ msg.role === 'user' ? '👤 會員' : (msg.role === 'staff' ? '🧑‍💼 客服' : '系統') }}</div>
+                    <div class="admin-msg-role">{{ msg.role === 'user' ? selectedSession.memberName : (msg.role === 'staff' ? '🧑‍💼 客服' : '系統') }}</div>
                     {{ msg.message }}
                     <span class="admin-msg-time">{{ msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : '' }}</span>
                   </div>
