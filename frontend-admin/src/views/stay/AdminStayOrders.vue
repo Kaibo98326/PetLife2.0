@@ -20,6 +20,24 @@ const editingStatus = ref('')
 const refundConfirmId = ref(null) // 待退款的 stayId
 const refundResult = ref(null) // { success: boolean, message: string }
 
+// 分頁狀態（加在 ref 區塊後面）
+const currentPage = ref(1)
+const pageSize = 10
+
+const totalPages = computed(() => Math.ceil(filteredOrders.value.length / pageSize))
+
+const pagedOrders = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredOrders.value.slice(start, start + pageSize)
+})
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--
+}
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
 // 替換原本的 refundOrder
 const refundOrder = (stayId) => {
   refundConfirmId.value = stayId // 開啟確認Modal
@@ -275,7 +293,7 @@ fetchAllOrders()
           </tr>
         </thead>
         <tbody>
-          <tr v-for="order in filteredOrders" :key="order.stayId">
+          <tr v-for="order in pagedOrders" :key="order.stayId">
             <td># {{ order.stayId }}</td>
             <td>{{ order.memberName }}</td>
             <td>{{ order.memberPhone }}</td>
@@ -369,6 +387,18 @@ fetchAllOrders()
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <span class="page-info">
+          第 {{ currentPage }} / {{ totalPages }} 頁
+          <span class="total-count">（共 {{ filteredOrders.length }} 筆）</span>
+        </span>
+        <div class="page-btns">
+          <button class="btn-page" :disabled="currentPage === 1" @click="prevPage">‹ 上一頁</button>
+          <button class="btn-page" :disabled="currentPage === totalPages" @click="nextPage">
+            下一頁 ›
+          </button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- 寵物Modal -->
@@ -784,5 +814,44 @@ fetchAllOrders()
 
 .order-table tr:hover td .pet-link:hover {
   color: #15803d;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 4px 4px;
+}
+.page-info {
+  font-size: 0.875rem;
+  color: #555;
+}
+.total-count {
+  color: #999;
+  margin-left: 4px;
+}
+.page-btns {
+  display: flex;
+  gap: 8px;
+}
+.btn-page {
+  padding: 6px 16px;
+  background: #fff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.btn-page:hover:not(:disabled) {
+  background: #4f46e5;
+  color: #fff;
+}
+.btn-page:disabled {
+  color: #c4c4c4;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
 }
 </style>
