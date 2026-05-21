@@ -234,6 +234,41 @@ watch(() => [...product.value.categoryIds], (newVal, oldVal) => {
   }
 }, { deep: true })
 
+const autofillProduct = () => {
+  product.value.productName = "【Dog Says 狗狗說】早點蛋條 (護心好健康蛋)｜雞蛋+魚油 15g x 4入"
+  product.value.productPrice = 39
+  product.value.productStock = 120
+  product.value.lowStock = 15
+  product.value.storagePosition = "D-03-24"
+  product.value.productStatus = 1
+  product.value.productDescription = `【Dog Says 狗狗說】早點蛋條系列 — 護心好健康蛋（雞蛋+魚油）\n專為狗狗設計的健康機能美味零食！\n\n💡 產品特色：\n• 軟嫩蒸蛋質地：高溫高壓精心烹煮，口感如布丁般 Q 彈細緻，好消化、好吸收，愛不釋口。\n• 雙重營養守護：優質雞蛋 ＋ 黃金魚油（富含 Omega-3），保護心血管健康並維持毛髮亮麗。\n• 鮮美滴雞湯基底：採用濃郁雞白湯與熬煮雞湯製作，香氣四溢，適口性極佳，挑嘴毛孩也瘋狂。\n• 全齡犬適用：3 個月以上幼犬、成犬及熟齡犬皆可安心食用。\n\n📦 產品規格：\n• 規格：15g x 4 條 / 包\n• 產地：台灣研發與製造\n\n🔬 營養成分分析（每 100g）：\n• 粗蛋白質 10.8% 以上\n• 粗脂肪 12.0% 以上\n• 水分 73.7% 以下\n• 熱量約 158.8 Kcal`
+  
+  // 智慧篩選匹配狗狗/零食分類
+  const autoSelectedIds = []
+  const dogZone = categories.value.find(c => c.categoryType === 2 && (c.categoryName.includes("狗") || c.categoryName.includes("犬")))
+  if (dogZone) {
+    autoSelectedIds.push(dogZone.categoryId)
+    const subCats = categories.value.filter(c => c.categoryType === 1 && c.parentId === dogZone.categoryId)
+    const targetSub = subCats.find(c => c.categoryName.includes("零食") || c.categoryName.includes("罐頭") || c.categoryName.includes("食品")) || subCats[0]
+    if (targetSub) {
+      autoSelectedIds.push(targetSub.categoryId)
+    }
+  }
+  if (autoSelectedIds.length === 0 && categories.value.length > 0) {
+    if (categories.value[0]) autoSelectedIds.push(categories.value[0].categoryId)
+    if (categories.value[1]) autoSelectedIds.push(categories.value[1].categoryId)
+  }
+  product.value.categoryIds = autoSelectedIds
+  
+  Swal.fire({
+    title: '已自動輸入資料！',
+    text: '已為您自動填充【狗狗說早點蛋條】的完整商品資訊！',
+    icon: 'success',
+    timer: 1500,
+    showConfirmButton: false
+  })
+}
+
 onMounted(() => {
   fetchProduct()
   fetchCategories()
@@ -313,7 +348,12 @@ onMounted(() => {
       <!-- Right Column -->
       <main class="grid-right">
         <section class="form-card">
-          <div class="section-title"><i class="fas fa-edit"></i> 基本資訊</div>
+          <div class="section-title d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-edit"></i> 基本資訊</span>
+            <button v-if="!productId" type="button" class="btn-autofill-demo" @click="autofillProduct">
+              <i class="fas fa-magic me-1"></i> 一鍵輸入
+            </button>
+          </div>
           <div class="form-group">
             <label class="form-label">商品名稱 <span class="text-danger">*</span></label>
             <input v-model="product.productName" type="text" class="form-control" placeholder="請輸入完整商品名稱" />
@@ -420,4 +460,31 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.btn-autofill-demo {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(230, 126, 34, 0.2);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-autofill-demo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(230, 126, 34, 0.4);
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.btn-autofill-demo:active {
+  transform: translateY(0);
+}
+</style>
 
