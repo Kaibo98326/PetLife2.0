@@ -298,6 +298,27 @@ const viewProducts = (categoryId) => {
   router.push({ path: '/admin/product', query: { categoryId } })
 }
 
+// 7. 一鍵輸入專區：🪲爬蟲專區
+const autofillReptileZone = () => {
+  newCategory.value.categoryName = '🪲爬蟲專區'
+  newCategory.value.categoryType = 2
+  newCategory.value.parentId = null
+}
+
+// 8. 一鍵輸入實體分類：爬寵物品
+const autofillReptileItems = () => {
+  newCategory.value.categoryName = '爬寵物品'
+  newCategory.value.categoryType = 1
+  
+  // 智慧配對：若列表中已建立「🪲爬蟲專區」，自動將下拉選單選取該專區
+  const parent = categories.value.find(c => c.categoryType === 2 && c.categoryName === '🪲爬蟲專區')
+  if (parent) {
+    newCategory.value.parentId = parent.categoryId
+  } else {
+    newCategory.value.parentId = null
+  }
+}
+
 onMounted(fetchCategories)
 </script>
 
@@ -314,9 +335,11 @@ onMounted(fetchCategories)
         <div class="form-group">
           <label class="form-label">分類類型</label>
           <select v-model="newCategory.categoryType" class="form-select">
-            <option v-for="(info, type) in typeMap" :key="type" :value="Number(type)">
-              {{ info.label }}
-            </option>
+            <template v-for="(info, type) in typeMap" :key="type">
+              <option v-if="Number(type) !== 3" :value="Number(type)">
+                {{ info.label }}
+              </option>
+            </template>
           </select>
         </div>
         <div class="form-group" v-if="newCategory.categoryType === 1">
@@ -332,6 +355,17 @@ onMounted(fetchCategories)
           <button @click="submitAdd" class="btn-primary-custom w-100">+ 新增分類</button>
         </div>
       </div>
+      
+      <!-- 快捷一鍵新增區 -->
+      <div class="quick-actions-row mt-4 pt-3 border-top d-flex gap-3 align-items-center">
+        <span class="text-muted fw-bold" style="font-size: 0.85rem;"><i class="fas fa-bolt text-warning me-1"></i> 快捷操作：</span>
+        <button @click="autofillReptileZone" class="btn btn-outline-warning rounded-pill px-3 py-1 fw-bold" style="font-size: 0.85rem; border-color: #ffe0b2; color: #e67e22;">
+          一鍵輸入 專區 (🪲爬蟲專區)
+        </button>
+        <button @click="autofillReptileItems" class="btn btn-outline-warning rounded-pill px-3 py-1 fw-bold" style="font-size: 0.85rem; border-color: #ffe0b2; color: #e67e22;">
+          一鍵輸入 實體分類 (爬寵物品)
+        </button>
+      </div>
     </div>
 
     <!-- 編輯區塊 (保留 Inline Edit 彈出效果) -->
@@ -345,9 +379,11 @@ onMounted(fetchCategories)
         <div class="form-group">
           <label class="form-label">分類類型</label>
           <select v-model="editItem.categoryType" class="form-select">
-            <option v-for="(info, type) in typeMap" :key="type" :value="Number(type)">
-              {{ info.label }}
-            </option>
+            <template v-for="(info, type) in typeMap" :key="type">
+              <option v-if="Number(type) !== 3" :value="Number(type)">
+                {{ info.label }}
+              </option>
+            </template>
           </select>
         </div>
         <div class="form-group" v-if="editItem.categoryType === 1">
@@ -367,7 +403,7 @@ onMounted(fetchCategories)
     </div>
 
     <!-- 區塊一：活動標籤 -->
-    <div class="category-section">
+    <!-- <div class="category-section">
       <h4 class="section-title"><i class="fas fa-tags" style="color: #d81b60;"></i> 活動標籤 【 備註：等昀翔完成後，要再修改這裡 】</h4>
       <ul class="category-list">
         <li v-for="cat in activityCategories" :key="cat.categoryId" class="category-item">
@@ -391,7 +427,7 @@ onMounted(fetchCategories)
         </li>
       </ul>
       <div v-if="activityCategories.length === 0" class="text-center text-muted p-4 border rounded mt-3 bg-light">沒有資料</div>
-    </div>
+    </div> -->
 
     <!-- 區塊二：分類結構 -->
     <div class="category-section">
