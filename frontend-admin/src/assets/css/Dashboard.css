@@ -193,6 +193,25 @@ body {
   width: 240px;
   flex-shrink: 0;
   background-color: var(--sidebar-bg);
+  overflow-y: auto;
+}
+
+/* 為了美觀，加上自定義的精緻滾動條樣式 */
+.sidebar-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-wrapper::-webkit-scrollbar-track {
+  background: var(--sidebar-bg);
+}
+
+.sidebar-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.sidebar-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .sidebar-menu {

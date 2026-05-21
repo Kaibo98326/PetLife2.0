@@ -284,7 +284,7 @@ const fillAdminDemo = () => {
 }
 const fillRegisterDemo = () => {
   registerForm.memberName = '測試會員'
-  registerForm.phone = '0912345678'
+  registerForm.phone = '091237895485'
   registerForm.email = 'demo@test.com'
   registerForm.password = '123'
   registerForm.address = '台北市信義區松仁路100號'

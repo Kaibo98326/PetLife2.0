@@ -60,10 +60,13 @@ public class InnerCategoryController {
 
     // 更新分類
     @PutMapping("/{id}") // 改用 PUT 代表更新
-    public ResponseEntity<String> update(@PathVariable Integer id, @RequestBody Category category) {
-        category.setCategoryId(id);
-        categoryService.updateCategory(category);
-        return ResponseEntity.ok("success");
+    public ResponseEntity<Category> updateCategory(
+            @PathVariable Integer id,
+            @RequestBody Category category
+    ) {
+        return ResponseEntity.ok(
+                categoryService.updateCategory(id, category)
+        );
     }
 
     // 刪除分類

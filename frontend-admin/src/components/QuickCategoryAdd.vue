@@ -5,6 +5,7 @@ import request from '@/utils/request'
 import Swal from 'sweetalert2'
 
 import '@/assets/css/Category.css'
+import { SortOrder } from 'element-plus/es/components/table-v2/src/constants.mjs'
 
 const emit = defineEmits(['success', 'tag-select']) // 加入 tag-select 事件供主頁面接收
 
@@ -59,7 +60,7 @@ const handleEditTag = async (tag) => {
   if (newName && newName.trim() !== tag.categoryName) {
     try {
       // 封裝符合後端 Category 模型的物件
-      const updatedCategory = { categoryName: newName.trim(), categoryType: 3, parentId: tag.parentId };
+      const updatedCategory = { categoryId: tag.categoryId, categoryName: newName.trim(), categoryType: 3, parentId: tag.parentId  ?? null,  SortOrder:  0};
       // 呼叫 InnerCategoryController.java 內建的更新 API
       await request.put(`/api/categories/${tag.categoryId}`, updatedCategory);
       Swal.fire({ icon: 'success', title: '修改成功', text: '標籤名稱已成功更新', timer: 1500, showConfirmButton: false });
