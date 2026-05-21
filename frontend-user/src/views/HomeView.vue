@@ -863,7 +863,6 @@ onMounted(async () => {
                   class="section-title text-dark fw-bold mb-4"
                   style="border-left: none; padding-left: 0; margin-left: 0"
                 >
-                  🛍️ 超值商品
                 </h4>
 
                 <div
