@@ -22,12 +22,12 @@ const route = useRoute()
 const router = useRouter()
 
 // ── 輪播圖片 ──────────────────────────────────────────────────────────────
-import ad01 from '@/assets/images/ad01.jpg'
-import ad02 from '@/assets/images/ad02.jpg'
-import ad03 from '@/assets/images/ad03.jpg'
-import ad04 from '@/assets/images/ad04.jpg'
-import ad05 from '@/assets/images/ad05.jpg'
-import ad06 from '@/assets/images/ad06.jpg'
+import ad01 from '@/assets/images/ad01.png'
+import ad02 from '@/assets/images/ad02.png'
+import ad03 from '@/assets/images/ad03.png'
+import ad04 from '@/assets/images/ad04.png'
+import ad05 from '@/assets/images/ad05.png'
+import ad06 from '@/assets/images/ad06.png'
 
 const carouselImages = ref([
   { src: ad01, alt: '廣告輪播01' },
@@ -863,7 +863,6 @@ onMounted(async () => {
                   class="section-title text-dark fw-bold mb-4"
                   style="border-left: none; padding-left: 0; margin-left: 0"
                 >
-                  🛍️ 超值商品
                 </h4>
 
                 <div
