@@ -4,8 +4,7 @@ import { useDiscount } from '@/stores/useDiscount';
 import DiscountFormModal from '@/components/DiscountFormModal.vue';
 import DiscountUsageDetailModal from '@/components/DiscountUsageDetailModal.vue';
 import QuickCategoryAdd from '@/components/QuickCategoryAdd.vue';
-import request from '@/utils/request';
-import Swal from 'sweetalert2';
+
 
 // 使用 useDiscount Pinia Store 管理折扣相關狀態與邏輯
 const { 

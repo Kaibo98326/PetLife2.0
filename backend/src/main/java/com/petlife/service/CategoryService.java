@@ -40,7 +40,25 @@ public class CategoryService {
     }
 
 //===== 修改分類 ============================================================================================
-    public Category updateCategory(Category category) {
+    public Category updateCategory(Integer id, Category req) {
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("找不到分類"));
+
+        if (req.getCategoryName() != null) {
+            category.setCategoryName(req.getCategoryName());
+        }
+
+        if (req.getCategoryType() != null) {
+            category.setCategoryType(req.getCategoryType());
+        }
+
+        category.setParentId(req.getParentId());
+
+        if (req.getSortOrder() != null) {
+            category.setSortOrder(req.getSortOrder());
+        }
+
         return categoryRepository.save(category);
     }
 
