@@ -43,10 +43,12 @@ const handleChartClick = async (params) => {
   selectedStatusTitle.value = params.name
 
   // 如果點擊的是每月趨勢圖
-  if (chartMode.value === 'orderTrend') {
-    selectedStatusTitle.value = `${params.name} 份訂單`
-    searchType = 'all'
-    keyword = ''
+ if (chartMode.value === 'orderTrend') {
+    const lineType = params.seriesName || '訂單'
+    selectedStatusTitle.value = `${params.name} 份 【${lineType}】`
+
+    searchType = params.seriesName === '活動促銷' ? 'trendPromo' : 'trendNormal'
+    keyword = params.name // 傳遞月份(2026-05)
   }
 
   try {
@@ -142,22 +144,36 @@ const loadStatusChart = async () => {
 const loadOrderTrendChart = async () => {
   try {
     const res = await request.get('/api/order/analysis/trends')
+    
+    // 1. 月份 X 軸保持不變
     const months = res.data.map((item) => item.month)
-    const counts = res.data.map((item) => item.count)
+    
+    // 2. 分別拆出兩條線的數值
+    const normalCounts = res.data.map((item) => item.normalCount)
+    const promoCounts = res.data.map((item) => item.promoCount)
 
     chartOption.value = {
       title: { text: '營業每月訂單趨勢走勢', left: 'center' },
       tooltip: { trigger: 'axis' },
+      legend: { data: ['一般訂單', '活動促銷'], bottom: '0%' }, // 加上圖例切換
       xAxis: { type: 'category', data: months },
       yAxis: { type: 'value' },
       series: [
         {
-          name: '訂單筆數',
-          data: counts,
+          name: '一般訂單',
+          data: normalCounts,
           type: 'line',
           smooth: true,
-          itemStyle: { color: '#3498db' },
-          areaStyle: { color: 'rgba(52, 152, 219, 0.2)' },
+          itemStyle: { color: '#34495e' }, // 深灰色
+          areaStyle: { color: 'rgba(52, 73, 94, 0.1)' },
+        },
+        {
+          name: '活動促銷',
+          data: promoCounts,
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#e67e22' }, // 亮橘色橘線，代表活動帶貨
+          areaStyle: { color: 'rgba(230, 126, 34, 0.1)' },
         },
       ],
     }

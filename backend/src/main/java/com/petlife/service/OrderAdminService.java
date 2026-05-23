@@ -128,13 +128,18 @@ public class OrderAdminService {
 
 	// 取得每月訂單趨勢走勢
 	public List<Map<String, Object>> getOrderTrendAnalysis() {
-		List<Map<String, Object>> rawData = orderRepository.countOrdersByMonthTrend();
+		List<Map<String, Object>> rawData = orderRepository.countOrdersByMonthTrendGrouped();
 		List<Map<String, Object>> resultList = new ArrayList<>();
 
 		for (Map<String, Object> row : rawData) {
 			Map<String, Object> item = new HashMap<>();
 			item.put("month", row.get("month"));
-			item.put("count", row.get("count"));
+
+			// 轉出一般訂單數與活動訂單數
+			item.put("normalCount",
+					row.get("normalCount") != null ? ((Number) row.get("normalCount")).longValue() : 0L);
+			item.put("promoCount", row.get("promoCount") != null ? ((Number) row.get("promoCount")).longValue() : 0L);
+
 			resultList.add(item);
 		}
 		return resultList;
