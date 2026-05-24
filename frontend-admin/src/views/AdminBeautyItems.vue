@@ -291,7 +291,6 @@ watch(totalPages, clampCurrentPage)
           </el-form-item>
           <div class="full beauty-image-preview">
             <img :src="previewImageUrl" alt="beauty item preview" />
-            <span>{{ form.imageUrl || '尚未建立圖片路徑，儲存後會自動產生' }}</span>
           </div>
           <el-form-item label="項目狀態">
             <el-switch v-model="form.isActive" active-text="啟用" inactive-text="停用" />
