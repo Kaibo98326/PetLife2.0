@@ -1,6 +1,5 @@
 package com.petlife.controller;
 
-import com.petlife.model.Product;
 import com.petlife.service.ProductViewHistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -35,8 +34,8 @@ public class ProductViewHistoryController {
      * 取得最近瀏覽紀錄
      */
     @GetMapping("/{memberId}")
-    public ResponseEntity<List<Product>> getRecentViews(@PathVariable Integer memberId) {
-        List<Product> products = historyService.getRecentViews(memberId);
+    public ResponseEntity<List<Map<String, Object>>> getRecentViews(@PathVariable Integer memberId) {
+        List<Map<String, Object>> products = historyService.getRecentViews(memberId);
         return ResponseEntity.ok(products);
     }
 }
