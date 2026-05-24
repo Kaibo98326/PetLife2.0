@@ -68,7 +68,7 @@ const addPreviewUrl = ref(null)
 
 const fillAddDemo = () => {
     addForm.value = {
-        memberId: 201,
+        ...addForm.value,
         petName: '小白',
         species: '貓',
         breed: '布偶貓',
