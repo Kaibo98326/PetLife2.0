@@ -538,7 +538,7 @@ onMounted(() => {
       <table class="custom-table align-middle">
         <thead>
           <tr>
-            <th style="width: 10px;"><input type="checkbox" ref="selectAllRef" :checked="isAllSelected" @change="toggleSelectAll" class="form-check-input"></th>
+            <th style="width: 50px;"><input type="checkbox" ref="selectAllRef" :checked="isAllSelected" @change="toggleSelectAll" class="form-check-input"></th>
             <th style="width: 110px;" class="sortable-th" @click="toggleSort('productStatus')">
               <div class="th-sort-wrap">
                 <span>狀態</span>
@@ -548,7 +548,7 @@ onMounted(() => {
                 </span>
               </div>
             </th>
-            <th style="width: 80px;" class="sortable-th" @click="toggleSort('productId')">
+            <th style="width: 110px;" class="sortable-th" @click="toggleSort('productId')">
               <div class="th-sort-wrap">
                 <span>商品</span>
                 <span class="sort-arrows">
@@ -566,7 +566,7 @@ onMounted(() => {
                 </span>
               </div>
             </th>
-            <th style="width: 80px;" class="sortable-th" @click="toggleSort('productPrice')">
+            <th style="width: 120px;" class="sortable-th" @click="toggleSort('productPrice')">
               <div class="th-sort-wrap">
                 <span>單價</span>
                 <span class="sort-arrows">
@@ -575,7 +575,7 @@ onMounted(() => {
                 </span>
               </div>
             </th>
-            <th style="width: 80px;" class="sortable-th" @click="toggleSort('productStock')">
+            <th style="width: 120px;" class="sortable-th" @click="toggleSort('productStock')">
               <div class="th-sort-wrap">
                 <span>庫存</span>
                 <span class="sort-arrows">
@@ -584,7 +584,7 @@ onMounted(() => {
                 </span>
               </div>
             </th>
-            <th style="width: 150px;" class="sortable-th" @click="toggleSort('categoryName')">
+            <th style="width: 180px;" class="sortable-th" @click="toggleSort('categoryName')">
               <div class="th-sort-wrap">
                 <span>分類</span>
                 <span class="sort-arrows">
@@ -593,7 +593,7 @@ onMounted(() => {
                 </span>
               </div>
             </th>
-            <th style="width: 90px;">操作</th>
+            <th style="width: 120px;">操作</th>
           </tr>
         </thead>
         <tbody>
