@@ -769,7 +769,8 @@ body {
     font-size: 1.6rem;
 }
 
-.list-mode .add-to-cart-btn {
+.list-mode .add-to-cart-btn,
+.list-mode .heart-btn {
     width: 45px;
     height: 45px;
 }

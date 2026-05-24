@@ -48,11 +48,22 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 			+ "WHERE is_deleted = 0 AND order_date >= :oneMonthAgo " + "GROUP BY order_status", nativeQuery = true)
 	List<Map<String, Object>> countRecentOrdersByStatus(@Param("oneMonthAgo") LocalDateTime oneMonthAgo);
 
-	// 按月份統計訂單趨勢
-	@Query(value = "SELECT FORMAT(order_date, 'yyyy-MM') as month, COUNT(*) as count " + "FROM [Order] "
-			+ "WHERE is_deleted = 0 " + "GROUP BY FORMAT(order_date, 'yyyy-MM') "
-			+ "ORDER BY month ASC", nativeQuery = true)
-	List<Map<String, Object>> countOrdersByMonthTrend();
+	// 按月份統計訂單趨勢 (區分一般與活動雙線，純看商品折扣不看紅利)
+	@Query(value = "SELECT " + "    FORMAT(o.order_date, 'yyyy-MM') as [month], "
+			+ "    SUM(CASE WHEN od.order_id IS NULL THEN 1 ELSE 0 END) as normalCount, "
+			+ "    SUM(CASE WHEN od.order_id IS NOT NULL THEN 1 ELSE 0 END) as promoCount " + "FROM [Order] o "
+			+ "LEFT JOIN (SELECT DISTINCT order_id FROM [OrderDiscount]) od ON o.order_id = od.order_id "
+			+ "WHERE o.is_deleted = 0 " + "GROUP BY FORMAT(o.order_date, 'yyyy-MM') "
+			+ "ORDER BY [month] ASC", nativeQuery = true)
+	List<Map<String, Object>> countOrdersByMonthTrendGrouped();
+
+	// 給前端Modal點擊雙線圖後，依據月份與是否為活動訂單進行篩選
+	@Query(value = "SELECT o.* FROM [Order] o "
+			+ "LEFT JOIN (SELECT DISTINCT order_id FROM [OrderDiscount]) od ON o.order_id = od.order_id "
+			+ "WHERE o.is_deleted = 0 " + "AND FORMAT(o.order_date, 'yyyy-MM') = :month "
+			+ "AND ((:isPromo = 1 AND od.order_id IS NOT NULL) OR (:isPromo = 0 AND od.order_id IS NULL)) "
+			+ "ORDER BY o.order_date DESC", nativeQuery = true)
+	List<Order> findOrdersByMonthAndType(@Param("month") String month, @Param("isPromo") boolean isPromo);
 
 	// 給前端Modal點擊圖表後，進行條件篩選訂單的擴充查詢
 	List<Order> findByOrderPaymentAndIsDeletedFalseOrderByOrderDateDesc(String payment);

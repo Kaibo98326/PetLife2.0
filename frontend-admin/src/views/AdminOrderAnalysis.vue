@@ -43,10 +43,15 @@ const handleChartClick = async (params) => {
   selectedStatusTitle.value = params.name
 
   // 如果點擊的是每月趨勢圖
-  if (chartMode.value === 'orderTrend') {
-    selectedStatusTitle.value = `${params.name} 份訂單`
-    searchType = 'all'
-    keyword = ''
+if (chartMode.value === 'orderTrend') {
+    const lineType = params.seriesName || '訂單'
+    // 確保拿到的月份乾淨沒有雜質
+    const pureMonth = String(params.name).trim() 
+    
+    selectedStatusTitle.value = `${pureMonth} 月份 【${lineType}】`
+
+    searchType = params.seriesName === '活動促銷' ? 'trendPromo' : 'trendNormal'
+    keyword = pureMonth 
   }
 
   try {
@@ -63,7 +68,7 @@ const handleChartClick = async (params) => {
   modal.show()
 }
 
-// ── ECharts 元件註冊 ──────────────────────────────────────────────
+// ECharts 元件註冊
 echarts.use([
   TitleComponent,
   TooltipComponent,
@@ -125,6 +130,7 @@ const loadStatusChart = async () => {
           name: '訂單筆數',
           type: 'bar',
           barWidth: '40%',
+          // silent: true,
           data: [
             { value: data.completed, itemStyle: { color: '#2ecc71' } },
             { value: data.pending, itemStyle: { color: '#f1c40f' } },
@@ -142,22 +148,36 @@ const loadStatusChart = async () => {
 const loadOrderTrendChart = async () => {
   try {
     const res = await request.get('/api/order/analysis/trends')
+    
+    // 1. 月份 X 軸保持不變
     const months = res.data.map((item) => item.month)
-    const counts = res.data.map((item) => item.count)
+    
+    // 2. 分別拆出兩條線的數值
+    const normalCounts = res.data.map((item) => item.normalCount)
+    const promoCounts = res.data.map((item) => item.promoCount)
 
     chartOption.value = {
       title: { text: '營業每月訂單趨勢走勢', left: 'center' },
       tooltip: { trigger: 'axis' },
+      legend: { data: ['一般訂單', '活動促銷'], bottom: '0%' }, // 加上圖例切換
       xAxis: { type: 'category', data: months },
       yAxis: { type: 'value' },
       series: [
         {
-          name: '訂單筆數',
-          data: counts,
+          name: '一般訂單',
+          data: normalCounts,
           type: 'line',
           smooth: true,
-          itemStyle: { color: '#3498db' },
-          areaStyle: { color: 'rgba(52, 152, 219, 0.2)' },
+          itemStyle: { color: '#1f77b4' },
+          areaStyle: { color: 'rgba(31, 119, 180, 0.1)' },
+        },
+        {
+          name: '活動促銷',
+          data: promoCounts,
+          type: 'line',
+          smooth: true,
+          itemStyle: { color: '#e67e22' }, 
+          areaStyle: { color: 'rgba(230, 126, 34, 0.1)' },
         },
       ],
     }
@@ -174,7 +194,7 @@ onMounted(() => {
 <template>
   <div class="p-4">
     <div class="card shadow-sm p-4">
-      <h3 class="mb-4">訂單數據業務分析系統</h3>
+      <h3 class="mb-4">訂單數據業務分析</h3>
 
       <div class="d-flex gap-2 mb-4">
         <button
@@ -189,7 +209,7 @@ onMounted(() => {
           :class="chartMode === 'status' ? 'btn-warning' : 'btn-outline-warning'"
           @click="changeChartMode('status')"
         >
-          近一個月狀態
+          本月訂單狀態
         </button>
         <button
           class="btn"
