@@ -68,7 +68,7 @@ public class OrderAdminService {
 		}).orElse(false);
 	}
 
-	// 🎯 1. 取得結帳方式佔比統計
+	// 取得結帳方式佔比統計
 	public Map<String, Long> getPaymentAnalysis() {
 		List<Map<String, Object>> rawData = orderRepository.countOrdersByPaymentMethod();
 		Map<String, Long> resultMap = new HashMap<>();
@@ -149,8 +149,17 @@ public class OrderAdminService {
 	public List<Order> findOrdersByCondition(String searchType, String keyword) {
 		if ("paymentMethod".equals(searchType)) {
 			return orderRepository.findByOrderPaymentAndIsDeletedFalseOrderByOrderDateDesc(keyword);
+
 		} else if ("orderStatus".equals(searchType)) {
 			return orderRepository.findByOrderStatusAndIsDeletedFalseOrderByOrderDateDesc(keyword);
+
+		} else if ("trendPromo".equals(searchType)) {
+			// 活動促銷的點點
+			return orderRepository.findOrdersByMonthAndType(keyword, true);
+
+		} else if ("trendNormal".equals(searchType)) {
+			// 一般訂單線的點點
+			return orderRepository.findOrdersByMonthAndType(keyword, false);
 		}
 		return orderRepository.findByIsDeletedFalseOrderByOrderDateDesc();
 	}

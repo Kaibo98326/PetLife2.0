@@ -43,12 +43,15 @@ const handleChartClick = async (params) => {
   selectedStatusTitle.value = params.name
 
   // 如果點擊的是每月趨勢圖
- if (chartMode.value === 'orderTrend') {
+if (chartMode.value === 'orderTrend') {
     const lineType = params.seriesName || '訂單'
-    selectedStatusTitle.value = `${params.name} 份 【${lineType}】`
+    // 確保拿到的月份乾淨沒有雜質
+    const pureMonth = String(params.name).trim() 
+    
+    selectedStatusTitle.value = `${pureMonth} 月份 【${lineType}】`
 
     searchType = params.seriesName === '活動促銷' ? 'trendPromo' : 'trendNormal'
-    keyword = params.name // 傳遞月份(2026-05)
+    keyword = pureMonth 
   }
 
   try {
@@ -65,7 +68,7 @@ const handleChartClick = async (params) => {
   modal.show()
 }
 
-// ── ECharts 元件註冊 ──────────────────────────────────────────────
+// ECharts 元件註冊
 echarts.use([
   TitleComponent,
   TooltipComponent,
@@ -127,6 +130,7 @@ const loadStatusChart = async () => {
           name: '訂單筆數',
           type: 'bar',
           barWidth: '40%',
+          // silent: true,
           data: [
             { value: data.completed, itemStyle: { color: '#2ecc71' } },
             { value: data.pending, itemStyle: { color: '#f1c40f' } },
@@ -164,15 +168,15 @@ const loadOrderTrendChart = async () => {
           data: normalCounts,
           type: 'line',
           smooth: true,
-          itemStyle: { color: '#34495e' }, // 深灰色
-          areaStyle: { color: 'rgba(52, 73, 94, 0.1)' },
+          itemStyle: { color: '#1f77b4' },
+          areaStyle: { color: 'rgba(31, 119, 180, 0.1)' },
         },
         {
           name: '活動促銷',
           data: promoCounts,
           type: 'line',
           smooth: true,
-          itemStyle: { color: '#e67e22' }, // 亮橘色橘線，代表活動帶貨
+          itemStyle: { color: '#e67e22' }, 
           areaStyle: { color: 'rgba(230, 126, 34, 0.1)' },
         },
       ],
@@ -190,7 +194,7 @@ onMounted(() => {
 <template>
   <div class="p-4">
     <div class="card shadow-sm p-4">
-      <h3 class="mb-4">訂單數據業務分析系統</h3>
+      <h3 class="mb-4">訂單數據業務分析</h3>
 
       <div class="d-flex gap-2 mb-4">
         <button
@@ -205,7 +209,7 @@ onMounted(() => {
           :class="chartMode === 'status' ? 'btn-warning' : 'btn-outline-warning'"
           @click="changeChartMode('status')"
         >
-          近一個月狀態
+          本月訂單狀態
         </button>
         <button
           class="btn"
