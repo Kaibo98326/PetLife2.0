@@ -68,7 +68,7 @@ public class OrderAdminService {
 		}).orElse(false);
 	}
 
-	// 🎯 1. 取得結帳方式佔比統計
+	// 取得結帳方式佔比統計
 	public Map<String, Long> getPaymentAnalysis() {
 		List<Map<String, Object>> rawData = orderRepository.countOrdersByPaymentMethod();
 		Map<String, Long> resultMap = new HashMap<>();
@@ -128,13 +128,18 @@ public class OrderAdminService {
 
 	// 取得每月訂單趨勢走勢
 	public List<Map<String, Object>> getOrderTrendAnalysis() {
-		List<Map<String, Object>> rawData = orderRepository.countOrdersByMonthTrend();
+		List<Map<String, Object>> rawData = orderRepository.countOrdersByMonthTrendGrouped();
 		List<Map<String, Object>> resultList = new ArrayList<>();
 
 		for (Map<String, Object> row : rawData) {
 			Map<String, Object> item = new HashMap<>();
 			item.put("month", row.get("month"));
-			item.put("count", row.get("count"));
+
+			// 轉出一般訂單數與活動訂單數
+			item.put("normalCount",
+					row.get("normalCount") != null ? ((Number) row.get("normalCount")).longValue() : 0L);
+			item.put("promoCount", row.get("promoCount") != null ? ((Number) row.get("promoCount")).longValue() : 0L);
+
 			resultList.add(item);
 		}
 		return resultList;
@@ -144,8 +149,17 @@ public class OrderAdminService {
 	public List<Order> findOrdersByCondition(String searchType, String keyword) {
 		if ("paymentMethod".equals(searchType)) {
 			return orderRepository.findByOrderPaymentAndIsDeletedFalseOrderByOrderDateDesc(keyword);
+
 		} else if ("orderStatus".equals(searchType)) {
 			return orderRepository.findByOrderStatusAndIsDeletedFalseOrderByOrderDateDesc(keyword);
+
+		} else if ("trendPromo".equals(searchType)) {
+			// 活動促銷的點點
+			return orderRepository.findOrdersByMonthAndType(keyword, true);
+
+		} else if ("trendNormal".equals(searchType)) {
+			// 一般訂單線的點點
+			return orderRepository.findOrdersByMonthAndType(keyword, false);
 		}
 		return orderRepository.findByIsDeletedFalseOrderByOrderDateDesc();
 	}
