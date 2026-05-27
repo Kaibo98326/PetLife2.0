@@ -291,6 +291,7 @@ public class ProductService {
             // ✨ 修改：同時抓取 Main 與 Addon 的分類關聯商品 (修正為 Set 避免 Type mismatch 錯誤)
             java.util.Set<com.petlife.model.DiscountCategory> dCats = d.getDiscountCategories();
             for(com.petlife.model.DiscountCategory dc : dCats) {
+                if (dc.getCategory() == null) continue; // ✨ 新增防呆：防範分類關聯為空
                 if("Main".equals(dc.getCategoryRole()) || "Addon".equals(dc.getCategoryRole())) {
                     List<Integer> pIds = productRepository.findProductIdsByCategoryIds(java.util.Collections.singletonList(dc.getCategory().getCategoryId()));
                     for (Integer pid : pIds) {
@@ -305,6 +306,7 @@ public class ProductService {
             // ✨ 修改：同時抓取 Main 與 Addon 的單品關聯商品 (修正為 Set 避免 Type mismatch 錯誤)
             java.util.Set<com.petlife.model.DiscountProduct> dProds = d.getDiscountProducts();
             for(com.petlife.model.DiscountProduct dp : dProds) {
+                if (dp.getProduct() == null) continue; // ✨ 新增防呆：防範商品關聯為空
                 if("Main".equals(dp.getProductRole()) || "Addon".equals(dp.getProductRole())) {
                     Integer pid = dp.getProduct().getProductId();
                     validProductIds.add(pid);

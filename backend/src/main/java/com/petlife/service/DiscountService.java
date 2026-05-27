@@ -63,10 +63,19 @@ public class DiscountService {
 		return discountRepository.findAll();
 	}
 
-	// ：加入 addonCategoryIds 參數，並區分 Main 與 Addon
 	// ✨ 修改：加入 tagCategoryId 參數，用來接收前端選取的標籤 ID
 	public void saveDiscountWithDetails(Discount discount, List<Integer> categoryIds, List<Integer> mainProductIds,
 			List<Integer> addonProductIds, List<Integer> addonCategoryIds, Integer tagCategoryId) { // ✨ 新增：接收前端傳來的標籤 ID
+
+		if (discount.getDiscountId() != null) {
+			// 先清除舊的關聯，避免更新/修改時一直重疊、重複新增
+			discountCategoryRepository.deleteByDiscount_DiscountId(discount.getDiscountId());
+			discountProductRepository.deleteByDiscount_DiscountId(discount.getDiscountId());
+			
+			// 清空實體記憶體中的舊關聯，防止快取快照髒資料
+			discount.setDiscountCategories(new java.util.HashSet<>());
+			discount.setDiscountProducts(new java.util.HashSet<>());
+		}
 
 		Discount savedDiscount = discountRepository.save(discount);
 
